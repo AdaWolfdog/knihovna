@@ -11,7 +11,7 @@ export interface BookExportRow {
   'Rok vydání': string;
   Překladatel: string;
   'Číslo vydání': string;
-  'Číslo exempláře': number;
+  'Počet kusů': number;
   'Datum a čas naskenování': string;
   Poznámka: string;
 }
@@ -42,7 +42,7 @@ export function prepareExportData(
       'Rok vydání': book.publishedYear || '',
       Překladatel: book.translator || '',
       'Číslo vydání': book.editionNumber || '',
-      'Číslo exempláře': book.copyNumber || 1,
+      'Počet kusů': book.quantity || 1,
       'Datum a čas naskenování': formattedDate,
       Poznámka: book.notes || '',
     };

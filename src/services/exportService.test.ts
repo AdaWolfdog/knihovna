@@ -19,7 +19,7 @@ describe('prepareExportData', () => {
       publishedYear: '1952',
       translator: 'Josef Novák',
       editionNumber: '3. vydání',
-      copyNumber: 2,
+      quantity: 2,
       scannedAt: new Date('2026-10-03T10:00:00Z'),
       notes: 'Zachovalý stav',
     };
@@ -41,7 +41,7 @@ describe('prepareExportData', () => {
       'Rok vydání': '1952',
       Překladatel: 'Josef Novák',
       'Číslo vydání': '3. vydání',
-      'Číslo exempláře': 2,
+      'Počet kusů': 2,
       'Datum a čas naskenování': expect.any(String),
       Poznámka: 'Zachovalý stav',
     });
