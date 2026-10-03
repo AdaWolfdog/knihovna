@@ -37,6 +37,9 @@ export interface Book {
   quantity: number; // Number of physical copies on this shelf
   scannedAt: Date;
   notes?: string;
+  genre?: string;
+  keywords?: string;
+  coverUrl?: string;
 }
 
 export class LibraryDatabase extends Dexie {

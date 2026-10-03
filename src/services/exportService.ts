@@ -9,6 +9,8 @@ export interface BookExportRow {
   Název: string;
   Autor: string;
   'Rok vydání': string;
+  Žánr: string;
+  'Klíčová slova': string;
   Překladatel: string;
   'Číslo vydání': string;
   'Počet kusů': number;
@@ -40,6 +42,8 @@ export function prepareExportData(
       Název: book.title || '',
       Autor: book.author || '',
       'Rok vydání': book.publishedYear || '',
+      Žánr: book.genre || '',
+      'Klíčová slova': book.keywords || '',
       Překladatel: book.translator || '',
       'Číslo vydání': book.editionNumber || '',
       'Počet kusů': book.quantity || 1,
@@ -63,9 +67,11 @@ export function exportToXLSX(data: BookExportRow[], filename = 'knihy_export.xls
     { wch: 30 }, // Název
     { wch: 22 }, // Autor
     { wch: 12 }, // Rok vydání
+    { wch: 16 }, // Žánr
+    { wch: 24 }, // Klíčová slova
     { wch: 18 }, // Překladatel
     { wch: 14 }, // Číslo vydání
-    { wch: 16 }, // Číslo exempláře
+    { wch: 12 }, // Počet kusů
     { wch: 22 }, // Datum a čas naskenování
     { wch: 20 }, // Poznámka
   ];
