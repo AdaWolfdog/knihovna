@@ -20,6 +20,8 @@ describe('prepareExportData', () => {
       translator: 'Josef Novák',
       editionNumber: '3. vydání',
       quantity: 2,
+      genre: 'Román',
+      keywords: 'klasika, české drama',
       scannedAt: new Date('2026-10-03T10:00:00Z'),
       notes: 'Zachovalý stav',
     };
@@ -39,6 +41,8 @@ describe('prepareExportData', () => {
       Název: 'Babička',
       Autor: 'Božena Němcová',
       'Rok vydání': '1952',
+      Žánr: 'Román',
+      'Klíčová slova': 'klasika, české drama',
       Překladatel: 'Josef Novák',
       'Číslo vydání': '3. vydání',
       'Počet kusů': 2,

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { fetchBookByIsbn, normalizeIsbn } from '../services/isbnService';
 import { db, type Book } from '../db/db';
-import { Camera, Search, CheckCircle, AlertCircle, RefreshCw, BookPlus } from 'lucide-react';
+import { Camera, Search, CheckCircle, AlertCircle, RefreshCw, BookPlus, Zap, SkipForward, ArrowRight, Image as ImageIcon } from 'lucide-react';
 import { DuplicateModal } from './DuplicateModal';
 import { ManualBookModal } from './ManualBookModal';
 
@@ -37,6 +37,12 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   // Duplicate modal state
   const [duplicateBook, setDuplicateBook] = useState<Book | null>(null);
   const [pendingBookData, setPendingBookData] = useState<Partial<Book> | null>(null);
+
+  // Fast scanning mode state
+  const [isFastScanMode, setIsFastScanMode] = useState(false);
+  const [skippedIsbns, setSkippedIsbns] = useState<string[]>([]);
+  const [unrecognizedIsbnBanner, setUnrecognizedIsbnBanner] = useState<string | null>(null);
+  const [isProcessingSkippedList, setIsProcessingSkippedList] = useState(false);
 
   // Manual modal state
   const [showManualModal, setShowManualModal] = useState(false);
@@ -157,7 +163,27 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
     setStatusMessage({ type: 'info', text: `Vyhledávám v katalozích (Knihovny.cz, Open Library...): ${cleanIsbn}` });
 
     try {
-      // 1. Check if ISBN already exists on SAME shelf vs elsewhere in Library
+      // 1. If we are currently in "isProcessingSkippedList" mode (user finishes fast scan and rescans skipped books):
+      if (isProcessingSkippedList && skippedIsbns.length > 0) {
+        if (skippedIsbns.includes(cleanIsbn)) {
+          // Open manual modal for this scanned skipped book
+          setUnrecognizedIsbnBanner(null);
+          setManualModalIsbn(cleanIsbn);
+          setShowManualModal(true);
+          setLoading(false);
+          return;
+        } else {
+          // Scanned ISBN isn't in the skipped list
+          setStatusMessage({
+            type: 'info',
+            text: `Naskenovaný kód ${cleanIsbn} není v seznamu přeskočených. Zkuste naskenovat správnou přeskočenou knihu.`,
+          });
+          setLoading(false);
+          return;
+        }
+      }
+
+      // 2. Check if ISBN already exists on SAME shelf vs elsewhere in Library
       const existingOnSameShelf = await db.books
         .where('shelfId')
         .equals(activeShelfId)
@@ -170,7 +196,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         .and((b) => normalizeIsbn(b.isbn) === cleanIsbn)
         .first();
 
-      // 2. Lookup online catalog metadata
+      // 3. Lookup online catalog metadata
       const metadata = await fetchBookByIsbn(cleanIsbn);
 
       const existingRef = existingOnSameShelf || existingInLibrary;
@@ -185,12 +211,15 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         publishedYear: metadata?.publishedYear || existingRef?.publishedYear || '',
         translator: metadata?.translator || existingRef?.translator || '',
         editionNumber: metadata?.editionNumber || existingRef?.editionNumber || '',
+        genre: metadata?.genre || existingRef?.genre || '',
+        keywords: metadata?.keywords || existingRef?.keywords || '',
+        coverUrl: metadata?.coverUrl || existingRef?.coverUrl || '',
         quantity: 1,
         scannedAt: new Date(),
       };
 
       if (existingOnSameShelf) {
-        // Book exists on SAME shelf -> ask or automatically increment
+        // Book exists on SAME shelf -> duplicate modal pops up (even in fast mode)
         setDuplicateBook(existingOnSameShelf);
         setPendingBookData(candidateBook);
         setLoading(false);
@@ -205,13 +234,23 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       }
 
       if (!metadata) {
-        // Not found in catalogs -> open manual modal
-        setStatusMessage({
-          type: 'info',
-          text: `Kniha s ISBN ${cleanIsbn} nebyla v katalozích nalezena. Vyplňte údaje ručně.`,
-        });
-        setManualModalIsbn(cleanIsbn);
-        setShowManualModal(true);
+        // Not found in catalogs
+        if (isFastScanMode) {
+          // FAST SCAN MODE: Show skip banner with "Přeskočit" option
+          setUnrecognizedIsbnBanner(cleanIsbn);
+          setStatusMessage({
+            type: 'info',
+            text: `Kniha s ISBN ${cleanIsbn} nebyla v katalozích nalezena. V rychlém režimu můžete knihu přeskočit a doplnit později.`,
+          });
+        } else {
+          // STANDARD MODE: Open manual modal immediately
+          setStatusMessage({
+            type: 'info',
+            text: `Kniha s ISBN ${cleanIsbn} nebyla v katalozích nalezena. Vyplňte údaje ručně.`,
+          });
+          setManualModalIsbn(cleanIsbn);
+          setShowManualModal(true);
+        }
         setLoading(false);
         return;
       }
@@ -223,6 +262,43 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       setStatusMessage({ type: 'error', text: 'Chyba při zpracování ISBN.' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSkipIsbn = (isbnToSkip: string) => {
+    if (!skippedIsbns.includes(isbnToSkip)) {
+      setSkippedIsbns((prev) => [...prev, isbnToSkip]);
+    }
+    setUnrecognizedIsbnBanner(null);
+    setStatusMessage({
+      type: 'info',
+      text: `Kniha ${isbnToSkip} byla přeskočena. Můžete pokračovat v rychlém skenování.`,
+    });
+  };
+
+  const handleFinishFastScanning = () => {
+    if (skippedIsbns.length === 0) {
+      setIsFastScanMode(false);
+      setIsProcessingSkippedList(false);
+      setStatusMessage({
+        type: 'success',
+        text: 'Rychlé skenování dokončeno! Všechny knihy byly úspěšně naskenovány.',
+      });
+      return;
+    }
+
+    if (skippedIsbns.length === 1) {
+      // Exactly 1 skipped book: open manual modal directly
+      const targetIsbn = skippedIsbns[0];
+      setManualModalIsbn(targetIsbn);
+      setShowManualModal(true);
+    } else {
+      // More than 1 skipped book: enter re-scan mode
+      setIsProcessingSkippedList(true);
+      setStatusMessage({
+        type: 'info',
+        text: `V seznamu přeskočených máte ${skippedIsbns.length} knih. Naskenujte čárový kód jedné z přeskočených knih pro vyplnění jejích údajů.`,
+      });
     }
   };
 
@@ -272,6 +348,9 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       translator: bookData.translator || '',
       editionNumber: bookData.editionNumber || '',
       quantity: bookData.quantity || 1,
+      genre: bookData.genre || '',
+      keywords: bookData.keywords || '',
+      coverUrl: bookData.coverUrl || '',
       notes: bookData.notes || '',
       scannedAt: new Date(),
     };
@@ -280,6 +359,30 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
     newBook.id = id;
 
     setRecentScans((prev) => [newBook, ...prev]);
+
+    // If we saved a skipped book, remove it from skippedIsbns
+    const cleanIsbnForCheck = normalizeIsbn(bookData.isbn || '');
+    if (cleanIsbnForCheck && skippedIsbns.includes(cleanIsbnForCheck)) {
+      const remaining = skippedIsbns.filter((i) => i !== cleanIsbnForCheck);
+      setSkippedIsbns(remaining);
+
+      if (remaining.length === 0) {
+        setIsProcessingSkippedList(false);
+        setIsFastScanMode(false);
+        setStatusMessage({
+          type: 'success',
+          text: 'Všechny přeskočené knihy byly úspěšně doplněny a uloženy!',
+        });
+        return;
+      } else {
+        setStatusMessage({
+          type: 'info',
+          text: `Kniha uložena. Zbývá doplnit ${remaining.length} přeskočených knih. Naskenujte další přeskočenou knihu.`,
+        });
+        return;
+      }
+    }
+
     setStatusMessage({
       type: 'success',
       text: `Uloženo do "${shelfDetails.shelfName}" (${sourceName ? `zdroj: ${sourceName}` : 'ruční zápis'}). Počet: ${newBook.quantity} ks`,
@@ -333,6 +436,159 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             className="bg-amber-600 text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-amber-700 transition cursor-pointer"
           >
             Vybrat polici
+          </button>
+        </div>
+      )}
+
+      {/* Fast Scan Mode Toggle Banner */}
+      <div className={`p-4 rounded-2xl border transition shadow-sm ${
+        isFastScanMode
+          ? 'bg-amber-50 border-amber-300 text-amber-900'
+          : 'bg-white border-slate-200 text-slate-800'
+      }`}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className={`p-2.5 rounded-xl ${isFastScanMode ? 'bg-amber-500 text-white' : 'bg-indigo-50 text-indigo-600'}`}>
+              <Zap className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-sm sm:text-base">
+                  Režim rychlého skenování
+                </h3>
+                {isFastScanMode && (
+                  <span className="bg-amber-600 text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">
+                    Aktivní
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-500">
+                Skenujte více knih rychle za sebou bez přerušování. Nenalezené knihy můžete přeskočit a doplnit na konci.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {!isFastScanMode ? (
+              <button
+                onClick={() => {
+                  setIsFastScanMode(true);
+                  setStatusMessage({
+                    type: 'info',
+                    text: 'Aktivován režim rychlého skenování! Nenalezené knihy bude možné přeskočit.',
+                  });
+                }}
+                className="w-full sm:w-auto py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Zap className="w-4 h-4 fill-current" />
+                <span>Zapnout rychlé skenování</span>
+              </button>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={handleFinishFastScanning}
+                  className="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <ArrowRight className="w-4 h-4" />
+                  <span>
+                    Dokončit a doplnit přeskočené ({skippedIsbns.length})
+                  </span>
+                </button>
+                <button
+                  onClick={() => {
+                    setIsFastScanMode(false);
+                    setSkippedIsbns([]);
+                    setUnrecognizedIsbnBanner(null);
+                    setIsProcessingSkippedList(false);
+                  }}
+                  className="py-2.5 px-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-xs rounded-xl transition cursor-pointer"
+                >
+                  Vypnout
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Skipped ISBNs badge bar */}
+        {skippedIsbns.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-amber-200 flex flex-wrap items-center gap-2 text-xs">
+            <span className="font-semibold text-amber-900">
+              Přeskočené ISBN kódy k ručnímu doplnění ({skippedIsbns.length}):
+            </span>
+            {skippedIsbns.map((isbn) => (
+              <span
+                key={isbn}
+                className="bg-amber-200/80 text-amber-900 font-mono px-2 py-0.5 rounded-md font-semibold text-[11px]"
+              >
+                {isbn}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Unrecognized ISBN banner in Fast Mode */}
+      {unrecognizedIsbnBanner && isFastScanMode && (
+        <div className="bg-amber-100 border-2 border-amber-400 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-6 h-6 text-amber-700 shrink-0" />
+            <div>
+              <div className="font-bold text-amber-900 text-sm">
+                Kniha s ISBN {unrecognizedIsbnBanner} nebyla nalezena!
+              </div>
+              <p className="text-xs text-amber-800">
+                V rychlém režimu můžete tuto knihu přeskočit a pokračovat v dalším skenování.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleSkipIsbn(unrecognizedIsbnBanner)}
+              className="py-2 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+            >
+              <SkipForward className="w-4 h-4" />
+              <span>Přeskočit knihu</span>
+            </button>
+            <button
+              onClick={() => {
+                const targetIsbn = unrecognizedIsbnBanner;
+                setUnrecognizedIsbnBanner(null);
+                setManualModalIsbn(targetIsbn);
+                setShowManualModal(true);
+              }}
+              className="py-2 px-3 bg-white hover:bg-amber-50 text-amber-900 font-semibold text-xs border border-amber-300 rounded-xl transition cursor-pointer"
+            >
+              Doplnit ihned
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Re-scan prompt mode for multiple skipped books */}
+      {isProcessingSkippedList && (
+        <div className="bg-indigo-600 text-white p-4 rounded-2xl shadow-md flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <RefreshCw className="w-6 h-6 text-indigo-200 animate-spin" />
+            <div>
+              <div className="font-bold text-sm">
+                Doplňování přeskočených knih ({skippedIsbns.length} zbývá)
+              </div>
+              <p className="text-xs text-indigo-100">
+                Naskenujte čárový kód jedné z přeskočených knih na fotoaparátu pro vyplnění jejích údajů.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              if (skippedIsbns.length > 0) {
+                setManualModalIsbn(skippedIsbns[0]);
+                setShowManualModal(true);
+              }
+            }}
+            className="py-1.5 px-3 bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-semibold rounded-lg transition"
+          >
+            Vybrat ze seznamu
           </button>
         </div>
       )}
@@ -470,13 +726,33 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             {recentScans.map((book) => (
               <div
                 key={book.id}
-                className="flex items-center justify-between p-3 bg-slate-50 rounded-xl text-xs border border-slate-100"
+                className="flex items-center justify-between p-3 bg-slate-50 rounded-xl text-xs border border-slate-100 gap-3"
               >
-                <div>
-                  <div className="font-bold text-slate-900">{book.title}</div>
-                  <div className="text-slate-500">
-                    {book.author} {book.publishedYear ? `(${book.publishedYear})` : ''} | ISBN:{' '}
-                    {book.isbn || 'Bez ISBN'}
+                <div className="flex items-center gap-3 min-w-0">
+                  {book.coverUrl ? (
+                    <img
+                      src={book.coverUrl}
+                      alt={book.title}
+                      className="w-9 h-12 object-cover rounded-md border border-slate-200 shrink-0 bg-slate-200"
+                    />
+                  ) : (
+                    <div className="w-9 h-12 bg-slate-200 border border-slate-300 rounded-md flex items-center justify-center text-slate-400 shrink-0">
+                      <ImageIcon className="w-5 h-5 stroke-1" />
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <div className="font-bold text-slate-900 truncate">{book.title}</div>
+                    <div className="text-slate-500 truncate">
+                      {book.author} {book.publishedYear ? `(${book.publishedYear})` : ''} | ISBN:{' '}
+                      {book.isbn || 'Bez ISBN'}
+                    </div>
+                    {(book.genre || book.keywords) && (
+                      <div className="text-[10px] text-indigo-600 truncate mt-0.5">
+                        {book.genre && <span className="font-semibold">{book.genre}</span>}
+                        {book.genre && book.keywords && ' • '}
+                        {book.keywords && <span>{book.keywords}</span>}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="text-right">

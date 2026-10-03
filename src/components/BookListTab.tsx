@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Book } from '../db/db';
 import { exportToXLSX, exportToCSV, prepareExportData } from '../services/exportService';
-import { Search, Trash2, Edit3, BookOpen, FileSpreadsheet, FileText, Filter } from 'lucide-react';
+import { Search, Trash2, Edit3, BookOpen, FileSpreadsheet, FileText, Filter, Image as ImageIcon } from 'lucide-react';
 import { ManualBookModal } from './ManualBookModal';
 
 export const BookListTab: React.FC = () => {
@@ -41,7 +41,9 @@ export const BookListTab: React.FC = () => {
         const matchAuthor = book.author?.toLowerCase().includes(q);
         const matchIsbn = book.isbn?.toLowerCase().includes(q);
         const matchTranslator = book.translator?.toLowerCase().includes(q);
-        return matchTitle || matchAuthor || matchIsbn || matchTranslator;
+        const matchGenre = book.genre?.toLowerCase().includes(q);
+        const matchKeywords = book.keywords?.toLowerCase().includes(q);
+        return matchTitle || matchAuthor || matchIsbn || matchTranslator || matchGenre || matchKeywords;
       }
 
       return true;
@@ -78,6 +80,9 @@ export const BookListTab: React.FC = () => {
     editionNumber?: string;
     quantity: number;
     notes?: string;
+    genre?: string;
+    keywords?: string;
+    coverUrl?: string;
   }) => {
     if (editingBook && editingBook.id) {
       await db.books.update(editingBook.id, updatedFields);
@@ -181,7 +186,7 @@ export const BookListTab: React.FC = () => {
           {/* Search Input */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">
-              Vyhledat text (Název, autor, ISBN)
+              Vyhledat text (Název, autor, žánr, klíčová slova)
             </label>
             <div className="relative">
               <Search className="w-4 h-4 text-indigo-500 absolute left-3 top-3" />
@@ -277,7 +282,9 @@ export const BookListTab: React.FC = () => {
             <table className="w-full text-left text-xs text-slate-700">
               <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase font-semibold">
                 <tr>
+                  <th className="p-3 w-14 text-center">Obálka</th>
                   <th className="p-3">Název a Autor</th>
+                  <th className="p-3">Žánr a Klíčová slova</th>
                   <th className="p-3">ISBN</th>
                   <th className="p-3">Umístění (Knihovna / Místnost / Police)</th>
                   <th className="p-3 text-center">Počet kusů</th>
@@ -295,6 +302,19 @@ export const BookListTab: React.FC = () => {
 
                   return (
                     <tr key={book.id} className="hover:bg-slate-50/80 transition">
+                      <td className="p-3 text-center">
+                        {book.coverUrl ? (
+                          <img
+                            src={book.coverUrl}
+                            alt={book.title}
+                            className="w-10 h-14 object-cover rounded-md border border-slate-200 shadow-xs mx-auto bg-slate-200"
+                          />
+                        ) : (
+                          <div className="w-10 h-14 bg-slate-100 border border-slate-200 rounded-md flex items-center justify-center text-slate-400 mx-auto">
+                            <ImageIcon className="w-5 h-5 stroke-1" />
+                          </div>
+                        )}
+                      </td>
                       <td className="p-3">
                         <div className="font-bold text-slate-900 text-sm">
                           {book.title || 'Bez názvu'}
@@ -302,6 +322,20 @@ export const BookListTab: React.FC = () => {
                         <div className="text-slate-500">{book.author || 'Neznámý autor'}</div>
                         {book.translator && (
                           <div className="text-[11px] text-slate-400">Překlad: {book.translator}</div>
+                        )}
+                      </td>
+                      <td className="p-3 max-w-[180px]">
+                        {book.genre ? (
+                          <span className="inline-block bg-indigo-50 text-indigo-700 font-semibold px-2 py-0.5 rounded text-[11px] mb-1">
+                            {book.genre}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 italic block mb-1">Bez žánru</span>
+                        )}
+                        {book.keywords && (
+                          <div className="text-[11px] text-slate-500 truncate" title={book.keywords}>
+                            {book.keywords}
+                          </div>
                         )}
                       </td>
                       <td className="p-3 font-mono text-slate-600">

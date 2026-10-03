@@ -5,6 +5,9 @@ export interface BookMetadata {
   publishedYear: string;
   translator?: string;
   editionNumber?: string;
+  genre?: string;
+  keywords?: string;
+  coverUrl?: string;
   source?: string;
 }
 
@@ -78,11 +81,29 @@ async function fetchFromKnihovnyCz(isbn: string): Promise<BookMetadata | null> {
     // Parse year
     const publishedYear = record.publicationDates?.[0] || record.publishDate || '';
 
+    // Parse subjects/keywords/genre if available
+    const keywordsList: string[] = [];
+    if (Array.isArray(record.subjects)) {
+      record.subjects.forEach((s: any) => {
+        if (typeof s === 'string') keywordsList.push(s);
+        else if (s?.heading) keywordsList.push(s.heading);
+      });
+    } else if (typeof record.subjects === 'string') {
+      keywordsList.push(record.subjects);
+    }
+
+    const genre = record.genres?.[0] || record.format || '';
+    const keywords = keywordsList.join(', ');
+    const coverUrl = record.images?.[0] || record.coverUrl || undefined;
+
     return {
       isbn,
       title: title.trim(),
       author: author.trim(),
       publishedYear: publishedYear.toString().trim(),
+      genre: genre ? String(genre).trim() : undefined,
+      keywords: keywords ? keywords.trim() : undefined,
+      coverUrl: coverUrl ? String(coverUrl) : undefined,
       source: 'Knihovny.cz',
     };
   }
@@ -102,11 +123,17 @@ async function fetchFromGoogleBooks(isbn: string): Promise<BookMetadata | null> 
     const author = info.authors ? info.authors.join(', ') : '';
     const publishedYear = info.publishedDate ? info.publishedDate.substring(0, 4) : '';
 
+    const categories = info.categories ? info.categories.join(', ') : '';
+    const coverUrl = info.imageLinks?.thumbnail || info.imageLinks?.smallThumbnail || undefined;
+
     return {
       isbn,
       title,
       author,
       publishedYear,
+      genre: categories || undefined,
+      keywords: categories || undefined,
+      coverUrl: coverUrl ? coverUrl.replace('http://', 'https://') : undefined,
       source: 'Google Books',
     };
   }
@@ -127,11 +154,17 @@ async function fetchFromOpenLibrary(isbn: string): Promise<BookMetadata | null> 
     const author = book.authors ? book.authors.map((a: { name: string }) => a.name).join(', ') : '';
     const publishedYear = book.publish_date ? book.publish_date.match(/\d{4}/)?.[0] || book.publish_date : '';
 
+    const subjects = book.subjects ? book.subjects.map((s: { name: string }) => s.name).join(', ') : '';
+    const coverUrl = book.cover?.medium || book.cover?.small || undefined;
+
     return {
       isbn,
       title,
       author,
       publishedYear,
+      genre: subjects ? subjects.split(',')[0] : undefined,
+      keywords: subjects || undefined,
+      coverUrl,
       source: 'Open Library',
     };
   }
