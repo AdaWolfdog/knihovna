@@ -44,14 +44,17 @@ export const DuplicateModal: React.FC<DuplicateModalProps> = ({
             {existingBook.publishedYear || '-'}
           </div>
           <div>
-            <span className="font-semibold text-slate-900">Aktuální cílová police:</span>{' '}
+            <span className="font-semibold text-slate-900">Stávající počet na polici:</span>{' '}
+            <span className="font-bold text-indigo-700">{existingBook.quantity || 1} ks</span>
+          </div>
+          <div>
+            <span className="font-semibold text-slate-900">Cílová police:</span>{' '}
             <span className="font-medium text-indigo-600">{shelfName}</span>
           </div>
         </div>
 
         <p className="text-sm text-slate-600 mb-6">
-          Jedná se o <strong>další exemplář</strong> téže knihy, který chcete zaevidovat,
-          nebo jde o <strong>chybu při skenování</strong>?
+          Kniha již na této polici existuje. Chcete navyšovat <strong>počet kusů</strong> (na {(existingBook.quantity || 1) + 1} ks), nebo šlo o <strong>chybu při skenování</strong>?
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3">
@@ -60,7 +63,7 @@ export const DuplicateModal: React.FC<DuplicateModalProps> = ({
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-xl transition shadow-sm"
           >
             <Copy className="w-4 h-4" />
-            <span>Přidat jako další exemplář</span>
+            <span>Přidat kus (+1 ks)</span>
           </button>
           <button
             onClick={onCancel}

@@ -1,13 +1,24 @@
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
-import { Plus, Trash2, Library as LibraryIcon, Folder, BookmarkCheck, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Edit3, Check, X, Library as LibraryIcon, Folder, BookmarkCheck, ChevronRight } from 'lucide-react';
 
 interface LibraryManagerProps {
   activeShelfId: number | null;
   setActiveShelfId: (id: number | null) => void;
   onSelectShelfForScanning: (shelfId: number) => void;
 }
+
+const PRESET_COLORS = [
+  { name: 'Indigo', value: '#6366f1' },
+  { name: 'Smaragdová', value: '#10b981' },
+  { name: 'Jantarová', value: '#f59e0b' },
+  { name: 'Červená', value: '#f43f5e' },
+  { name: 'Fialová', value: '#a855f7' },
+  { name: 'Modrá', value: '#0284c7' },
+  { name: 'Tyrkysová', value: '#14b8a6' },
+  { name: 'Šedá', value: '#64748b' },
+];
 
 export const LibraryManager: React.FC<LibraryManagerProps> = ({
   activeShelfId,
@@ -24,12 +35,24 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
 
   // Form states
   const [newLibraryName, setNewLibraryName] = useState('');
+  const [newLibraryColor, setNewLibraryColor] = useState('#6366f1');
   const [newRoomName, setNewRoomName] = useState('');
   const [newShelfName, setNewShelfName] = useState('');
 
   const [showAddLibrary, setShowAddLibrary] = useState(false);
   const [showAddRoom, setShowAddRoom] = useState(false);
   const [showAddShelf, setShowAddShelf] = useState(false);
+
+  // Edit states
+  const [editingLibraryId, setEditingLibraryId] = useState<number | null>(null);
+  const [editingLibraryName, setEditingLibraryName] = useState('');
+  const [editingLibraryColor, setEditingLibraryColor] = useState('#6366f1');
+
+  const [editingRoomId, setEditingRoomId] = useState<number | null>(null);
+  const [editingRoomName, setEditingRoomName] = useState('');
+
+  const [editingShelfId, setEditingShelfId] = useState<number | null>(null);
+  const [editingShelfName, setEditingShelfName] = useState('');
 
   // Auto-select first library if none selected
   React.useEffect(() => {
@@ -54,11 +77,41 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
     if (!newLibraryName.trim()) return;
     const id = await db.libraries.add({
       name: newLibraryName.trim(),
+      color: newLibraryColor,
       createdAt: new Date(),
     });
     setNewLibraryName('');
+    setNewLibraryColor('#6366f1');
     setShowAddLibrary(false);
     setSelectedLibraryId(id);
+  };
+
+  // Save Library Edit
+  const handleSaveLibraryEdit = async (id: number) => {
+    if (!editingLibraryName.trim()) return;
+    await db.libraries.update(id, {
+      name: editingLibraryName.trim(),
+      color: editingLibraryColor,
+    });
+    setEditingLibraryId(null);
+  };
+
+  // Save Room Edit
+  const handleSaveRoomEdit = async (id: number) => {
+    if (!editingRoomName.trim()) return;
+    await db.rooms.update(id, {
+      name: editingRoomName.trim(),
+    });
+    setEditingRoomId(null);
+  };
+
+  // Save Shelf Edit
+  const handleSaveShelfEdit = async (id: number) => {
+    if (!editingShelfName.trim()) return;
+    await db.shelves.update(id, {
+      name: editingShelfName.trim(),
+    });
+    setEditingShelfId(null);
   };
 
   // Add Room
@@ -158,7 +211,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
           </div>
 
           {showAddLibrary && (
-            <form onSubmit={handleAddLibrary} className="mb-3 space-y-2">
+            <form onSubmit={handleAddLibrary} className="mb-3 p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-2">
               <input
                 type="text"
                 placeholder="Název knihovny (např. Hlavní)"
@@ -167,7 +220,26 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                 className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                 autoFocus
               />
-              <div className="flex gap-2">
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 mb-1">
+                  Barva knihovny:
+                </label>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {PRESET_COLORS.map((c) => (
+                    <button
+                      key={c.value}
+                      type="button"
+                      onClick={() => setNewLibraryColor(c.value)}
+                      className={`w-6 h-6 rounded-full border-2 transition ${
+                        newLibraryColor === c.value ? 'border-slate-800 scale-110' : 'border-transparent'
+                      }`}
+                      style={{ backgroundColor: c.value }}
+                      title={c.name}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-2 pt-1">
                 <button
                   type="submit"
                   className="flex-1 py-1 px-3 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700"
@@ -194,6 +266,52 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
               libraries.map((lib) => {
                 const count = books.filter((b) => b.libraryId === lib.id).length;
                 const isSelected = selectedLibraryId === lib.id;
+                const isEditing = editingLibraryId === lib.id;
+                const libColor = lib.color || '#6366f1';
+
+                if (isEditing) {
+                  return (
+                    <div key={lib.id} className="p-2 bg-indigo-50 border border-indigo-300 rounded-lg space-y-2">
+                      <input
+                        type="text"
+                        value={editingLibraryName}
+                        onChange={(e) => setEditingLibraryName(e.target.value)}
+                        className="w-full px-2 py-1 text-xs border border-slate-300 rounded outline-none"
+                        autoFocus
+                      />
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {PRESET_COLORS.map((c) => (
+                          <button
+                            key={c.value}
+                            type="button"
+                            onClick={() => setEditingLibraryColor(c.value)}
+                            className={`w-5 h-5 rounded-full border-2 transition ${
+                              editingLibraryColor === c.value ? 'border-slate-800 scale-110' : 'border-transparent'
+                            }`}
+                            style={{ backgroundColor: c.value }}
+                          />
+                        ))}
+                      </div>
+                      <div className="flex justify-end gap-1">
+                        <button
+                          onClick={() => handleSaveLibraryEdit(lib.id!)}
+                          className="p-1 bg-emerald-600 text-white rounded hover:bg-emerald-700"
+                          title="Uložit"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setEditingLibraryId(null)}
+                          className="p-1 bg-slate-200 text-slate-700 rounded hover:bg-slate-300"
+                          title="Zrušit"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
                   <div
                     key={lib.id}
@@ -205,19 +323,35 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                     }`}
                   >
                     <div className="flex items-center gap-2 truncate">
-                      <LibraryIcon className={`w-4 h-4 ${isSelected ? 'text-indigo-600' : 'text-slate-400'}`} />
+                      <span
+                        className="w-3.5 h-3.5 rounded-full shrink-0 inline-block border border-black/10"
+                        style={{ backgroundColor: libColor }}
+                      />
                       <span className="truncate">{lib.name}</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
                         {count} knih
                       </span>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
+                          setEditingLibraryId(lib.id!);
+                          setEditingLibraryName(lib.name);
+                          setEditingLibraryColor(libColor);
+                        }}
+                        className="text-slate-400 hover:text-indigo-600 p-1 rounded cursor-pointer"
+                        title="Upravit knihovnu"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
                           handleDeleteLibrary(lib.id!);
                         }}
                         className="text-slate-400 hover:text-red-600 p-1 rounded cursor-pointer"
+                        title="Smazat knihovnu"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -288,6 +422,36 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
               filteredRooms.map((room) => {
                 const count = books.filter((b) => b.roomId === room.id).length;
                 const isSelected = selectedRoomId === room.id;
+                const isEditing = editingRoomId === room.id;
+
+                if (isEditing) {
+                  return (
+                    <div key={room.id} className="p-2 bg-indigo-50 border border-indigo-300 rounded-lg flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={editingRoomName}
+                        onChange={(e) => setEditingRoomName(e.target.value)}
+                        className="flex-1 px-2 py-1 text-xs border border-slate-300 rounded outline-none"
+                        autoFocus
+                      />
+                      <button
+                        onClick={() => handleSaveRoomEdit(room.id!)}
+                        className="p-1 bg-emerald-600 text-white rounded hover:bg-emerald-700"
+                        title="Uložit"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setEditingRoomId(null)}
+                        className="p-1 bg-slate-200 text-slate-700 rounded hover:bg-slate-300"
+                        title="Zrušit"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  );
+                }
+
                 return (
                   <div
                     key={room.id}
@@ -302,16 +466,28 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                       <Folder className={`w-4 h-4 ${isSelected ? 'text-indigo-600' : 'text-slate-400'}`} />
                       <span className="truncate">{room.name}</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
                         {count} knih
                       </span>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
+                          setEditingRoomId(room.id!);
+                          setEditingRoomName(room.name);
+                        }}
+                        className="text-slate-400 hover:text-indigo-600 p-1 rounded cursor-pointer"
+                        title="Upravit místnost"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
                           handleDeleteRoom(room.id!);
                         }}
                         className="text-slate-400 hover:text-red-600 p-1 rounded cursor-pointer"
+                        title="Smazat místnost"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -382,6 +558,36 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
               filteredShelves.map((shelf) => {
                 const count = books.filter((b) => b.shelfId === shelf.id).length;
                 const isActive = activeShelfId === shelf.id;
+                const isEditing = editingShelfId === shelf.id;
+
+                if (isEditing) {
+                  return (
+                    <div key={shelf.id} className="p-2 bg-emerald-50 border border-emerald-300 rounded-lg flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={editingShelfName}
+                        onChange={(e) => setEditingShelfName(e.target.value)}
+                        className="flex-1 px-2 py-1 text-xs border border-slate-300 rounded outline-none"
+                        autoFocus
+                      />
+                      <button
+                        onClick={() => handleSaveShelfEdit(shelf.id!)}
+                        className="p-1 bg-emerald-600 text-white rounded hover:bg-emerald-700"
+                        title="Uložit"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setEditingShelfId(null)}
+                        className="p-1 bg-slate-200 text-slate-700 rounded hover:bg-slate-300"
+                        title="Zrušit"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  );
+                }
+
                 return (
                   <div
                     key={shelf.id}
@@ -398,7 +604,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                       <span className="truncate">{shelf.name}</span>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <span className="text-xs px-2 py-0.5 rounded-full bg-white text-slate-600 border border-slate-200">
                         {count} knih
                       </span>
@@ -417,8 +623,20 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                       )}
 
                       <button
+                        onClick={() => {
+                          setEditingShelfId(shelf.id!);
+                          setEditingShelfName(shelf.name);
+                        }}
+                        className="text-slate-400 hover:text-indigo-600 p-1 rounded cursor-pointer"
+                        title="Upravit polici"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
                         onClick={() => handleDeleteShelf(shelf.id!)}
                         className="text-slate-400 hover:text-red-600 p-1 rounded cursor-pointer"
+                        title="Smazat polici"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>

@@ -76,11 +76,26 @@ export const BookListTab: React.FC = () => {
     publishedYear: string;
     translator?: string;
     editionNumber?: string;
+    quantity: number;
     notes?: string;
   }) => {
     if (editingBook && editingBook.id) {
       await db.books.update(editingBook.id, updatedFields);
       setEditingBook(null);
+    }
+  };
+
+  // Change quantity inline
+  const handleUpdateQuantity = async (bookId: number, delta: number) => {
+    const book = books.find((b) => b.id === bookId);
+    if (!book) return;
+    const newQty = (book.quantity || 1) + delta;
+    if (newQty <= 0) {
+      if (confirm('Chcete tuto knihu zcela odstranit ze seznamu?')) {
+        await db.books.delete(bookId);
+      }
+    } else {
+      await db.books.update(bookId, { quantity: newQty });
     }
   };
 
@@ -134,35 +149,56 @@ export const BookListTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Filters Bar */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 space-y-3">
-        <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
-          <Filter className="w-4 h-4 text-indigo-600" />
-          <span>Filtrování a vyhledávání</span>
+      {/* Prominently Highlighted Filters Bar */}
+      <div className="bg-gradient-to-r from-indigo-50 via-white to-indigo-50/50 rounded-2xl shadow-md border-2 border-indigo-200 p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm font-bold text-indigo-900">
+            <div className="p-1.5 bg-indigo-600 text-white rounded-lg">
+              <Filter className="w-4 h-4" />
+            </div>
+            <span className="text-base">Filtrování a vyhledávání knih</span>
+          </div>
+
+          {(selectedLibraryFilter !== 'all' ||
+            selectedRoomFilter !== 'all' ||
+            selectedShelfFilter !== 'all' ||
+            searchQuery !== '') && (
+            <button
+              onClick={() => {
+                setSelectedLibraryFilter('all');
+                setSelectedRoomFilter('all');
+                setSelectedShelfFilter('all');
+                setSearchQuery('');
+              }}
+              className="text-xs bg-indigo-100 hover:bg-indigo-200 text-indigo-800 font-semibold px-3 py-1 rounded-lg transition"
+            >
+              Vynulovat filtry
+            </button>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           {/* Search Input */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">
+            <label className="block text-xs font-bold text-slate-700 mb-1">
               Vyhledat text (Název, autor, ISBN)
             </label>
             <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <Search className="w-4 h-4 text-indigo-500 absolute left-3 top-3" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Hledat..."
-                className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm"
               />
             </div>
           </div>
 
           {/* Library Filter */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">
-              Virtuální knihovna
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              1. Virtuální knihovna
             </label>
             <select
               value={selectedLibraryFilter}
@@ -172,7 +208,7 @@ export const BookListTab: React.FC = () => {
                 setSelectedRoomFilter('all');
                 setSelectedShelfFilter('all');
               }}
-              className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-white font-medium shadow-sm"
             >
               <option value="all">Všechny knihovny</option>
               {libraries.map((lib) => (
@@ -185,8 +221,8 @@ export const BookListTab: React.FC = () => {
 
           {/* Room Filter */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">
-              Místnost
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              2. Místnost
             </label>
             <select
               value={selectedRoomFilter}
@@ -195,7 +231,7 @@ export const BookListTab: React.FC = () => {
                 setSelectedRoomFilter(val);
                 setSelectedShelfFilter('all');
               }}
-              className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-white font-medium shadow-sm"
             >
               <option value="all">Všechny místnosti</option>
               {availableRooms.map((room) => (
@@ -208,8 +244,8 @@ export const BookListTab: React.FC = () => {
 
           {/* Shelf Filter */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">
-              Police
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              3. Police
             </label>
             <select
               value={selectedShelfFilter}
@@ -217,7 +253,7 @@ export const BookListTab: React.FC = () => {
                 const val = e.target.value === 'all' ? 'all' : Number(e.target.value);
                 setSelectedShelfFilter(val);
               }}
-              className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-white font-medium shadow-sm"
             >
               <option value="all">Všechny police</option>
               {availableShelves.map((shelf) => (
@@ -244,7 +280,7 @@ export const BookListTab: React.FC = () => {
                   <th className="p-3">Název a Autor</th>
                   <th className="p-3">ISBN</th>
                   <th className="p-3">Umístění (Knihovna / Místnost / Police)</th>
-                  <th className="p-3 text-center">Exemplář</th>
+                  <th className="p-3 text-center">Počet kusů</th>
                   <th className="p-3">Rok / Vydání</th>
                   <th className="p-3 text-right">Akce</th>
                 </tr>
@@ -254,6 +290,8 @@ export const BookListTab: React.FC = () => {
                   const lib = librariesMap.get(book.libraryId);
                   const room = roomsMap.get(book.roomId);
                   const shelf = shelvesMap.get(book.shelfId);
+                  const libColor = lib?.color || '#6366f1';
+                  const qty = book.quantity || 1;
 
                   return (
                     <tr key={book.id} className="hover:bg-slate-50/80 transition">
@@ -270,16 +308,38 @@ export const BookListTab: React.FC = () => {
                         {book.isbn || <span className="text-slate-400 italic">Bez ISBN</span>}
                       </td>
                       <td className="p-3">
-                        <span className="font-medium text-slate-800">
-                          {lib?.name || '?'}
-                        </span>{' '}
-                        &rarr; {room?.name || '?'} &rarr;{' '}
-                        <span className="font-semibold text-indigo-600">{shelf?.name || '?'}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className="w-2.5 h-2.5 rounded-full shrink-0 inline-block"
+                            style={{ backgroundColor: libColor }}
+                          />
+                          <span className="font-medium text-slate-800">
+                            {lib?.name || '?'}
+                          </span>{' '}
+                          &rarr; {room?.name || '?'} &rarr;{' '}
+                          <span className="font-semibold text-indigo-600">{shelf?.name || '?'}</span>
+                        </div>
                       </td>
                       <td className="p-3 text-center">
-                        <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-bold border border-indigo-100">
-                          č. {book.copyNumber || 1}
-                        </span>
+                        <div className="inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-lg p-1">
+                          <button
+                            onClick={() => handleUpdateQuantity(book.id!, -1)}
+                            className="w-5 h-5 flex items-center justify-center bg-white hover:bg-indigo-100 text-indigo-700 font-bold rounded text-xs shadow-xs transition"
+                            title="Odebrat 1 kus"
+                          >
+                            -
+                          </button>
+                          <span className="font-extrabold text-indigo-900 px-1 text-sm">
+                            {qty} {qty === 1 ? 'ks' : qty >= 2 && qty <= 4 ? 'ks' : 'ks'}
+                          </span>
+                          <button
+                            onClick={() => handleUpdateQuantity(book.id!, 1)}
+                            className="w-5 h-5 flex items-center justify-center bg-white hover:bg-indigo-100 text-indigo-700 font-bold rounded text-xs shadow-xs transition"
+                            title="Přidat 1 kus"
+                          >
+                            +
+                          </button>
+                        </div>
                       </td>
                       <td className="p-3">
                         <div>{book.publishedYear || '-'}</div>

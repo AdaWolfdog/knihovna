@@ -3,6 +3,7 @@ import Dexie, { type Table } from 'dexie';
 export interface Library {
   id?: number;
   name: string;
+  color?: string; // Hex or CSS color string (e.g., '#4f46e5')
   createdAt: Date;
 }
 
@@ -32,7 +33,8 @@ export interface Book {
   publishedYear: string;
   translator?: string;
   editionNumber?: string;
-  copyNumber: number; // Exemplar number
+  copyNumber?: number; // Kept for backwards compatibility if needed
+  quantity: number; // Number of physical copies on this shelf
   scannedAt: Date;
   notes?: string;
 }

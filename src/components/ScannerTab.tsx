@@ -157,8 +157,14 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
     setStatusMessage({ type: 'info', text: `Vyhledávám v katalozích (Knihovny.cz, Open Library...): ${cleanIsbn}` });
 
     try {
-      // 1. Check if ISBN already exists in the selected Library
-      const existingInDb = await db.books
+      // 1. Check if ISBN already exists on SAME shelf vs elsewhere in Library
+      const existingOnSameShelf = await db.books
+        .where('shelfId')
+        .equals(activeShelfId)
+        .and((b) => normalizeIsbn(b.isbn) === cleanIsbn)
+        .first();
+
+      const existingInLibrary = await db.books
         .where('libraryId')
         .equals(shelfDetails.libraryId)
         .and((b) => normalizeIsbn(b.isbn) === cleanIsbn)
@@ -167,30 +173,33 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       // 2. Lookup online catalog metadata
       const metadata = await fetchBookByIsbn(cleanIsbn);
 
+      const existingRef = existingOnSameShelf || existingInLibrary;
+
       const candidateBook: Partial<Book> = {
         libraryId: shelfDetails.libraryId,
         roomId: shelfDetails.roomId,
         shelfId: activeShelfId,
         isbn: cleanIsbn,
-        title: metadata?.title || '',
-        author: metadata?.author || '',
-        publishedYear: metadata?.publishedYear || '',
-        copyNumber: 1,
+        title: metadata?.title || existingRef?.title || '',
+        author: metadata?.author || existingRef?.author || '',
+        publishedYear: metadata?.publishedYear || existingRef?.publishedYear || '',
+        translator: metadata?.translator || existingRef?.translator || '',
+        editionNumber: metadata?.editionNumber || existingRef?.editionNumber || '',
+        quantity: 1,
         scannedAt: new Date(),
       };
 
-      if (existingInDb) {
-        // Handle Duplicate
-        setDuplicateBook(existingInDb);
-        // Use existing metadata or newly fetched metadata
-        setPendingBookData({
-          ...candidateBook,
-          title: existingInDb.title || candidateBook.title,
-          author: existingInDb.author || candidateBook.author,
-          publishedYear: existingInDb.publishedYear || candidateBook.publishedYear,
-          translator: existingInDb.translator,
-          editionNumber: existingInDb.editionNumber,
-        });
+      if (existingOnSameShelf) {
+        // Book exists on SAME shelf -> ask or automatically increment
+        setDuplicateBook(existingOnSameShelf);
+        setPendingBookData(candidateBook);
+        setLoading(false);
+        return;
+      }
+
+      if (existingInLibrary) {
+        // Book exists in library on ANOTHER shelf -> save as a new record on THIS shelf
+        await saveBookToDb(candidateBook as Book, metadata?.source || 'Import z databáze knihovny');
         setLoading(false);
         return;
       }
@@ -220,15 +229,38 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   const saveBookToDb = async (bookData: Partial<Book>, sourceName?: string) => {
     if (!shelfDetails || !activeShelfId) return;
 
-    // Count existing copies in this library for exemplar number calculation
-    const existingCopies = await db.books
-      .where('libraryId')
-      .equals(shelfDetails.libraryId)
-      .and((b) => normalizeIsbn(b.isbn) === normalizeIsbn(bookData.isbn || ''))
-      .count();
+    const cleanIsbn = normalizeIsbn(bookData.isbn || '');
 
-    const copyNumber = existingCopies + 1;
+    // Check if book already exists on THIS SAME shelf
+    const existingOnSameShelf = await db.books
+      .where('shelfId')
+      .equals(activeShelfId)
+      .and((b) => normalizeIsbn(b.isbn) === cleanIsbn && cleanIsbn !== '')
+      .first();
 
+    if (existingOnSameShelf && existingOnSameShelf.id) {
+      // Increment quantity on existing record
+      const updatedQuantity = (existingOnSameShelf.quantity || 1) + (bookData.quantity || 1);
+      await db.books.update(existingOnSameShelf.id, {
+        quantity: updatedQuantity,
+        scannedAt: new Date(),
+      });
+
+      const updatedBook: Book = {
+        ...existingOnSameShelf,
+        quantity: updatedQuantity,
+        scannedAt: new Date(),
+      };
+
+      setRecentScans((prev) => [updatedBook, ...prev.filter((b) => b.id !== existingOnSameShelf.id)]);
+      setStatusMessage({
+        type: 'success',
+        text: `Navýšen počet kusů na ${updatedQuantity} ks v policí "${shelfDetails.shelfName}".`,
+      });
+      return;
+    }
+
+    // New entry on this shelf
     const newBook: Book = {
       libraryId: shelfDetails.libraryId,
       roomId: shelfDetails.roomId,
@@ -239,8 +271,8 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       publishedYear: bookData.publishedYear || '',
       translator: bookData.translator || '',
       editionNumber: bookData.editionNumber || '',
+      quantity: bookData.quantity || 1,
       notes: bookData.notes || '',
-      copyNumber: copyNumber,
       scannedAt: new Date(),
     };
 
@@ -250,7 +282,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
     setRecentScans((prev) => [newBook, ...prev]);
     setStatusMessage({
       type: 'success',
-      text: `Uloženo do "${shelfDetails.shelfName}" (${sourceName ? `zdroj: ${sourceName}` : 'ruční zápis'}). Exemplář č. ${copyNumber}`,
+      text: `Uloženo do "${shelfDetails.shelfName}" (${sourceName ? `zdroj: ${sourceName}` : 'ruční zápis'}). Počet: ${newBook.quantity} ks`,
     });
   };
 
@@ -449,7 +481,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                 </div>
                 <div className="text-right">
                   <span className="inline-block bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-semibold">
-                    Exemplář č. {book.copyNumber}
+                    Počet: {book.quantity || 1} ks
                   </span>
                   <div className="text-[10px] text-slate-400 mt-0.5">
                     {new Date(book.scannedAt).toLocaleTimeString('cs-CZ')}

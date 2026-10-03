@@ -13,6 +13,7 @@ interface ManualBookModalProps {
     publishedYear: string;
     translator?: string;
     editionNumber?: string;
+    quantity: number;
     notes?: string;
   }) => void;
   onClose: () => void;
@@ -31,6 +32,7 @@ export const ManualBookModal: React.FC<ManualBookModalProps> = ({
   const [publishedYear, setPublishedYear] = useState(initialData?.publishedYear || '');
   const [translator, setTranslator] = useState(initialData?.translator || '');
   const [editionNumber, setEditionNumber] = useState(initialData?.editionNumber || '');
+  const [quantity, setQuantity] = useState(initialData?.quantity || 1);
   const [notes, setNotes] = useState(initialData?.notes || '');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -46,6 +48,7 @@ export const ManualBookModal: React.FC<ManualBookModalProps> = ({
       publishedYear: publishedYear.trim(),
       translator: translator.trim(),
       editionNumber: editionNumber.trim(),
+      quantity: Math.max(1, Number(quantity) || 1),
       notes: notes.trim(),
     });
   };
@@ -113,7 +116,7 @@ export const ManualBookModal: React.FC<ManualBookModalProps> = ({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Rok vydání
@@ -137,6 +140,20 @@ export const ManualBookModal: React.FC<ManualBookModalProps> = ({
                 onChange={(e) => setEditionNumber(e.target.value)}
                 placeholder="Např. 2. vydání"
                 className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Počet kusů <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                min="1"
+                required
+                value={quantity}
+                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-indigo-700"
               />
             </div>
           </div>
