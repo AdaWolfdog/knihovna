@@ -1,32 +1,34 @@
-# React + TypeScript + Vite
+# Knihovník Mobile
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Aplikace pro skenování a správy knihovního katalogu vytvořená v React + TypeScript + Vite.
 
-Currently, two official plugins are available:
+## Lokální vývoj (Development)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+1. Nainstalujte závislosti:
+   ```bash
+   npm ci
+   ```
 
-## React Compiler
+2. Spusťte vývojový server:
+   ```bash
+   npm run dev
+   ```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+3. Otevřete lokální adresu v prohlížeči (např. `http://localhost:5173`).
 
-## Expanding the Oxlint configuration
+## Produkční sestavení (Build)
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+Pro vytvoření produkčního sestavení spusťte:
+```bash
+npm run build
 ```
+Sestavené soubory budou uloženy ve složce `dist/`.
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Nasazení na GitHub Pages (Deployment)
+
+Projekt obsahuje GitHub Actions workflow (`.github/workflows/deploy.yml`), které při každém pushi do větví `main`, `master` nebo `new-main` automaticky sestaví aplikaci (`npm run build`) a nasadí soubory ze složky `dist/`.
+
+### Nastavení na GitHubu:
+V nastavení repozitáře (**Settings -> Pages**):
+- **Source**: Zvolte buď **GitHub Actions**, nebo **Deploy from a branch** (větev `gh-pages` / složka `/ (root)`).
+- Tím se zajistí, že webový server bude servírovat zkompilovaný JavaScript z `dist/` složky místo zdrojového `.tsx` souboru, a aplikace tak bez problémů funguje v Chrome na PC i na mobilních zařízeních (Android / iOS).
