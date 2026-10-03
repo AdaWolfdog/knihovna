@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { fetchBookByIsbn, normalizeIsbn } from '../services/isbnService';
 import { db, type Book } from '../db/db';
 import { Camera, Search, CheckCircle, AlertCircle, RefreshCw, BookPlus, Zap, SkipForward, ArrowRight, Image as ImageIcon } from 'lucide-react';
@@ -49,6 +49,9 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   const [manualModalIsbn, setManualModalIsbn] = useState('');
 
   const html5QrcodeRef = useRef<Html5Qrcode | null>(null);
+  const isProcessingRef = useRef<boolean>(false);
+  const lastScanTimeRef = useRef<number>(0);
+  const lastScannedIsbnRef = useRef<string>('');
   const scannerContainerId = 'reader';
 
   // Load target shelf info
@@ -80,8 +83,10 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   // Clean up html5Qrcode on unmount
   useEffect(() => {
     return () => {
-      if (html5QrcodeRef.current && html5QrcodeRef.current.isScanning) {
-        html5QrcodeRef.current.stop().catch(() => {});
+      if (html5QrcodeRef.current) {
+        if (html5QrcodeRef.current.isScanning) {
+          html5QrcodeRef.current.stop().catch(() => {});
+        }
       }
     };
   }, []);
@@ -92,35 +97,66 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
 
     try {
       if (!html5QrcodeRef.current) {
-        html5QrcodeRef.current = new Html5Qrcode(scannerContainerId);
+        html5QrcodeRef.current = new Html5Qrcode(scannerContainerId, {
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.QR_CODE,
+          ],
+          verbose: false,
+        });
       }
 
       setIsScanning(true);
       setStatusMessage({ type: 'info', text: 'Spouštím fotoaparát...' });
 
-      await html5QrcodeRef.current.start(
-        { facingMode: 'environment' },
-        {
-          fps: 10,
-          qrbox: { width: 280, height: 160 },
-          aspectRatio: 1.777778,
+      const cameraConfig = {
+        facingMode: 'environment',
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+      };
+
+      const scanConfig = {
+        fps: 15,
+        qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+          const width = Math.min(Math.floor(viewfinderWidth * 0.85), 320);
+          const height = Math.min(Math.floor(viewfinderHeight * 0.5), 180);
+          return { width: Math.max(width, 150), height: Math.max(height, 80) };
         },
+        aspectRatio: 1.777778,
+      };
+
+      await html5QrcodeRef.current.start(
+        cameraConfig,
+        scanConfig,
         async (decodedText) => {
-          // Pause scanning on successful capture
-          if (html5QrcodeRef.current?.isScanning) {
-            await html5QrcodeRef.current.pause();
+          const now = Date.now();
+          const cleanIsbn = normalizeIsbn(decodedText);
+
+          // Prevent double scans during processing or cooldown (2.5 seconds per same barcode)
+          if (isProcessingRef.current) return;
+          if (
+            cleanIsbn === lastScannedIsbnRef.current &&
+            now - lastScanTimeRef.current < 2500
+          ) {
+            return;
           }
-          await handleProcessIsbn(decodedText);
-          // Resume camera scan after 2.5s
-          setTimeout(() => {
-            if (html5QrcodeRef.current) {
-              try {
-                html5QrcodeRef.current.resume();
-              } catch (e) {
-                console.warn(e);
-              }
-            }
-          }, 2500);
+
+          isProcessingRef.current = true;
+          lastScanTimeRef.current = now;
+          lastScannedIsbnRef.current = cleanIsbn;
+
+          try {
+            await handleProcessIsbn(decodedText);
+          } finally {
+            // Re-enable scanning after 1.5 seconds delay
+            setTimeout(() => {
+              isProcessingRef.current = false;
+            }, 1500);
+          }
         },
         () => {
           // Ignore scanning frames without barcode
@@ -133,7 +169,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       setIsScanning(false);
       setStatusMessage({
         type: 'error',
-        text: 'Kamera ne mohla být spuštěna (zkontrolujte oprávnění v prohlížeči).',
+        text: 'Kamera nemohla být spuštěna (zkontrolujte oprávnění v prohlížeči).',
       });
     }
   };
@@ -331,7 +367,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       setRecentScans((prev) => [updatedBook, ...prev.filter((b) => b.id !== existingOnSameShelf.id)]);
       setStatusMessage({
         type: 'success',
-        text: `Navýšen počet kusů na ${updatedQuantity} ks v policí "${shelfDetails.shelfName}".`,
+        text: `Navýšen počet kusů na ${updatedQuantity} ks v polici "${shelfDetails.shelfName}".`,
       });
       return;
     }
