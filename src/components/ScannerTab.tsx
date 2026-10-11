@@ -250,6 +250,10 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         genre: metadata?.genre || existingRef?.genre || '',
         keywords: metadata?.keywords || existingRef?.keywords || '',
         coverUrl: metadata?.coverUrl || existingRef?.coverUrl || '',
+        publisher: metadata?.publisher || existingRef?.publisher || '',
+        placeOfPublication: metadata?.placeOfPublication || existingRef?.placeOfPublication || '',
+        cnb: metadata?.cnb || existingRef?.cnb || '',
+        physicalDescription: metadata?.physicalDescription || existingRef?.physicalDescription || '',
         quantity: 1,
         scannedAt: new Date(),
       };
@@ -388,6 +392,10 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       keywords: bookData.keywords || '',
       coverUrl: bookData.coverUrl || '',
       notes: bookData.notes || '',
+      publisher: bookData.publisher || '',
+      placeOfPublication: bookData.placeOfPublication || '',
+      cnb: bookData.cnb || '',
+      physicalDescription: bookData.physicalDescription || '',
       scannedAt: new Date(),
     };
 
