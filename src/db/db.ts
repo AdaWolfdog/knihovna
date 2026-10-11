@@ -40,6 +40,11 @@ export interface Book {
   genre?: string;
   keywords?: string;
   coverUrl?: string;
+  // Background catalog metadata fields
+  publisher?: string;
+  placeOfPublication?: string;
+  cnb?: string;
+  physicalDescription?: string;
 }
 
 export class LibraryDatabase extends Dexie {
