@@ -115,8 +115,6 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
 
       const cameraConfig = {
         facingMode: 'environment',
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
       };
 
       const scanConfig = {
@@ -127,6 +125,11 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           return { width: Math.max(width, 150), height: Math.max(height, 80) };
         },
         aspectRatio: 1.777778,
+        videoConstraints: {
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
       };
 
       await html5QrcodeRef.current.start(
@@ -167,10 +170,18 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
     } catch (err: any) {
       console.error('Error starting camera:', err);
       setIsScanning(false);
-      setStatusMessage({
-        type: 'error',
-        text: 'Kamera nemohla být spuštěna (zkontrolujte oprávnění v prohlížeči).',
-      });
+      const errorMessage = typeof err === 'string' ? err : err?.message || '';
+      if (errorMessage.toLowerCase().includes('notallowed') || errorMessage.toLowerCase().includes('permission')) {
+        setStatusMessage({
+          type: 'error',
+          text: 'Kamera nemohla být spuštěna (zkontrolujte oprávnění v prohlížeči).',
+        });
+      } else {
+        setStatusMessage({
+          type: 'error',
+          text: `Kamera nemohla být spuštěna (${errorMessage || 'neznámá chyba'}).`,
+        });
+      }
     }
   };
 
