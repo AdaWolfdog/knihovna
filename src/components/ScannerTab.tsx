@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import { BrowserMultiFormatReader, BarcodeFormat, DecodeHintType } from '@zxing/library';
 import { fetchBookByIsbn, normalizeIsbn } from '../services/isbnService';
 import { db, type Book } from '../db/db';
 import { Camera, Search, CheckCircle, AlertCircle, RefreshCw, BookPlus, Zap, SkipForward, ArrowRight, Image as ImageIcon } from 'lucide-react';
@@ -48,11 +48,11 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   const [showManualModal, setShowManualModal] = useState(false);
   const [manualModalIsbn, setManualModalIsbn] = useState('');
 
-  const html5QrcodeRef = useRef<Html5Qrcode | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const zxingReaderRef = useRef<BrowserMultiFormatReader | null>(null);
   const isProcessingRef = useRef<boolean>(false);
   const lastScanTimeRef = useRef<number>(0);
   const lastScannedIsbnRef = useRef<string>('');
-  const scannerContainerId = 'reader';
 
   // Load target shelf info
   useEffect(() => {
@@ -80,86 +80,67 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
     loadShelf();
   }, [activeShelfId]);
 
-  // Clean up html5Qrcode on unmount
+  // Clean up ZXing on unmount
   useEffect(() => {
     return () => {
-      if (html5QrcodeRef.current) {
-        if (html5QrcodeRef.current.isScanning) {
-          html5QrcodeRef.current.stop().catch(() => {});
-        }
-      }
+      stopCamera();
     };
   }, []);
 
-  // Toggle Camera Scanning
+  // Toggle Camera Scanning using high-performance ZXing
   const startCamera = async () => {
     if (!activeShelfId) return;
 
     try {
-      if (!html5QrcodeRef.current) {
-        html5QrcodeRef.current = new Html5Qrcode(scannerContainerId, {
-          formatsToSupport: [
-            Html5QrcodeSupportedFormats.EAN_13,
-            Html5QrcodeSupportedFormats.EAN_8,
-            Html5QrcodeSupportedFormats.UPC_A,
-            Html5QrcodeSupportedFormats.UPC_E,
-            Html5QrcodeSupportedFormats.CODE_128,
-            Html5QrcodeSupportedFormats.QR_CODE,
-          ],
-          verbose: false,
-          useBarCodeDetectorIfSupported: true,
-        });
+      if (!zxingReaderRef.current) {
+        const hints = new Map();
+        hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+          BarcodeFormat.EAN_13,
+          BarcodeFormat.EAN_8,
+          BarcodeFormat.UPC_A,
+          BarcodeFormat.UPC_E,
+          BarcodeFormat.CODE_128,
+          BarcodeFormat.QR_CODE,
+        ]);
+
+        // Interval 100ms for fast real-time frame evaluation without CPU throttling
+        zxingReaderRef.current = new BrowserMultiFormatReader(hints, 100);
       }
 
       setIsScanning(true);
       setStatusMessage({ type: 'info', text: 'Spouštím fotoaparát...' });
 
-      // Detect best rear camera device on multi-camera devices (like iPhones)
-      let cameraConfig: string | { facingMode: string } = { facingMode: 'environment' };
-      try {
-        const devices = await Html5Qrcode.getCameras();
-        if (devices && devices.length > 0) {
-          // Prefer back camera that is not ultra-wide/macro if labeled, or default back camera
-          const backCameras = devices.filter((d) =>
-            /back|rear|environment/i.test(d.label)
-          );
-          if (backCameras.length > 0) {
-            // Choose the main rear camera (usually first or last non-ultrawide)
-            const mainBack = backCameras.find((d) => !/wide|ultra|telephoto|macro/i.test(d.label)) || backCameras[0];
-            cameraConfig = mainBack.id;
-          }
-        }
-      } catch {
-        // Fallback to environment facingMode constraint if camera listing is not permitted/fails
-        cameraConfig = { facingMode: 'environment' };
-      }
-
-      const scanConfig = {
-        fps: 15,
-        qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-          // Wide rectangular box optimized for horizontal 1D EAN-13 barcodes
-          const width = Math.min(Math.floor(viewfinderWidth * 0.9), 480);
-          const height = Math.min(Math.floor(viewfinderHeight * 0.5), 220);
-          return {
-            width: Math.max(width, 200),
-            height: Math.max(height, 100),
-          };
-        },
-        videoConstraints: {
-          facingMode: 'environment',
-          width: { ideal: 1280, min: 640 },
-          height: { ideal: 720, min: 480 },
+      // Build video constraints targeting back camera at optimal 720p for fast frame decoding
+      const constraints: MediaStreamConstraints = {
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
         },
       };
 
-      await html5QrcodeRef.current.start(
-        cameraConfig,
-        scanConfig,
-        async (decodedText) => {
+      let selectedDeviceId: string | null = null;
+      try {
+        const videoInputDevices = await zxingReaderRef.current.listVideoInputDevices();
+        if (videoInputDevices && videoInputDevices.length > 0) {
+          const rearCameras = videoInputDevices.filter((d) =>
+            /back|rear|environment/i.test(d.label)
+          );
+          if (rearCameras.length > 0) {
+            const mainRear = rearCameras.find((d) => !/wide|ultra|telephoto|macro/i.test(d.label)) || rearCameras[0];
+            selectedDeviceId = mainRear.deviceId;
+          }
+        }
+      } catch {
+        selectedDeviceId = null;
+      }
+
+      const onResultCallback = async (result: any) => {
+        if (result) {
+          const decodedText = result.getText();
           const now = Date.now();
           const cleanIsbn = normalizeIsbn(decodedText);
 
-          // Prevent double scans during processing or cooldown (2.5 seconds per same barcode)
           if (isProcessingRef.current) return;
           if (
             cleanIsbn === lastScannedIsbnRef.current &&
@@ -175,16 +156,28 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           try {
             await handleProcessIsbn(decodedText);
           } finally {
-            // Re-enable scanning after 1.5 seconds delay
             setTimeout(() => {
               isProcessingRef.current = false;
             }, 1500);
           }
-        },
-        () => {
-          // Ignore scanning frames without barcode
         }
-      );
+      };
+
+      if (videoRef.current) {
+        if (selectedDeviceId) {
+          zxingReaderRef.current.decodeFromVideoDevice(
+            selectedDeviceId,
+            videoRef.current,
+            onResultCallback
+          );
+        } else {
+          zxingReaderRef.current.decodeFromConstraints(
+            constraints,
+            videoRef.current,
+            onResultCallback
+          );
+        }
+      }
 
       setStatusMessage({ type: 'info', text: 'Fotoaparát aktivní. Namiřte na čárový kód.' });
     } catch (err: any) {
@@ -205,13 +198,18 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
     }
   };
 
-  const stopCamera = async () => {
-    if (html5QrcodeRef.current && html5QrcodeRef.current.isScanning) {
+  const stopCamera = () => {
+    if (zxingReaderRef.current) {
       try {
-        await html5QrcodeRef.current.stop();
+        zxingReaderRef.current.reset();
       } catch (err) {
         console.error('Error stopping camera:', err);
       }
+    }
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach((track) => track.stop());
+      videoRef.current.srcObject = null;
     }
     setIsScanning(false);
   };
@@ -678,7 +676,17 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           </h3>
 
           <div className="w-full relative bg-slate-900 rounded-xl overflow-hidden min-h-[220px] flex items-center justify-center mb-4">
-            <div id={scannerContainerId} className="w-full h-full" />
+            <video
+              ref={videoRef}
+              className="w-full h-full object-cover max-h-[300px]"
+              playsInline
+              muted
+            />
+            {isScanning && (
+              <div className="absolute inset-0 pointer-events-none flex items-center justify-center p-4">
+                <div className="w-full max-w-[320px] h-32 border-2 border-dashed border-emerald-400/80 rounded-2xl bg-emerald-500/10 shadow-lg animate-pulse" />
+              </div>
+            )}
             {!isScanning && (
               <div className="absolute inset-0 flex flex-col items-center justify-center p-4 bg-slate-900/90 text-slate-300 space-y-3">
                 <Camera className="w-12 h-12 text-slate-500 stroke-1" />
