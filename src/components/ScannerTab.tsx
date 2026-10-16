@@ -107,28 +107,48 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             Html5QrcodeSupportedFormats.QR_CODE,
           ],
           verbose: false,
+          useBarCodeDetectorIfSupported: true,
         });
       }
 
       setIsScanning(true);
       setStatusMessage({ type: 'info', text: 'Spouštím fotoaparát...' });
 
-      const cameraConfig = {
-        facingMode: 'environment',
-      };
+      // Detect best rear camera device on multi-camera devices (like iPhones)
+      let cameraConfig: string | { facingMode: string } = { facingMode: 'environment' };
+      try {
+        const devices = await Html5Qrcode.getCameras();
+        if (devices && devices.length > 0) {
+          // Prefer back camera that is not ultra-wide/macro if labeled, or default back camera
+          const backCameras = devices.filter((d) =>
+            /back|rear|environment/i.test(d.label)
+          );
+          if (backCameras.length > 0) {
+            // Choose the main rear camera (usually first or last non-ultrawide)
+            const mainBack = backCameras.find((d) => !/wide|ultra|telephoto|macro/i.test(d.label)) || backCameras[0];
+            cameraConfig = mainBack.id;
+          }
+        }
+      } catch {
+        // Fallback to environment facingMode constraint if camera listing is not permitted/fails
+        cameraConfig = { facingMode: 'environment' };
+      }
 
       const scanConfig = {
         fps: 15,
         qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-          const width = Math.min(Math.floor(viewfinderWidth * 0.85), 320);
-          const height = Math.min(Math.floor(viewfinderHeight * 0.5), 180);
-          return { width: Math.max(width, 150), height: Math.max(height, 80) };
+          // Wide rectangular box optimized for horizontal 1D EAN-13 barcodes
+          const width = Math.min(Math.floor(viewfinderWidth * 0.9), 480);
+          const height = Math.min(Math.floor(viewfinderHeight * 0.5), 220);
+          return {
+            width: Math.max(width, 200),
+            height: Math.max(height, 100),
+          };
         },
-        aspectRatio: 1.777778,
         videoConstraints: {
           facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+          width: { ideal: 1280, min: 640 },
+          height: { ideal: 720, min: 480 },
         },
       };
 
