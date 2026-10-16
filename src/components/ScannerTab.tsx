@@ -474,19 +474,19 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
     <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
       {/* Target Shelf Banner */}
       {shelfDetails ? (
-        <div className="bg-emerald-600 text-white p-4 rounded-2xl shadow-md flex items-center justify-between">
+        <div className="bg-emerald-600 text-white p-2.5 sm:p-4 pr-12 sm:pr-4 rounded-xl sm:rounded-2xl shadow-md flex items-center justify-between">
           <div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-200">
+            <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-emerald-200 block">
               Cílové umístění skenování:
             </span>
-            <div className="text-lg font-bold">
+            <div className="text-xs sm:text-lg font-bold">
               {shelfDetails.libraryName} &rarr; {shelfDetails.roomName} &rarr;{' '}
               <span className="underline decoration-2">{shelfDetails.shelfName}</span>
             </div>
           </div>
           <button
             onClick={onNavigateToStructure}
-            className="text-xs bg-emerald-700 hover:bg-emerald-800 text-white font-medium px-3 py-1.5 rounded-lg transition cursor-pointer"
+            className="text-xs bg-emerald-700 hover:bg-emerald-800 text-white font-medium px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg transition cursor-pointer shrink-0 ml-2"
           >
             Změnit
           </button>
@@ -514,35 +514,30 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       )}
 
       {/* Fast Scan Mode Toggle Banner */}
-      <div className={`p-4 rounded-2xl border transition shadow-sm ${
+      <div className={`p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border transition shadow-sm ${
         isFastScanMode
           ? 'bg-amber-50 border-amber-300 text-amber-900'
           : 'bg-white border-slate-200 text-slate-800'
       }`}>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className={`p-2.5 rounded-xl ${isFastScanMode ? 'bg-amber-500 text-white' : 'bg-indigo-50 text-indigo-600'}`}>
-              <Zap className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-sm sm:text-base">
-                  Režim rychlého skenování
-                </h3>
-                {isFastScanMode && (
-                  <span className="bg-amber-600 text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">
-                    Aktivní
-                  </span>
-                )}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4">
+          {!isFastScanMode ? (
+            <>
+              {/* Desktop view header & description */}
+              <div className="hidden sm:flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600">
+                  <Zap className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm sm:text-base">
+                    Režim rychlého skenování
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Skenujte více knih rychle za sebou bez přerušování. Nenalezené knihy můžete přeskočit a doplnit na konci.
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-slate-500">
-                Skenujte více knih rychle za sebou bez přerušování. Nenalezené knihy můžete přeskočit a doplnit na konci.
-              </p>
-            </div>
-          </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            {!isFastScanMode ? (
+              {/* Mobile button - clean orange button "Režim rychlého skenování" */}
               <button
                 onClick={() => {
                   setIsFastScanMode(true);
@@ -551,20 +546,58 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                     text: 'Aktivován režim rychlého skenování! Nenalezené knihy bude možné přeskočit.',
                   });
                 }}
-                className="w-full sm:w-auto py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full sm:hidden py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Zap className="w-4 h-4 fill-current" />
-                <span>Zapnout rychlé skenování</span>
+                <span>Režim rychlého skenování</span>
               </button>
-            ) : (
-              <div className="flex flex-wrap gap-2">
+
+              {/* Desktop toggle button */}
+              <div className="hidden sm:flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => {
+                    setIsFastScanMode(true);
+                    setStatusMessage({
+                      type: 'info',
+                      text: 'Aktivován režim rychlého skenování! Nenalezené knihy bude možné přeskočit.',
+                    });
+                  }}
+                  className="py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Zap className="w-4 h-4 fill-current" />
+                  <span>Zapnout rychlé skenování</span>
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-2 sm:p-2.5 rounded-xl bg-amber-500 text-white shrink-0">
+                  <Zap className="w-5 h-5 sm:w-6 sm:h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-xs sm:text-base">
+                      Režim rychlého skenování
+                    </h3>
+                    <span className="bg-amber-600 text-white text-[9px] sm:text-[10px] uppercase font-bold px-1.5 sm:px-2 py-0.5 rounded-full">
+                      Aktivní
+                    </span>
+                  </div>
+                  <p className="hidden sm:block text-xs text-slate-500">
+                    Skenujte více knih rychle za sebou bez přerušování. Nenalezené knihy můžete přeskočit a doplnit na konci.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={handleFinishFastScanning}
-                  className="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="flex-1 sm:flex-initial py-2 sm:py-2.5 px-3 sm:px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg sm:rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   <span>
-                    Dokončit a doplnit přeskočené ({skippedIsbns.length})
+                    Dokončit ({skippedIsbns.length})
                   </span>
                 </button>
                 <button
@@ -574,25 +607,25 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                     setUnrecognizedIsbnBanner(null);
                     setIsProcessingSkippedList(false);
                   }}
-                  className="py-2.5 px-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-xs rounded-xl transition cursor-pointer"
+                  className="py-2 sm:py-2.5 px-2.5 sm:px-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-xs rounded-lg sm:rounded-xl transition cursor-pointer"
                 >
                   Vypnout
                 </button>
               </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
 
         {/* Skipped ISBNs badge bar */}
         {skippedIsbns.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-amber-200 flex flex-wrap items-center gap-2 text-xs">
-            <span className="font-semibold text-amber-900">
-              Přeskočené ISBN kódy k ručnímu doplnění ({skippedIsbns.length}):
+          <div className="mt-2.5 sm:mt-3 pt-2.5 sm:pt-3 border-t border-amber-200 flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs">
+            <span className="font-semibold text-amber-900 text-[11px] sm:text-xs">
+              Přeskočené ISBN ({skippedIsbns.length}):
             </span>
             {skippedIsbns.map((isbn) => (
               <span
                 key={isbn}
-                className="bg-amber-200/80 text-amber-900 font-mono px-2 py-0.5 rounded-md font-semibold text-[11px]"
+                className="bg-amber-200/80 text-amber-900 font-mono px-1.5 py-0.5 rounded font-semibold text-[10px] sm:text-[11px]"
               >
                 {isbn}
               </span>
@@ -675,23 +708,23 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             Skenování fotoaparátem
           </h3>
 
-          <div className="w-full relative bg-slate-900 rounded-xl overflow-hidden min-h-[220px] flex items-center justify-center mb-4">
+          <div className="w-full relative bg-slate-900 rounded-xl overflow-hidden h-[120px] sm:h-auto min-h-[120px] sm:min-h-[220px] flex items-center justify-center mb-4">
             <video
               ref={videoRef}
-              className="w-full h-full object-cover max-h-[300px]"
+              className="w-full h-full object-cover max-h-[120px] sm:max-h-[300px]"
               playsInline
               muted
             />
             {isScanning && (
-              <div className="absolute inset-0 pointer-events-none flex items-center justify-center p-4">
-                <div className="w-full max-w-[320px] h-32 border-2 border-dashed border-emerald-400/80 rounded-2xl bg-emerald-500/10 shadow-lg animate-pulse" />
+              <div className="absolute inset-0 pointer-events-none flex items-center justify-center p-2 sm:p-4">
+                <div className="w-full max-w-[320px] h-16 sm:h-32 border-2 border-dashed border-emerald-400/80 rounded-xl sm:rounded-2xl bg-emerald-500/10 shadow-lg animate-pulse" />
               </div>
             )}
             {!isScanning && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-4 bg-slate-900/90 text-slate-300 space-y-3">
-                <Camera className="w-12 h-12 text-slate-500 stroke-1" />
-                <p className="text-xs max-w-xs">
-                  Pro automatické načítání čárových kódů spusťte fotoaparát na telefonu nebo PC.
+              <div className="absolute inset-0 flex flex-col sm:flex-col items-center justify-center p-2 sm:p-4 bg-slate-900/90 text-slate-300 space-y-1 sm:space-y-3">
+                <Camera className="w-8 h-8 sm:w-12 sm:h-12 text-slate-500 stroke-1" />
+                <p className="text-[11px] sm:text-xs max-w-xs">
+                  Pro automatické načítání čárových kódů spusťte fotoaparát.
                 </p>
               </div>
             )}
