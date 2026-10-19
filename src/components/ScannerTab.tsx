@@ -5,6 +5,7 @@ import { db, type Book } from '../db/db';
 import { Camera, Search, CheckCircle, AlertCircle, RefreshCw, BookPlus, Zap, SkipForward, ArrowRight, Image as ImageIcon } from 'lucide-react';
 import { DuplicateModal } from './DuplicateModal';
 import { ManualBookModal } from './ManualBookModal';
+import { BookConfirmModal } from './BookConfirmModal';
 
 interface ScannerTabProps {
   activeShelfId: number | null;
@@ -38,8 +39,15 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   const [duplicateBook, setDuplicateBook] = useState<Book | null>(null);
   const [pendingBookData, setPendingBookData] = useState<Partial<Book> | null>(null);
 
+  // Standard mode book confirmation modal state
+  const [scannedMetadataToConfirm, setScannedMetadataToConfirm] = useState<{
+    bookData: Partial<Book>;
+    sourceName?: string;
+  } | null>(null);
+
   // Fast scanning mode state
   const [isFastScanMode, setIsFastScanMode] = useState(false);
+  const [showThumbsUpOverlay, setShowThumbsUpOverlay] = useState(false);
   const [skippedIsbns, setSkippedIsbns] = useState<string[]>([]);
   const [unrecognizedIsbnBanner, setUnrecognizedIsbnBanner] = useState<string | null>(null);
   const [isProcessingSkippedList, setIsProcessingSkippedList] = useState(false);
@@ -156,9 +164,12 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           try {
             await handleProcessIsbn(decodedText);
           } finally {
-            setTimeout(() => {
-              isProcessingRef.current = false;
-            }, 1500);
+            // Note: If fast mode triggered thumbsUpOverlay, cooldown is handled by overlay timer
+            if (!isFastScanMode) {
+              setTimeout(() => {
+                isProcessingRef.current = false;
+              }, 1500);
+            }
           }
         }
       };
@@ -228,17 +239,15 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
     setStatusMessage({ type: 'info', text: `Vyhledávám v katalozích (Knihovny.cz, Open Library...): ${cleanIsbn}` });
 
     try {
-      // 1. If we are currently in "isProcessingSkippedList" mode (user finishes fast scan and rescans skipped books):
+      // 1. If we are currently in "isProcessingSkippedList" mode
       if (isProcessingSkippedList && skippedIsbns.length > 0) {
         if (skippedIsbns.includes(cleanIsbn)) {
-          // Open manual modal for this scanned skipped book
           setUnrecognizedIsbnBanner(null);
           setManualModalIsbn(cleanIsbn);
           setShowManualModal(true);
           setLoading(false);
           return;
         } else {
-          // Scanned ISBN isn't in the skipped list
           setStatusMessage({
             type: 'info',
             text: `Naskenovaný kód ${cleanIsbn} není v seznamu přeskočených. Zkuste naskenovat správnou přeskočenou knihu.`,
@@ -288,22 +297,15 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       };
 
       if (existingOnSameShelf) {
-        // Book exists on SAME shelf -> duplicate modal pops up (even in fast mode)
+        // Book exists on SAME shelf -> duplicate modal pops up
         setDuplicateBook(existingOnSameShelf);
         setPendingBookData(candidateBook);
         setLoading(false);
         return;
       }
 
-      if (existingInLibrary) {
-        // Book exists in library on ANOTHER shelf -> save as a new record on THIS shelf
-        await saveBookToDb(candidateBook as Book, metadata?.source || 'Import z databáze knihovny');
-        setLoading(false);
-        return;
-      }
-
-      if (!metadata) {
-        // Not found in catalogs
+      if (!metadata && !existingInLibrary) {
+        // Not found in catalogs or existing DB
         if (isFastScanMode) {
           // FAST SCAN MODE: Show skip banner with "Přeskočit" option
           setUnrecognizedIsbnBanner(cleanIsbn);
@@ -324,11 +326,29 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         return;
       }
 
-      // Save book automatically if metadata was found
-      await saveBookToDb(candidateBook as Book, metadata.source);
+      // Found metadata or existing library book
+      if (isFastScanMode) {
+        // FAST SCAN MODE: Save automatically & trigger 3-second thumbs-up overlay with camera freeze
+        await saveBookToDb(
+          candidateBook as Book,
+          metadata?.source || (existingInLibrary ? 'Import z databáze knihovny' : undefined)
+        );
+        setShowThumbsUpOverlay(true);
+        setTimeout(() => {
+          setShowThumbsUpOverlay(false);
+          isProcessingRef.current = false;
+        }, 3000);
+      } else {
+        // STANDARD MODE: Open confirmation modal so user can review and edit details
+        setScannedMetadataToConfirm({
+          bookData: candidateBook,
+          sourceName: metadata?.source || (existingInLibrary ? 'Import z databáze knihovny' : undefined),
+        });
+      }
     } catch (err) {
       console.error('Processing ISBN error:', err);
       setStatusMessage({ type: 'error', text: 'Chyba při zpracování ISBN.' });
+      isProcessingRef.current = false;
     } finally {
       setLoading(false);
     }
@@ -537,7 +557,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                 </div>
               </div>
 
-              {/* Mobile button - clean orange button "Režim rychlého skenování" */}
+              {/* Mobile button */}
               <button
                 onClick={() => {
                   setIsFastScanMode(true);
@@ -708,19 +728,35 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             Skenování fotoaparátem
           </h3>
 
-          <div className="w-full relative bg-slate-900 rounded-xl overflow-hidden h-[120px] sm:h-auto min-h-[120px] sm:min-h-[220px] flex items-center justify-center mb-4">
+          <div className="w-full relative bg-slate-900 rounded-xl overflow-hidden h-[140px] sm:h-auto min-h-[140px] sm:min-h-[220px] flex items-center justify-center mb-3">
             <video
               ref={videoRef}
-              className="w-full h-full object-cover max-h-[120px] sm:max-h-[300px]"
+              className="w-full h-full object-cover max-h-[140px] sm:max-h-[300px]"
               playsInline
               muted
             />
-            {isScanning && (
+
+            {/* Thumbs-Up Overlay (Fast mode success cat display) */}
+            {showThumbsUpOverlay && (
+              <div className="absolute inset-0 bg-slate-900/85 backdrop-blur-xs flex flex-col items-center justify-center p-3 z-20 animate-fade-in">
+                <img
+                  src="/assets/cat-thumbsup.png"
+                  alt="Kniha naskenována!"
+                  className="w-24 h-24 sm:w-32 sm:h-32 object-contain animate-bounce"
+                />
+                <span className="text-white font-bold text-xs sm:text-sm mt-1 bg-emerald-600 px-3 py-1 rounded-full shadow-md">
+                  Kniha uložena!
+                </span>
+              </div>
+            )}
+
+            {isScanning && !showThumbsUpOverlay && (
               <div className="absolute inset-0 pointer-events-none flex items-center justify-center p-2 sm:p-4">
                 <div className="w-full max-w-[320px] h-16 sm:h-32 border-2 border-dashed border-emerald-400/80 rounded-xl sm:rounded-2xl bg-emerald-500/10 shadow-lg animate-pulse" />
               </div>
             )}
-            {!isScanning && (
+
+            {!isScanning && !showThumbsUpOverlay && (
               <div className="absolute inset-0 flex flex-col sm:flex-col items-center justify-center p-2 sm:p-4 bg-slate-900/90 text-slate-300 space-y-1 sm:space-y-3">
                 <Camera className="w-8 h-8 sm:w-12 sm:h-12 text-slate-500 stroke-1" />
                 <p className="text-[11px] sm:text-xs max-w-xs">
@@ -729,6 +765,23 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
               </div>
             )}
           </div>
+
+          {/* Progress Bar with Loading Cat below scanner camera */}
+          {loading && (
+            <div className="w-full mb-3 p-3 bg-slate-900/5 rounded-xl border border-slate-200 flex flex-col items-center animate-fade-in">
+              <img
+                src="/assets/cat-loading.png"
+                alt="Načítám..."
+                className="w-10 h-10 object-contain mb-1.5 animate-bounce"
+              />
+              <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden border border-slate-300 relative shadow-inner">
+                <div className="bg-black h-full rounded-full w-full animate-pulse relative overflow-hidden" />
+              </div>
+              <span className="text-[11px] font-semibold text-slate-700 mt-1.5">
+                Vyhledávám v katalozích...
+              </span>
+            </div>
+          )}
 
           <div className="w-full flex gap-2">
             {!isScanning ? (
@@ -884,6 +937,24 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           </div>
         )}
       </div>
+
+      {/* STANDARD MODE BOOK CONFIRMATION MODAL */}
+      {scannedMetadataToConfirm && shelfDetails && (
+        <BookConfirmModal
+          initialData={scannedMetadataToConfirm.bookData}
+          shelfName={shelfDetails.shelfName}
+          sourceName={scannedMetadataToConfirm.sourceName}
+          onConfirm={async (confirmedData) => {
+            const source = scannedMetadataToConfirm.sourceName;
+            setScannedMetadataToConfirm(null);
+            await saveBookToDb(confirmedData, source);
+          }}
+          onCancel={() => {
+            setScannedMetadataToConfirm(null);
+            setStatusMessage({ type: 'info', text: 'Uložení naskenované knihy zrušeno.' });
+          }}
+        />
+      )}
 
       {/* DUPLICATE MODAL */}
       {duplicateBook && pendingBookData && shelfDetails && (
