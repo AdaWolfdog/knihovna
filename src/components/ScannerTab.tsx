@@ -37,7 +37,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   // Recent scans in current session
   const [recentScans, setRecentScans] = useState<Book[]>([]);
 
-  // Duplicate modal state
+  // Duplicate modal state (Standard Mode)
   const [duplicateBook, setDuplicateBook] = useState<Book | null>(null);
   const [pendingBookData, setPendingBookData] = useState<Partial<Book> | null>(null);
 
@@ -166,7 +166,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           try {
             await handleProcessIsbn(decodedText);
           } finally {
-            // Note: If fast mode triggered thumbsUpOverlay, cooldown is handled by overlay timer
+            // Note: In fast mode, 3-second cooldown is handled by overlay timer
             if (!isFastScanMode) {
               setTimeout(() => {
                 isProcessingRef.current = false;
@@ -299,17 +299,29 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       };
 
       if (existingOnSameShelf) {
-        // Book exists on SAME shelf -> duplicate modal pops up
-        setDuplicateBook(existingOnSameShelf);
-        setPendingBookData(candidateBook);
-        setLoading(false);
-        return;
+        if (isFastScanMode) {
+          // FAST SCAN MODE: No popups! Increment quantity automatically & show 3s thumbs-up cat overlay
+          await saveBookToDb(candidateBook as Book, 'Naskenovaný exemplář');
+          setShowThumbsUpOverlay(true);
+          setTimeout(() => {
+            setShowThumbsUpOverlay(false);
+            isProcessingRef.current = false;
+          }, 3000);
+          setLoading(false);
+          return;
+        } else {
+          // STANDARD MODE: Show duplicate modal
+          setDuplicateBook(existingOnSameShelf);
+          setPendingBookData(candidateBook);
+          setLoading(false);
+          return;
+        }
       }
 
       if (!metadata && !existingInLibrary) {
         // Not found in catalogs or existing DB
         if (isFastScanMode) {
-          // FAST SCAN MODE: Show skip banner with "Přeskočit" option
+          // FAST SCAN MODE: Show skip banner with "Přeskočit" option (no popup modal)
           setUnrecognizedIsbnBanner(cleanIsbn);
           setStatusMessage({
             type: 'info',
@@ -341,7 +353,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           isProcessingRef.current = false;
         }, 3000);
       } else {
-        // STANDARD MODE: Open confirmation modal so user can review and edit details
+        // STANDARD MODE ONLY: Open confirmation modal so user can review and edit details
         setScannedMetadataToConfirm({
           bookData: candidateBook,
           sourceName: metadata?.source || (existingInLibrary ? 'Import z databáze knihovny' : undefined),
@@ -730,21 +742,24 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             Skenování fotoaparátem
           </h3>
 
-          <div className="w-full relative bg-slate-900 rounded-xl overflow-hidden h-[140px] sm:h-auto min-h-[140px] sm:min-h-[220px] flex items-center justify-center mb-3">
+          <div className="w-full relative bg-slate-900 rounded-xl overflow-hidden h-[180px] sm:h-auto min-h-[180px] sm:min-h-[220px] flex items-center justify-center mb-3">
             <video
               ref={videoRef}
-              className="w-full h-full object-cover max-h-[140px] sm:max-h-[300px]"
+              className="w-full h-full object-cover max-h-[180px] sm:max-h-[300px]"
               playsInline
               muted
             />
 
             {/* Thumbs-Up Overlay (Fast mode success cat display) */}
             {showThumbsUpOverlay && (
-              <div className="absolute inset-0 bg-slate-900/85 backdrop-blur-xs flex flex-col items-center justify-center p-3 z-20 animate-fade-in">
+              <div className="absolute inset-0 bg-slate-900/85 backdrop-blur-xs flex flex-col items-center justify-center p-2 z-20 animate-fade-in">
                 <img
                   src={catThumbsupImg}
+                  onError={(e) => {
+                    e.currentTarget.src = './assets/cat-thumbsup.png';
+                  }}
                   alt="Kniha naskenována!"
-                  className="w-24 h-24 sm:w-32 sm:h-32 object-contain animate-bounce"
+                  className="w-20 h-20 sm:w-28 sm:h-28 object-contain animate-bounce"
                 />
                 <span className="text-white font-bold text-xs sm:text-sm mt-1 bg-emerald-600 px-3 py-1 rounded-full shadow-md">
                   Kniha uložena!
@@ -754,7 +769,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
 
             {isScanning && !showThumbsUpOverlay && (
               <div className="absolute inset-0 pointer-events-none flex items-center justify-center p-2 sm:p-4">
-                <div className="w-full max-w-[320px] h-16 sm:h-32 border-2 border-dashed border-emerald-400/80 rounded-xl sm:rounded-2xl bg-emerald-500/10 shadow-lg animate-pulse" />
+                <div className="w-full max-w-[320px] h-20 sm:h-32 border-2 border-dashed border-emerald-400/80 rounded-xl sm:rounded-2xl bg-emerald-500/10 shadow-lg animate-pulse" />
               </div>
             )}
 
@@ -773,6 +788,9 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             <div className="w-full mb-3 p-3 bg-slate-900/5 rounded-xl border border-slate-200 flex flex-col items-center animate-fade-in">
               <img
                 src={catLoadingImg}
+                onError={(e) => {
+                  e.currentTarget.src = './assets/cat-loading.png';
+                }}
                 alt="Načítám..."
                 className="w-10 h-10 object-contain mb-1.5 animate-bounce"
               />
@@ -941,7 +959,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       </div>
 
       {/* STANDARD MODE BOOK CONFIRMATION MODAL */}
-      {scannedMetadataToConfirm && shelfDetails && (
+      {!isFastScanMode && scannedMetadataToConfirm && shelfDetails && (
         <BookConfirmModal
           initialData={scannedMetadataToConfirm.bookData}
           shelfName={shelfDetails.shelfName}
@@ -958,8 +976,8 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         />
       )}
 
-      {/* DUPLICATE MODAL */}
-      {duplicateBook && pendingBookData && shelfDetails && (
+      {/* DUPLICATE MODAL (STANDARD MODE) */}
+      {!isFastScanMode && duplicateBook && pendingBookData && shelfDetails && (
         <DuplicateModal
           existingBook={duplicateBook}
           shelfName={shelfDetails.shelfName}
