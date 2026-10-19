@@ -6,6 +6,8 @@ import { Camera, Search, CheckCircle, AlertCircle, RefreshCw, BookPlus, Zap, Ski
 import { DuplicateModal } from './DuplicateModal';
 import { ManualBookModal } from './ManualBookModal';
 import { BookConfirmModal } from './BookConfirmModal';
+import catLoadingImg from '../assets/cat-loading.png';
+import catThumbsupImg from '../assets/cat-thumbsup.png';
 
 interface ScannerTabProps {
   activeShelfId: number | null;
@@ -740,7 +742,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             {showThumbsUpOverlay && (
               <div className="absolute inset-0 bg-slate-900/85 backdrop-blur-xs flex flex-col items-center justify-center p-3 z-20 animate-fade-in">
                 <img
-                  src="/assets/cat-thumbsup.png"
+                  src={catThumbsupImg}
                   alt="Kniha naskenována!"
                   className="w-24 h-24 sm:w-32 sm:h-32 object-contain animate-bounce"
                 />
@@ -770,7 +772,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           {loading && (
             <div className="w-full mb-3 p-3 bg-slate-900/5 rounded-xl border border-slate-200 flex flex-col items-center animate-fade-in">
               <img
-                src="/assets/cat-loading.png"
+                src={catLoadingImg}
                 alt="Načítám..."
                 className="w-10 h-10 object-contain mb-1.5 animate-bounce"
               />
