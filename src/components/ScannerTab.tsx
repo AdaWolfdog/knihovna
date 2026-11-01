@@ -37,7 +37,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   // Recent scans in current session
   const [recentScans, setRecentScans] = useState<Book[]>([]);
 
-  // Duplicate modal state (Standard Mode)
+  // Duplicate modal state
   const [duplicateBook, setDuplicateBook] = useState<Book | null>(null);
   const [pendingBookData, setPendingBookData] = useState<Partial<Book> | null>(null);
 
@@ -410,27 +410,11 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
 
       // Case A: Duplicate on same shelf
       if (existingOnSameShelf) {
-        if (isFastScanModeRef.current) {
-          // FAST SCAN MODE: No popups! Increment quantity automatically & show 3s thumbs-up cat overlay
-          const saved = await saveBookToDb(candidateBook, 'Naskenovaný exemplář');
-          if (saved) {
-            setShowThumbsUpOverlay(true);
-            setTimeout(() => {
-              setShowThumbsUpOverlay(false);
-              isProcessingRef.current = false;
-            }, 3000);
-          } else {
-            isProcessingRef.current = false;
-          }
-          setLoading(false);
-          return;
-        } else {
-          // STANDARD MODE: Show duplicate modal (lock held until modal dismisses)
-          setDuplicateBook(existingOnSameShelf);
-          setPendingBookData(candidateBook);
-          setLoading(false);
-          return;
-        }
+        // Show duplicate modal in both Standard and Fast Scan Mode
+        setDuplicateBook(existingOnSameShelf);
+        setPendingBookData(candidateBook);
+        setLoading(false);
+        return;
       }
 
       // Case B: Network/catalog temporary failure (and not found in local library)
@@ -734,9 +718,6 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                   <h3 className="font-bold text-sm sm:text-base">
                     Režim rychlého skenování
                   </h3>
-                  <p className="text-xs text-slate-500">
-                    Skenujte více knih rychle za sebou bez přerušování. Nenalezené knihy můžete přeskočit a doplnit na konci.
-                  </p>
                 </div>
               </div>
 
@@ -787,9 +768,6 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                       Aktivní
                     </span>
                   </div>
-                  <p className="hidden sm:block text-xs text-slate-500">
-                    Skenujte více knih rychle za sebou bez přerušování. Nenalezené knihy můžete přeskočit a doplnit na konci.
-                  </p>
                 </div>
               </div>
 
@@ -1001,9 +979,6 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             {!isScanning && !showThumbsUpOverlay && (
               <div className="absolute inset-0 flex flex-col sm:flex-col items-center justify-center p-2 sm:p-4 bg-slate-900/90 text-slate-300 space-y-1 sm:space-y-3">
                 <Camera className="w-8 h-8 sm:w-12 sm:h-12 text-slate-500 stroke-1" />
-                <p className="text-[11px] sm:text-xs max-w-xs">
-                  Pro automatické načítání čárových kódů spusťte fotoaparát.
-                </p>
               </div>
             )}
           </div>
@@ -1057,11 +1032,6 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
               <Search className="w-5 h-5 text-indigo-600" />
               Zadání ISBN nebo ruční zápis
             </h3>
-
-            <p className="text-xs text-slate-500 mb-4">
-              Můžete ručně napsat/připojit USB čtečku pro zadání ISBN, nebo celkově zadat
-              údaje staré knihy bez čárového kódu.
-            </p>
 
             <form onSubmit={handleManualSubmitIsbn} className="space-y-3">
               <div>
@@ -1203,17 +1173,26 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         />
       )}
 
-      {/* DUPLICATE MODAL (STANDARD MODE) */}
-      {!isFastScanMode && duplicateBook && pendingBookData && shelfDetails && (
+      {/* DUPLICATE MODAL */}
+      {duplicateBook && pendingBookData && shelfDetails && (
         <DuplicateModal
           existingBook={duplicateBook}
           shelfName={shelfDetails.shelfName}
           onAddExemplar={async () => {
             const dataToSave = pendingBookData;
+            const inFastMode = isFastScanModeRef.current;
             setDuplicateBook(null);
             setPendingBookData(null);
-            await saveBookToDb(dataToSave, 'Další exemplář');
-            releaseModalLock();
+            const saved = await saveBookToDb(dataToSave, 'Další exemplář');
+            if (inFastMode && saved) {
+              setShowThumbsUpOverlay(true);
+              setTimeout(() => {
+                setShowThumbsUpOverlay(false);
+                releaseModalLock();
+              }, 3000);
+            } else {
+              releaseModalLock();
+            }
           }}
           onCancel={() => {
             setDuplicateBook(null);
