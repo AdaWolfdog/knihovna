@@ -380,8 +380,8 @@ export async function lookupBookByIsbnDetailed(isbnInput: string): Promise<Catal
     return { metadata: null, isNetworkError: false };
   }
 
-  let anyCatalogSuccess = false;
-  let allCatalogsFailedWithNetworkError = true;
+  let anyCatalogHadNetworkError = false;
+  let allCatalogsCompletedSuccessfully = true;
 
   // 1. Try Knihovny.cz API
   try {
@@ -389,12 +389,14 @@ export async function lookupBookByIsbnDetailed(isbnInput: string): Promise<Catal
     if (cpkResult.metadata) {
       return { metadata: cpkResult.metadata, isNetworkError: false };
     }
-    if (!cpkResult.isNetworkError) {
-      anyCatalogSuccess = true;
-      allCatalogsFailedWithNetworkError = false;
+    if (cpkResult.isNetworkError) {
+      anyCatalogHadNetworkError = true;
+      allCatalogsCompletedSuccessfully = false;
     }
   } catch (err) {
     console.warn('Knihovny.cz lookup failed or offline:', err);
+    anyCatalogHadNetworkError = true;
+    allCatalogsCompletedSuccessfully = false;
   }
 
   // 2. Try Google Books API
@@ -403,12 +405,14 @@ export async function lookupBookByIsbnDetailed(isbnInput: string): Promise<Catal
     if (googleResult.metadata) {
       return { metadata: googleResult.metadata, isNetworkError: false };
     }
-    if (!googleResult.isNetworkError) {
-      anyCatalogSuccess = true;
-      allCatalogsFailedWithNetworkError = false;
+    if (googleResult.isNetworkError) {
+      anyCatalogHadNetworkError = true;
+      allCatalogsCompletedSuccessfully = false;
     }
   } catch (err) {
     console.warn('Google Books lookup failed or offline:', err);
+    anyCatalogHadNetworkError = true;
+    allCatalogsCompletedSuccessfully = false;
   }
 
   // 3. Try Open Library API
@@ -417,17 +421,21 @@ export async function lookupBookByIsbnDetailed(isbnInput: string): Promise<Catal
     if (openLibraryResult.metadata) {
       return { metadata: openLibraryResult.metadata, isNetworkError: false };
     }
-    if (!openLibraryResult.isNetworkError) {
-      anyCatalogSuccess = true;
-      allCatalogsFailedWithNetworkError = false;
+    if (openLibraryResult.isNetworkError) {
+      anyCatalogHadNetworkError = true;
+      allCatalogsCompletedSuccessfully = false;
     }
   } catch (err) {
     console.warn('Open Library lookup failed or offline:', err);
+    anyCatalogHadNetworkError = true;
+    allCatalogsCompletedSuccessfully = false;
   }
 
-  // If at least one catalog responded with "not found" (HTTP 200 with empty list),
-  // then the book genuinely wasn't found in catalogs.
-  if (anyCatalogSuccess || !allCatalogsFailedWithNetworkError) {
+  // Only consider the book genuinely unknown if all contacted catalogs answered definitively (e.g. 200 OK with no records)
+  // without any network errors, timeouts, or 5xx/429 failures.
+  // If any catalog failed due to network problems and no metadata was found elsewhere,
+  // classify as an incomplete result due to temporary catalog failure.
+  if (allCatalogsCompletedSuccessfully && !anyCatalogHadNetworkError) {
     return { metadata: null, isNetworkError: false };
   }
 
