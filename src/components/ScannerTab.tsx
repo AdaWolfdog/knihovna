@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { BrowserMultiFormatReader, BarcodeFormat, DecodeHintType } from '@zxing/library';
-import { fetchBookByIsbn, normalizeIsbn } from '../services/isbnService';
+import { lookupBookByIsbnDetailed, normalizeIsbn } from '../services/isbnService';
 import { db, type Book } from '../db/db';
-import { Camera, Search, CheckCircle, AlertCircle, RefreshCw, BookPlus, Zap, SkipForward, ArrowRight, Image as ImageIcon } from 'lucide-react';
+import { Camera, Search, CheckCircle, AlertCircle, RefreshCw, BookPlus, Zap, SkipForward, ArrowRight, Image as ImageIcon, RotateCcw } from 'lucide-react';
 import { DuplicateModal } from './DuplicateModal';
 import { ManualBookModal } from './ManualBookModal';
 import { BookConfirmModal } from './BookConfirmModal';
@@ -52,17 +52,67 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   const [showThumbsUpOverlay, setShowThumbsUpOverlay] = useState(false);
   const [skippedIsbns, setSkippedIsbns] = useState<string[]>([]);
   const [unrecognizedIsbnBanner, setUnrecognizedIsbnBanner] = useState<string | null>(null);
+  const [networkErrorIsbnBanner, setNetworkErrorIsbnBanner] = useState<string | null>(null);
   const [isProcessingSkippedList, setIsProcessingSkippedList] = useState(false);
 
   // Manual modal state
   const [showManualModal, setShowManualModal] = useState(false);
   const [manualModalIsbn, setManualModalIsbn] = useState('');
 
+  // Error recovery / Reset state
+  const [hasScannerError, setHasScannerError] = useState(false);
+
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const zxingReaderRef = useRef<BrowserMultiFormatReader | null>(null);
   const isProcessingRef = useRef<boolean>(false);
+  const isModalOpenRef = useRef<boolean>(false);
   const lastScanTimeRef = useRef<number>(0);
   const lastScannedIsbnRef = useRef<string>('');
+  const activeShelfIdRef = useRef<number | null>(activeShelfId);
+  const shelfDetailsRef = useRef(shelfDetails);
+  const isFastScanModeRef = useRef<boolean>(isFastScanMode);
+  const isProcessingSkippedListRef = useRef<boolean>(isProcessingSkippedList);
+  const skippedIsbnsRef = useRef<string[]>(skippedIsbns);
+
+  // Keep refs up-to-date with states to avoid stale closures in camera callbacks
+  useEffect(() => {
+    activeShelfIdRef.current = activeShelfId;
+  }, [activeShelfId]);
+
+  useEffect(() => {
+    shelfDetailsRef.current = shelfDetails;
+  }, [shelfDetails]);
+
+  useEffect(() => {
+    isFastScanModeRef.current = isFastScanMode;
+  }, [isFastScanMode]);
+
+  useEffect(() => {
+    isProcessingSkippedListRef.current = isProcessingSkippedList;
+  }, [isProcessingSkippedList]);
+
+  useEffect(() => {
+    skippedIsbnsRef.current = skippedIsbns;
+  }, [skippedIsbns]);
+
+  // Track modal open status to pause scanning while modal is active
+  useEffect(() => {
+    const isAnyModalOpen = Boolean(
+      scannedMetadataToConfirm || duplicateBook || showManualModal
+    );
+    isModalOpenRef.current = isAnyModalOpen;
+    if (isAnyModalOpen) {
+      isProcessingRef.current = true;
+    }
+  }, [scannedMetadataToConfirm, duplicateBook, showManualModal]);
+
+  // Release processing lock when all modals close
+  const releaseModalLock = () => {
+    isModalOpenRef.current = false;
+    setTimeout(() => {
+      isProcessingRef.current = false;
+    }, 400);
+  };
 
   // Load target shelf info
   useEffect(() => {
@@ -90,6 +140,22 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
     loadShelf();
   }, [activeShelfId]);
 
+  const stopCamera = () => {
+    if (zxingReaderRef.current) {
+      try {
+        zxingReaderRef.current.reset();
+      } catch (err) {
+        console.error('Error stopping camera:', err);
+      }
+    }
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach((track) => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    setIsScanning(false);
+  };
+
   // Clean up ZXing on unmount
   useEffect(() => {
     return () => {
@@ -97,9 +163,33 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
     };
   }, []);
 
+  // Safe manual reset for user if camera or lock ever gets stuck
+  const handleResetScanner = async () => {
+    isProcessingRef.current = false;
+    isModalOpenRef.current = false;
+    lastScannedIsbnRef.current = '';
+    lastScanTimeRef.current = 0;
+    setLoading(false);
+    setHasScannerError(false);
+    setNetworkErrorIsbnBanner(null);
+    setUnrecognizedIsbnBanner(null);
+
+    if (isScanning) {
+      stopCamera();
+      setTimeout(() => {
+        startCamera();
+      }, 300);
+    }
+
+    setStatusMessage({
+      type: 'info',
+      text: 'Čtečka byla restartována a je připravena.',
+    });
+  };
+
   // Toggle Camera Scanning using high-performance ZXing
   const startCamera = async () => {
-    if (!activeShelfId) return;
+    if (!activeShelfIdRef.current) return;
 
     try {
       if (!zxingReaderRef.current) {
@@ -118,6 +208,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       }
 
       setIsScanning(true);
+      setHasScannerError(false);
       setStatusMessage({ type: 'info', text: 'Spouštím fotoaparát...' });
 
       // Build video constraints targeting back camera at optimal 720p for fast frame decoding
@@ -151,7 +242,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           const now = Date.now();
           const cleanIsbn = normalizeIsbn(decodedText);
 
-          if (isProcessingRef.current) return;
+          if (isProcessingRef.current || isModalOpenRef.current) return;
           if (
             cleanIsbn === lastScannedIsbnRef.current &&
             now - lastScanTimeRef.current < 2500
@@ -165,13 +256,10 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
 
           try {
             await handleProcessIsbn(decodedText);
-          } finally {
-            // Note: In fast mode, 3-second cooldown is handled by overlay timer
-            if (!isFastScanMode) {
-              setTimeout(() => {
-                isProcessingRef.current = false;
-              }, 1500);
-            }
+          } catch (err) {
+            console.error('Unhandled scan callback error:', err);
+            setHasScannerError(true);
+            isProcessingRef.current = false;
           }
         }
       };
@@ -196,6 +284,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
     } catch (err: any) {
       console.error('Error starting camera:', err);
       setIsScanning(false);
+      setHasScannerError(true);
       const errorMessage = typeof err === 'string' ? err : err?.message || '';
       if (errorMessage.toLowerCase().includes('notallowed') || errorMessage.toLowerCase().includes('permission')) {
         setStatusMessage({
@@ -211,29 +300,20 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
     }
   };
 
-  const stopCamera = () => {
-    if (zxingReaderRef.current) {
-      try {
-        zxingReaderRef.current.reset();
-      } catch (err) {
-        console.error('Error stopping camera:', err);
-      }
-    }
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach((track) => track.stop());
-      videoRef.current.srcObject = null;
-    }
-    setIsScanning(false);
-  };
-
   // Main logic for processing ISBN code
   const handleProcessIsbn = async (rawIsbn: string) => {
     const cleanIsbn = normalizeIsbn(rawIsbn);
-    if (!cleanIsbn) return;
+    if (!cleanIsbn) {
+      isProcessingRef.current = false;
+      return;
+    }
 
-    if (!activeShelfId || !shelfDetails) {
+    const currentShelfId = activeShelfIdRef.current;
+    const currentShelfDetails = shelfDetailsRef.current;
+
+    if (!currentShelfId || !currentShelfDetails) {
       setStatusMessage({ type: 'error', text: 'Nejprve prosím vyberte cílovou polici v záložce "Knihovna & Police"!' });
+      isProcessingRef.current = false;
       return;
     }
 
@@ -242,12 +322,14 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
 
     try {
       // 1. If we are currently in "isProcessingSkippedList" mode
-      if (isProcessingSkippedList && skippedIsbns.length > 0) {
-        if (skippedIsbns.includes(cleanIsbn)) {
+      if (isProcessingSkippedListRef.current && skippedIsbnsRef.current.length > 0) {
+        if (skippedIsbnsRef.current.includes(cleanIsbn)) {
           setUnrecognizedIsbnBanner(null);
+          setNetworkErrorIsbnBanner(null);
           setManualModalIsbn(cleanIsbn);
           setShowManualModal(true);
           setLoading(false);
+          // Processing lock stays held until modal closes
           return;
         } else {
           setStatusMessage({
@@ -255,32 +337,42 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             text: `Naskenovaný kód ${cleanIsbn} není v seznamu přeskočených. Zkuste naskenovat správnou přeskočenou knihu.`,
           });
           setLoading(false);
+          isProcessingRef.current = false;
           return;
         }
       }
 
       // 2. Check if ISBN already exists on SAME shelf vs elsewhere in Library
-      const existingOnSameShelf = await db.books
-        .where('shelfId')
-        .equals(activeShelfId)
-        .and((b) => normalizeIsbn(b.isbn) === cleanIsbn)
-        .first();
+      let existingOnSameShelf: Book | undefined;
+      let existingInLibrary: Book | undefined;
 
-      const existingInLibrary = await db.books
-        .where('libraryId')
-        .equals(shelfDetails.libraryId)
-        .and((b) => normalizeIsbn(b.isbn) === cleanIsbn)
-        .first();
+      try {
+        existingOnSameShelf = await db.books
+          .where('shelfId')
+          .equals(currentShelfId)
+          .and((b) => normalizeIsbn(b.isbn) === cleanIsbn)
+          .first();
 
-      // 3. Lookup online catalog metadata
-      const metadata = await fetchBookByIsbn(cleanIsbn);
+        existingInLibrary = await db.books
+          .where('libraryId')
+          .equals(currentShelfDetails.libraryId)
+          .and((b) => normalizeIsbn(b.isbn) === cleanIsbn)
+          .first();
+      } catch (dbErr) {
+        console.error('Database query error during scan check:', dbErr);
+        // Continue to catalog lookup even if local query had unexpected issue
+      }
+
+      // 3. Lookup online catalog metadata with detailed network vs not-found distinction
+      const lookupResult = await lookupBookByIsbnDetailed(cleanIsbn);
+      const metadata = lookupResult.metadata;
 
       const existingRef = existingOnSameShelf || existingInLibrary;
 
       const candidateBook: Partial<Book> = {
-        libraryId: shelfDetails.libraryId,
-        roomId: shelfDetails.roomId,
-        shelfId: activeShelfId,
+        libraryId: currentShelfDetails.libraryId,
+        roomId: currentShelfDetails.roomId,
+        shelfId: currentShelfId,
         isbn: cleanIsbn,
         title: metadata?.title || existingRef?.title || '',
         author: metadata?.author || existingRef?.author || '',
@@ -298,19 +390,24 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         scannedAt: new Date(),
       };
 
+      // Case A: Duplicate on same shelf
       if (existingOnSameShelf) {
-        if (isFastScanMode) {
+        if (isFastScanModeRef.current) {
           // FAST SCAN MODE: No popups! Increment quantity automatically & show 3s thumbs-up cat overlay
-          await saveBookToDb(candidateBook as Book, 'Naskenovaný exemplář');
-          setShowThumbsUpOverlay(true);
-          setTimeout(() => {
-            setShowThumbsUpOverlay(false);
+          const saved = await saveBookToDb(candidateBook, 'Naskenovaný exemplář');
+          if (saved) {
+            setShowThumbsUpOverlay(true);
+            setTimeout(() => {
+              setShowThumbsUpOverlay(false);
+              isProcessingRef.current = false;
+            }, 3000);
+          } else {
             isProcessingRef.current = false;
-          }, 3000);
+          }
           setLoading(false);
           return;
         } else {
-          // STANDARD MODE: Show duplicate modal
+          // STANDARD MODE: Show duplicate modal (lock held until modal dismisses)
           setDuplicateBook(existingOnSameShelf);
           setPendingBookData(candidateBook);
           setLoading(false);
@@ -318,17 +415,41 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         }
       }
 
+      // Case B: Network/catalog temporary failure (and not found in local library)
+      if (!metadata && !existingInLibrary && lookupResult.isNetworkError) {
+        setLoading(false);
+        if (isFastScanModeRef.current) {
+          // In Fast Scan Mode: offer Retry and Skip options without blocking completely
+          setNetworkErrorIsbnBanner(cleanIsbn);
+          setStatusMessage({
+            type: 'error',
+            text: `Katalogy jsou dočasně nedostupné (chyba sítě). Zkuste načíst ISBN ${cleanIsbn} znovu, nebo knihu přeskočte.`,
+          });
+        } else {
+          // Standard mode: Inform user with specific network error and offer retry option
+          setHasScannerError(true);
+          setStatusMessage({
+            type: 'error',
+            text: `Katalogy jsou dočasně nedostupné pro ISBN ${cleanIsbn} (chyba sítě nebo časový limit). Zkuste to prosím znovu.`,
+          });
+          isProcessingRef.current = false;
+        }
+        return;
+      }
+
+      // Case C: Genuinely not found in catalogs or existing DB
       if (!metadata && !existingInLibrary) {
-        // Not found in catalogs or existing DB
-        if (isFastScanMode) {
-          // FAST SCAN MODE: Show skip banner with "Přeskočit" option (no popup modal)
+        if (isFastScanModeRef.current) {
+          // FAST SCAN MODE: Show skip banner with "Přeskočit" option
           setUnrecognizedIsbnBanner(cleanIsbn);
           setStatusMessage({
             type: 'info',
             text: `Kniha s ISBN ${cleanIsbn} nebyla v katalozích nalezena. V rychlém režimu můžete knihu přeskočit a doplnit později.`,
           });
+          // Unlock so user can scan next book or choose to skip/fill
+          isProcessingRef.current = false;
         } else {
-          // STANDARD MODE: Open manual modal immediately
+          // STANDARD MODE: Open manual modal immediately (lock held until modal closes)
           setStatusMessage({
             type: 'info',
             text: `Kniha s ISBN ${cleanIsbn} nebyla v katalozích nalezena. Vyplňte údaje ručně.`,
@@ -340,20 +461,24 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         return;
       }
 
-      // Found metadata or existing library book
-      if (isFastScanMode) {
+      // Case D: Found metadata or existing library book
+      if (isFastScanModeRef.current) {
         // FAST SCAN MODE: Save automatically & trigger 3-second thumbs-up overlay with camera freeze
-        await saveBookToDb(
-          candidateBook as Book,
+        const saved = await saveBookToDb(
+          candidateBook,
           metadata?.source || (existingInLibrary ? 'Import z databáze knihovny' : undefined)
         );
-        setShowThumbsUpOverlay(true);
-        setTimeout(() => {
-          setShowThumbsUpOverlay(false);
+        if (saved) {
+          setShowThumbsUpOverlay(true);
+          setTimeout(() => {
+            setShowThumbsUpOverlay(false);
+            isProcessingRef.current = false;
+          }, 3000);
+        } else {
           isProcessingRef.current = false;
-        }, 3000);
+        }
       } else {
-        // STANDARD MODE ONLY: Open confirmation modal so user can review and edit details
+        // STANDARD MODE ONLY: Open confirmation modal so user can review and edit details (lock held until modal finishes)
         setScannedMetadataToConfirm({
           bookData: candidateBook,
           sourceName: metadata?.source || (existingInLibrary ? 'Import z databáze knihovny' : undefined),
@@ -362,6 +487,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
     } catch (err) {
       console.error('Processing ISBN error:', err);
       setStatusMessage({ type: 'error', text: 'Chyba při zpracování ISBN.' });
+      setHasScannerError(true);
       isProcessingRef.current = false;
     } finally {
       setLoading(false);
@@ -373,10 +499,18 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       setSkippedIsbns((prev) => [...prev, isbnToSkip]);
     }
     setUnrecognizedIsbnBanner(null);
+    setNetworkErrorIsbnBanner(null);
+    isProcessingRef.current = false;
     setStatusMessage({
       type: 'info',
       text: `Kniha ${isbnToSkip} byla přeskočena. Můžete pokračovat v rychlém skenování.`,
     });
+  };
+
+  const handleRetryNetworkIsbn = (isbnToRetry: string) => {
+    setNetworkErrorIsbnBanner(null);
+    isProcessingRef.current = false;
+    handleProcessIsbn(isbnToRetry);
   };
 
   const handleFinishFastScanning = () => {
@@ -405,95 +539,108 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
     }
   };
 
-  const saveBookToDb = async (bookData: Partial<Book>, sourceName?: string) => {
-    if (!shelfDetails || !activeShelfId) return;
+  const saveBookToDb = async (bookData: Partial<Book>, sourceName?: string): Promise<boolean> => {
+    const currentShelfId = activeShelfIdRef.current;
+    const currentShelfDetails = shelfDetailsRef.current;
+    if (!currentShelfDetails || !currentShelfId) return false;
 
     const cleanIsbn = normalizeIsbn(bookData.isbn || '');
 
-    // Check if book already exists on THIS SAME shelf
-    const existingOnSameShelf = await db.books
-      .where('shelfId')
-      .equals(activeShelfId)
-      .and((b) => normalizeIsbn(b.isbn) === cleanIsbn && cleanIsbn !== '')
-      .first();
+    try {
+      // Check if book already exists on THIS SAME shelf
+      const existingOnSameShelf = await db.books
+        .where('shelfId')
+        .equals(currentShelfId)
+        .and((b) => normalizeIsbn(b.isbn) === cleanIsbn && cleanIsbn !== '')
+        .first();
 
-    if (existingOnSameShelf && existingOnSameShelf.id) {
-      // Increment quantity on existing record
-      const updatedQuantity = (existingOnSameShelf.quantity || 1) + (bookData.quantity || 1);
-      await db.books.update(existingOnSameShelf.id, {
-        quantity: updatedQuantity,
-        scannedAt: new Date(),
-      });
+      if (existingOnSameShelf && existingOnSameShelf.id) {
+        // Increment quantity on existing record
+        const updatedQuantity = (existingOnSameShelf.quantity || 1) + (bookData.quantity || 1);
+        await db.books.update(existingOnSameShelf.id, {
+          quantity: updatedQuantity,
+          scannedAt: new Date(),
+        });
 
-      const updatedBook: Book = {
-        ...existingOnSameShelf,
-        quantity: updatedQuantity,
+        const updatedBook: Book = {
+          ...existingOnSameShelf,
+          quantity: updatedQuantity,
+          scannedAt: new Date(),
+        };
+
+        setRecentScans((prev) => [updatedBook, ...prev.filter((b) => b.id !== existingOnSameShelf.id)]);
+        setStatusMessage({
+          type: 'success',
+          text: `Navýšen počet kusů na ${updatedQuantity} ks v polici "${currentShelfDetails.shelfName}".`,
+        });
+        return true;
+      }
+
+      // New entry on this shelf
+      const newBook: Book = {
+        libraryId: currentShelfDetails.libraryId,
+        roomId: currentShelfDetails.roomId,
+        shelfId: currentShelfId,
+        isbn: bookData.isbn || '',
+        title: bookData.title || 'Bez názvu',
+        author: bookData.author || 'Neznámý autor',
+        publishedYear: bookData.publishedYear || '',
+        translator: bookData.translator || '',
+        editionNumber: bookData.editionNumber || '',
+        quantity: bookData.quantity || 1,
+        genre: bookData.genre || '',
+        keywords: bookData.keywords || '',
+        coverUrl: bookData.coverUrl || '',
+        notes: bookData.notes || '',
+        publisher: bookData.publisher || '',
+        placeOfPublication: bookData.placeOfPublication || '',
+        cnb: bookData.cnb || '',
+        physicalDescription: bookData.physicalDescription || '',
         scannedAt: new Date(),
       };
 
-      setRecentScans((prev) => [updatedBook, ...prev.filter((b) => b.id !== existingOnSameShelf.id)]);
+      const id = await db.books.add(newBook);
+      newBook.id = id;
+
+      setRecentScans((prev) => [newBook, ...prev]);
+
+      // If we saved a skipped book, remove it from skippedIsbns
+      const cleanIsbnForCheck = normalizeIsbn(bookData.isbn || '');
+      if (cleanIsbnForCheck && skippedIsbnsRef.current.includes(cleanIsbnForCheck)) {
+        const remaining = skippedIsbnsRef.current.filter((i) => i !== cleanIsbnForCheck);
+        setSkippedIsbns(remaining);
+
+        if (remaining.length === 0) {
+          setIsProcessingSkippedList(false);
+          setIsFastScanMode(false);
+          setStatusMessage({
+            type: 'success',
+            text: 'Všechny přeskočené knihy byly úspěšně doplněny a uloženy!',
+          });
+          return true;
+        } else {
+          setStatusMessage({
+            type: 'info',
+            text: `Kniha uložena. Zbývá doplnit ${remaining.length} přeskočených knih. Naskenujte další přeskočenou knihu.`,
+          });
+          return true;
+        }
+      }
+
       setStatusMessage({
         type: 'success',
-        text: `Navýšen počet kusů na ${updatedQuantity} ks v polici "${shelfDetails.shelfName}".`,
+        text: `Uloženo do "${currentShelfDetails.shelfName}" (${sourceName ? `zdroj: ${sourceName}` : 'ruční zápis'}). Počet: ${newBook.quantity} ks`,
       });
-      return;
+      return true;
+    } catch (dbError) {
+      console.error('Failed to save book to database:', dbError);
+      setHasScannerError(true);
+      setStatusMessage({
+        type: 'error',
+        text: 'Chyba při ukládání do databáze! Kniha nebyla uložena. Zkuste to prosím znovu.',
+      });
+      return false;
     }
-
-    // New entry on this shelf
-    const newBook: Book = {
-      libraryId: shelfDetails.libraryId,
-      roomId: shelfDetails.roomId,
-      shelfId: activeShelfId,
-      isbn: bookData.isbn || '',
-      title: bookData.title || 'Bez názvu',
-      author: bookData.author || 'Neznámý autor',
-      publishedYear: bookData.publishedYear || '',
-      translator: bookData.translator || '',
-      editionNumber: bookData.editionNumber || '',
-      quantity: bookData.quantity || 1,
-      genre: bookData.genre || '',
-      keywords: bookData.keywords || '',
-      coverUrl: bookData.coverUrl || '',
-      notes: bookData.notes || '',
-      publisher: bookData.publisher || '',
-      placeOfPublication: bookData.placeOfPublication || '',
-      cnb: bookData.cnb || '',
-      physicalDescription: bookData.physicalDescription || '',
-      scannedAt: new Date(),
-    };
-
-    const id = await db.books.add(newBook);
-    newBook.id = id;
-
-    setRecentScans((prev) => [newBook, ...prev]);
-
-    // If we saved a skipped book, remove it from skippedIsbns
-    const cleanIsbnForCheck = normalizeIsbn(bookData.isbn || '');
-    if (cleanIsbnForCheck && skippedIsbns.includes(cleanIsbnForCheck)) {
-      const remaining = skippedIsbns.filter((i) => i !== cleanIsbnForCheck);
-      setSkippedIsbns(remaining);
-
-      if (remaining.length === 0) {
-        setIsProcessingSkippedList(false);
-        setIsFastScanMode(false);
-        setStatusMessage({
-          type: 'success',
-          text: 'Všechny přeskočené knihy byly úspěšně doplněny a uloženy!',
-        });
-        return;
-      } else {
-        setStatusMessage({
-          type: 'info',
-          text: `Kniha uložena. Zbývá doplnit ${remaining.length} přeskočených knih. Naskenujte další přeskočenou knihu.`,
-        });
-        return;
-      }
-    }
-
-    setStatusMessage({
-      type: 'success',
-      text: `Uloženo do "${shelfDetails.shelfName}" (${sourceName ? `zdroj: ${sourceName}` : 'ruční zápis'}). Počet: ${newBook.quantity} ks`,
-    });
   };
 
   const handleManualSubmitIsbn = (e: React.FormEvent) => {
@@ -639,6 +786,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                     setIsFastScanMode(false);
                     setSkippedIsbns([]);
                     setUnrecognizedIsbnBanner(null);
+                    setNetworkErrorIsbnBanner(null);
                     setIsProcessingSkippedList(false);
                   }}
                   className="py-2 sm:py-2.5 px-2.5 sm:px-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-xs rounded-lg sm:rounded-xl transition cursor-pointer"
@@ -667,6 +815,38 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           </div>
         )}
       </div>
+
+      {/* Network Error banner in Fast Mode */}
+      {networkErrorIsbnBanner && isFastScanMode && (
+        <div className="bg-red-50 border-2 border-red-400 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-6 h-6 text-red-600 shrink-0" />
+            <div>
+              <div className="font-bold text-red-900 text-sm">
+                Výpadek sítě / katalogu pro ISBN {networkErrorIsbnBanner}
+              </div>
+              <p className="text-xs text-red-700">
+                Online katalogy dočasně neodpověděly. Můžete to zkusit znovu nebo knihu přeskočit.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleRetryNetworkIsbn(networkErrorIsbnBanner)}
+              className="py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>Zkusit znovu</span>
+            </button>
+            <button
+              onClick={() => handleSkipIsbn(networkErrorIsbnBanner)}
+              className="py-2 px-3 bg-red-100 hover:bg-red-200 text-red-900 font-semibold text-xs border border-red-300 rounded-xl transition cursor-pointer"
+            >
+              Přeskočit knihu
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Unrecognized ISBN banner in Fast Mode */}
       {unrecognizedIsbnBanner && isFastScanMode && (
@@ -702,6 +882,29 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
               Doplnit ihned
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Recovery / Reset Button Banner (Appears only when an error occurs) */}
+      {hasScannerError && (
+        <div className="bg-slate-800 text-white p-3.5 sm:p-4 rounded-xl sm:rounded-2xl shadow-md flex items-center justify-between animate-fade-in">
+          <div className="flex items-center gap-3">
+            <RotateCcw className="w-5 h-5 text-amber-400 shrink-0" />
+            <div>
+              <div className="font-bold text-xs sm:text-sm">
+                Došlo k potížím se čtením nebo spojením
+              </div>
+              <p className="text-[11px] sm:text-xs text-slate-300">
+                Nemusíte obnovovat celou stránku (F5). Klepnutím můžete skener snadno uvolnit a restartovat.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleResetScanner}
+            className="py-1.5 px-3 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold text-xs rounded-lg transition shrink-0 ml-3 cursor-pointer"
+          >
+            Resetovat čtečku
+          </button>
         </div>
       )}
 
@@ -968,9 +1171,11 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             const source = scannedMetadataToConfirm.sourceName;
             setScannedMetadataToConfirm(null);
             await saveBookToDb(confirmedData, source);
+            releaseModalLock();
           }}
           onCancel={() => {
             setScannedMetadataToConfirm(null);
+            releaseModalLock();
             setStatusMessage({ type: 'info', text: 'Uložení naskenované knihy zrušeno.' });
           }}
         />
@@ -986,10 +1191,12 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             setDuplicateBook(null);
             setPendingBookData(null);
             await saveBookToDb(dataToSave, 'Další exemplář');
+            releaseModalLock();
           }}
           onCancel={() => {
             setDuplicateBook(null);
             setPendingBookData(null);
+            releaseModalLock();
             setStatusMessage({ type: 'info', text: 'Skenování zrušeno (označeno jako chyba/duplicita).' });
           }}
         />
@@ -1003,8 +1210,12 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           onSave={async (bookData) => {
             setShowManualModal(false);
             await saveBookToDb(bookData, 'Ruční zadání');
+            releaseModalLock();
           }}
-          onClose={() => setShowManualModal(false)}
+          onClose={() => {
+            setShowManualModal(false);
+            releaseModalLock();
+          }}
         />
       )}
     </div>
