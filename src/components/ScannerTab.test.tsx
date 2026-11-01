@@ -340,4 +340,77 @@ describe('ScannerTab component real workflow', () => {
     // Camera is stopped and reset banner is available
     expect(container.textContent).toContain('Resetovat čtečku');
   });
+
+  it('shows duplicate modal in fast scan mode and displays thumbs-up cat overlay upon confirmation', async () => {
+    // Pre-populate DB with existing book on shelf 10
+    booksStore.push({
+      id: 1,
+      libraryId: 30,
+      roomId: 20,
+      shelfId: 10,
+      isbn: '9788025703670',
+      title: 'Životy slavných',
+      author: 'Jean de Nostredame',
+      publishedYear: '2011',
+      quantity: 1,
+      scannedAt: new Date(),
+    });
+
+    vi.spyOn(isbnService, 'lookupBookByIsbnDetailed').mockResolvedValue({
+      metadata: {
+        isbn: '9788025703670',
+        title: 'Životy slavných',
+        author: 'Jean de Nostredame',
+        publishedYear: '2011',
+      },
+      isNetworkError: false,
+    });
+
+    await act(async () => {
+      root.render(<ScannerTab activeShelfId={10} onNavigateToStructure={() => {}} />);
+    });
+
+    // Turn on fast scan mode
+    const fastModeBtn = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Zapnout rychlé skenování') || b.textContent?.includes('Režim rychlého skenování')
+    );
+    await act(async () => {
+      fastModeBtn?.click();
+    });
+
+    // Start camera
+    const startBtn = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Spustit skenování')
+    );
+    await act(async () => {
+      startBtn?.click();
+    });
+
+    // Scan the same ISBN
+    await act(async () => {
+      await scanCallback!({ getText: () => '978-80-257-0367-0' });
+    });
+
+    // Duplicate modal must appear even in fast mode!
+    expect(container.textContent).toContain('Kniha již existuje v databázi!');
+    expect(container.textContent).toContain('Stávající počet na polici:');
+
+    // Confirm duplicate (+1 piece)
+    const addExemplarBtn = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Přidat kus (+1 ks)')
+    );
+    expect(addExemplarBtn).toBeDefined();
+
+    await act(async () => {
+      addExemplarBtn?.click();
+    });
+
+    // Quantity should be updated to 2
+    expect(booksStore[0].quantity).toBe(2);
+
+    // Thumbs-up cat overlay should be displayed
+    const thumbsUpImg = container.querySelector('img[alt="Kniha naskenována!"]');
+    expect(thumbsUpImg).not.toBeNull();
+    expect(container.textContent).toContain('Kniha uložena!');
+  });
 });
