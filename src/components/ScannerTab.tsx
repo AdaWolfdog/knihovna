@@ -265,18 +265,36 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       };
 
       if (videoRef.current) {
-        if (selectedDeviceId) {
-          zxingReaderRef.current.decodeFromVideoDevice(
-            selectedDeviceId,
-            videoRef.current,
-            onResultCallback
-          );
-        } else {
-          zxingReaderRef.current.decodeFromConstraints(
-            constraints,
-            videoRef.current,
-            onResultCallback
-          );
+        const decodePromise = selectedDeviceId
+          ? zxingReaderRef.current.decodeFromVideoDevice(
+              selectedDeviceId,
+              videoRef.current,
+              onResultCallback
+            )
+          : zxingReaderRef.current.decodeFromConstraints(
+              constraints,
+              videoRef.current,
+              onResultCallback
+            );
+
+        if (decodePromise && typeof decodePromise.catch === 'function') {
+          decodePromise.catch((err: any) => {
+            console.error('Async camera startup failure:', err);
+            setIsScanning(false);
+            setHasScannerError(true);
+            const errorMessage = typeof err === 'string' ? err : err?.message || '';
+            if (errorMessage.toLowerCase().includes('notallowed') || errorMessage.toLowerCase().includes('permission')) {
+              setStatusMessage({
+                type: 'error',
+                text: 'Kamera nemohla být spuštěna (zkontrolujte oprávnění v prohlížeči).',
+              });
+            } else {
+              setStatusMessage({
+                type: 'error',
+                text: `Kamera nemohla být spuštěna (${errorMessage || 'neznámá chyba'}).`,
+              });
+            }
+          });
         }
       }
 
@@ -418,6 +436,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       // Case B: Network/catalog temporary failure (and not found in local library)
       if (!metadata && !existingInLibrary && lookupResult.isNetworkError) {
         setLoading(false);
+        isProcessingRef.current = false;
         if (isFastScanModeRef.current) {
           // In Fast Scan Mode: offer Retry and Skip options without blocking completely
           setNetworkErrorIsbnBanner(cleanIsbn);
@@ -432,7 +451,6 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             type: 'error',
             text: `Katalogy jsou dočasně nedostupné pro ISBN ${cleanIsbn} (chyba sítě nebo časový limit). Zkuste to prosím znovu.`,
           });
-          isProcessingRef.current = false;
         }
         return;
       }
@@ -508,8 +526,9 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   };
 
   const handleRetryNetworkIsbn = (isbnToRetry: string) => {
+    if (isProcessingRef.current || isModalOpenRef.current) return;
+    isProcessingRef.current = true;
     setNetworkErrorIsbnBanner(null);
-    isProcessingRef.current = false;
     handleProcessIsbn(isbnToRetry);
   };
 
@@ -646,8 +665,11 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   const handleManualSubmitIsbn = (e: React.FormEvent) => {
     e.preventDefault();
     if (manualIsbn.trim()) {
-      handleProcessIsbn(manualIsbn);
+      if (isProcessingRef.current || isModalOpenRef.current) return;
+      isProcessingRef.current = true;
+      const isbnToLookup = manualIsbn;
       setManualIsbn('');
+      handleProcessIsbn(isbnToLookup);
     }
   };
 

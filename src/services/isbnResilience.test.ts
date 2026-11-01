@@ -70,7 +70,7 @@ describe('Catalog lookup resilience and retry', () => {
   });
 
   it('distinguishes genuine unknown ISBN (HTTP 200 with empty list) from network failure', async () => {
-    // Knihovny.cz returns 200 OK with empty records
+    // All catalogs return 200 OK with empty records
     vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
       if (url.includes('knihovny.cz')) {
         return Promise.resolve({
@@ -99,6 +99,35 @@ describe('Catalog lookup resilience and retry', () => {
     const result = await lookupBookByIsbnDetailed('9788000000000');
     expect(result.metadata).toBeNull();
     expect(result.isNetworkError).toBe(false); // Genuinely not found!
+  });
+
+  it('flags isNetworkError: true when one catalog returns empty but another catalog fails with network error', async () => {
+    // Knihovny.cz returns 200 empty, but Google Books fails with 500/timeout
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
+      if (url.includes('knihovny.cz')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ records: [], resultCount: 0 }),
+        });
+      }
+      if (url.includes('googleapis.com')) {
+        return Promise.reject(new Error('Connection timed out'));
+      }
+      if (url.includes('openlibrary.org')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({}),
+        });
+      }
+      return Promise.reject(new Error('Unknown service'));
+    }));
+
+    const result = await lookupBookByIsbnDetailed('9788000000000');
+    expect(result.metadata).toBeNull();
+    expect(result.isNetworkError).toBe(true); // Incomplete result due to catalog failure!
+    expect(result.errorMessage).toContain('Katalogy jsou dočasně nedostupné');
   });
 
   it('flags isNetworkError: true when all catalogs fail with network disconnection', async () => {
