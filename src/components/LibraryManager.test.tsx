@@ -186,4 +186,70 @@ describe('LibraryManager shelf books section', () => {
 
     expect(setActiveShelfId).toHaveBeenCalledWith(101);
   });
+
+  it('automatically selects the only shelf when switching to another library with 1 shelf', async () => {
+    // Library 2 has 1 room (20) and 1 shelf (200)
+    librariesStore.push({ id: 2, name: 'Druhá knihovna', color: '#10b981', createdAt: new Date() });
+    roomsStore.push({ id: 20, libraryId: 2, name: 'Kabinet', createdAt: new Date() });
+    shelvesStore.push({ id: 200, libraryId: 2, roomId: 20, name: 'Jediná police v kabinetu', createdAt: new Date() });
+
+    const setActiveShelfId = vi.fn();
+
+    await act(async () => {
+      root.render(
+        <LibraryManager
+          activeShelfId={100}
+          setActiveShelfId={setActiveShelfId}
+          onSelectShelfForScanning={vi.fn()}
+        />
+      );
+    });
+
+    // Click on "Druhá knihovna"
+    const lib2NameSpan = Array.from(container.querySelectorAll('span')).find((el) =>
+      el.textContent === 'Druhá knihovna'
+    );
+    expect(lib2NameSpan).toBeDefined();
+    const lib2Row = lib2NameSpan?.closest('div[class*="cursor-pointer"]');
+    expect(lib2Row).not.toBeNull();
+
+    await act(async () => {
+      (lib2Row as HTMLElement)?.click();
+    });
+
+    // Should automatically set active shelf to 200
+    expect(setActiveShelfId).toHaveBeenCalledWith(200);
+  });
+
+  it('automatically selects the only shelf when switching to another room with 1 shelf', async () => {
+    // Add another room to library 1 with 1 shelf
+    roomsStore.push({ id: 11, libraryId: 1, name: 'Ložnice', createdAt: new Date() });
+    shelvesStore.push({ id: 102, libraryId: 1, roomId: 11, name: 'Police v ložnici', createdAt: new Date() });
+
+    const setActiveShelfId = vi.fn();
+
+    await act(async () => {
+      root.render(
+        <LibraryManager
+          activeShelfId={100}
+          setActiveShelfId={setActiveShelfId}
+          onSelectShelfForScanning={vi.fn()}
+        />
+      );
+    });
+
+    // Click on "Ložnice" room
+    const lozniceSpan = Array.from(container.querySelectorAll('span')).find((el) =>
+      el.textContent === 'Ložnice'
+    );
+    expect(lozniceSpan).toBeDefined();
+    const lozniceRow = lozniceSpan?.closest('div[class*="cursor-pointer"]');
+    expect(lozniceRow).not.toBeNull();
+
+    await act(async () => {
+      (lozniceRow as HTMLElement)?.click();
+    });
+
+    expect(setActiveShelfId).toHaveBeenCalledWith(102);
+  });
 });
