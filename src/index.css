@@ -19,10 +19,16 @@ body {
   .mobile-portrait-info-banner {
     display: flex !important;
   }
+  .mobile-portrait-only {
+    display: flex !important;
+  }
 }
 
 @media (min-width: 640px), (orientation: landscape) {
   .mobile-portrait-info-banner {
+    display: none !important;
+  }
+  .mobile-portrait-only {
     display: none !important;
   }
 }
