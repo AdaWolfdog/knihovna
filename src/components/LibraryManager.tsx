@@ -76,6 +76,34 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
     }
   }, [selectedLibraryId, rooms, selectedRoomId]);
 
+  // When library or room changes, if the selected context contains only 1 shelf, automatically set it as active
+  React.useEffect(() => {
+    if (!selectedLibraryId) return;
+
+    if (selectedRoomId) {
+      const roomShelves = shelves.filter((s) => s.roomId === selectedRoomId);
+      if (roomShelves.length === 1 && activeShelfId !== roomShelves[0].id) {
+        setActiveShelfId(roomShelves[0].id!);
+        return;
+      }
+    }
+
+    const libraryShelves = shelves.filter((s) => s.libraryId === selectedLibraryId);
+    if (libraryShelves.length === 1 && activeShelfId !== libraryShelves[0].id) {
+      setActiveShelfId(libraryShelves[0].id!);
+      return;
+    }
+
+    // If the active shelf does not belong to the selected room/library at all,
+    // and there are shelves in the selected room, default to the first one if only 1 exists
+    if (selectedRoomId) {
+      const roomShelves = shelves.filter((s) => s.roomId === selectedRoomId);
+      if (roomShelves.length === 1 && activeShelfId !== roomShelves[0].id) {
+        setActiveShelfId(roomShelves[0].id!);
+      }
+    }
+  }, [selectedLibraryId, selectedRoomId, shelves, activeShelfId, setActiveShelfId]);
+
   // Add Library
   const handleAddLibrary = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -367,7 +395,14 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                 return (
                   <div
                     key={lib.id}
-                    onClick={() => setSelectedLibraryId(lib.id!)}
+                    onClick={() => {
+                      setSelectedLibraryId(lib.id!);
+                      // If this library has only 1 shelf, immediately set it as active
+                      const libShelves = shelves.filter((s) => s.libraryId === lib.id);
+                      if (libShelves.length === 1) {
+                        setActiveShelfId(libShelves[0].id!);
+                      }
+                    }}
                     className={`flex items-center justify-between p-2.5 rounded-lg text-sm cursor-pointer transition ${
                       isSelected
                         ? 'bg-indigo-50 border border-indigo-300 text-indigo-900 font-medium'
@@ -507,7 +542,14 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                 return (
                   <div
                     key={room.id}
-                    onClick={() => setSelectedRoomId(room.id!)}
+                    onClick={() => {
+                      setSelectedRoomId(room.id!);
+                      // If this room has only 1 shelf, immediately set it as active
+                      const rShelves = shelves.filter((s) => s.roomId === room.id);
+                      if (rShelves.length === 1) {
+                        setActiveShelfId(rShelves[0].id!);
+                      }
+                    }}
                     className={`flex items-center justify-between p-2.5 rounded-lg text-sm cursor-pointer transition ${
                       isSelected
                         ? 'bg-indigo-50 border border-indigo-300 text-indigo-900 font-medium'
