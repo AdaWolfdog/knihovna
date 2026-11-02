@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
-import { Plus, Trash2, Edit3, Check, X, Library as LibraryIcon, Folder, BookmarkCheck, ChevronRight, Eye, BookOpen, Image as ImageIcon } from 'lucide-react';
+import { Plus, Trash2, Edit3, Check, X, Library as LibraryIcon, Folder, BookmarkCheck, ChevronRight, Eye, BookOpen, Image as ImageIcon, Smartphone } from 'lucide-react';
 import { type Book } from '../db/db';
 import { ManualBookModal } from './ManualBookModal';
 
@@ -815,113 +815,121 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
             V této polici zatím nejsou žádné knihy. Knihy můžete přidat naskenováním čárového kódu v záložce Skenovat.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-700">
-              <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase font-semibold">
-                <tr>
-                  <th className="p-3 w-14 text-center">Obálka</th>
-                  <th className="p-3">Název a Autor</th>
-                  <th className="p-3">Žánr a Klíčová slova</th>
-                  <th className="p-3">ISBN</th>
-                  <th className="p-3 text-center">Počet kusů</th>
-                  <th className="p-3">Rok / Vydání</th>
-                  <th className="p-3 text-right">Akce</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {activeShelfBooks.map((book) => {
-                  const qty = book.quantity || 1;
-                  return (
-                    <tr key={book.id} className="hover:bg-slate-50/80 transition">
-                      <td className="p-3 text-center">
-                        {book.coverUrl ? (
-                          <img
-                            src={book.coverUrl}
-                            alt={book.title}
-                            className="w-10 h-14 object-cover rounded-md border border-slate-200 shadow-xs mx-auto bg-slate-200"
-                          />
-                        ) : (
-                          <div className="w-10 h-14 bg-slate-100 border border-slate-200 rounded-md flex items-center justify-center text-slate-400 mx-auto">
-                            <ImageIcon className="w-5 h-5 stroke-1" />
+          <div>
+            {/* Decent mobile orientation banner */}
+            <div className="mobile-portrait-info-banner hidden items-center gap-2 bg-slate-50 border-b border-slate-200 px-4 py-2 text-xs text-slate-600">
+              <Smartphone className="w-4 h-4 text-indigo-500 rotate-90 shrink-0" />
+              <span>Pro více kategorií otočte zařízení na šířku.</span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-700">
+                <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase font-semibold">
+                  <tr>
+                    <th className="p-3 w-14 text-center mobile-portrait-hidden">Obálka</th>
+                    <th className="p-3">Název a Autor</th>
+                    <th className="p-3 mobile-portrait-hidden">Žánr a Klíčová slova</th>
+                    <th className="p-3 mobile-portrait-hidden">ISBN</th>
+                    <th className="p-3 text-center">Počet kusů</th>
+                    <th className="p-3 mobile-portrait-hidden">Rok / Vydání</th>
+                    <th className="p-3 text-right">Akce</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {activeShelfBooks.map((book) => {
+                    const qty = book.quantity || 1;
+                    return (
+                      <tr key={book.id} className="hover:bg-slate-50/80 transition">
+                        <td className="p-3 text-center mobile-portrait-hidden">
+                          {book.coverUrl ? (
+                            <img
+                              src={book.coverUrl}
+                              alt={book.title}
+                              className="w-10 h-14 object-cover rounded-md border border-slate-200 shadow-xs mx-auto bg-slate-200"
+                            />
+                          ) : (
+                            <div className="w-10 h-14 bg-slate-100 border border-slate-200 rounded-md flex items-center justify-center text-slate-400 mx-auto">
+                              <ImageIcon className="w-5 h-5 stroke-1" />
+                            </div>
+                          )}
+                        </td>
+                        <td className="p-3">
+                          <div className="font-bold text-slate-900 text-sm">
+                            {book.title || 'Bez názvu'}
                           </div>
-                        )}
-                      </td>
-                      <td className="p-3">
-                        <div className="font-bold text-slate-900 text-sm">
-                          {book.title || 'Bez názvu'}
-                        </div>
-                        <div className="text-slate-500">{book.author || 'Neznámý autor'}</div>
-                        {book.translator && (
-                          <div className="text-[11px] text-slate-400">Překlad: {book.translator}</div>
-                        )}
-                      </td>
-                      <td className="p-3 max-w-[180px]">
-                        {book.genre ? (
-                          <span className="inline-block bg-indigo-50 text-indigo-700 font-semibold px-2 py-0.5 rounded text-[11px] mb-1">
-                            {book.genre}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 italic block mb-1">Bez žánru</span>
-                        )}
-                        {book.keywords && (
-                          <div className="text-[11px] text-slate-500 truncate" title={book.keywords}>
-                            {book.keywords}
+                          <div className="text-slate-500">{book.author || 'Neznámý autor'}</div>
+                          {book.translator && (
+                            <div className="text-[11px] text-slate-400">Překlad: {book.translator}</div>
+                          )}
+                        </td>
+                        <td className="p-3 max-w-[180px] mobile-portrait-hidden">
+                          {book.genre ? (
+                            <span className="inline-block bg-indigo-50 text-indigo-700 font-semibold px-2 py-0.5 rounded text-[11px] mb-1">
+                              {book.genre}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 italic block mb-1">Bez žánru</span>
+                          )}
+                          {book.keywords && (
+                            <div className="text-[11px] text-slate-500 truncate" title={book.keywords}>
+                              {book.keywords}
+                            </div>
+                          )}
+                        </td>
+                        <td className="p-3 font-mono text-slate-600 mobile-portrait-hidden">
+                          {book.isbn || <span className="text-slate-400 italic">Bez ISBN</span>}
+                        </td>
+                        <td className="p-3 text-center">
+                          <div className="inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-lg p-1">
+                            <button
+                              onClick={() => handleUpdateQuantity(book.id!, -1)}
+                              className="w-5 h-5 flex items-center justify-center bg-white hover:bg-indigo-100 text-indigo-700 font-bold rounded text-xs shadow-xs transition cursor-pointer"
+                              title="Odebrat 1 kus"
+                            >
+                              -
+                            </button>
+                            <span className="font-extrabold text-indigo-900 px-1 text-sm whitespace-nowrap">
+                              {qty} ks
+                            </span>
+                            <button
+                              onClick={() => handleUpdateQuantity(book.id!, 1)}
+                              className="w-5 h-5 flex items-center justify-center bg-white hover:bg-indigo-100 text-indigo-700 font-bold rounded text-xs shadow-xs transition cursor-pointer"
+                              title="Přidat 1 kus"
+                            >
+                              +
+                            </button>
                           </div>
-                        )}
-                      </td>
-                      <td className="p-3 font-mono text-slate-600">
-                        {book.isbn || <span className="text-slate-400 italic">Bez ISBN</span>}
-                      </td>
-                      <td className="p-3 text-center">
-                        <div className="inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-lg p-1">
-                          <button
-                            onClick={() => handleUpdateQuantity(book.id!, -1)}
-                            className="w-5 h-5 flex items-center justify-center bg-white hover:bg-indigo-100 text-indigo-700 font-bold rounded text-xs shadow-xs transition cursor-pointer"
-                            title="Odebrat 1 kus"
-                          >
-                            -
-                          </button>
-                          <span className="font-extrabold text-indigo-900 px-1 text-sm">
-                            {qty} ks
-                          </span>
-                          <button
-                            onClick={() => handleUpdateQuantity(book.id!, 1)}
-                            className="w-5 h-5 flex items-center justify-center bg-white hover:bg-indigo-100 text-indigo-700 font-bold rounded text-xs shadow-xs transition cursor-pointer"
-                            title="Přidat 1 kus"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </td>
-                      <td className="p-3">
-                        <div>{book.publishedYear || '-'}</div>
-                        {book.editionNumber && (
-                          <div className="text-[10px] text-slate-400">{book.editionNumber}</div>
-                        )}
-                      </td>
-                      <td className="p-3 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            onClick={() => setEditingBook(book)}
-                            className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
-                            title="Upravit knihu"
-                          >
-                            <Edit3 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteBook(book.id!)}
-                            className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
-                            title="Smazat knihu"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        </td>
+                        <td className="p-3 mobile-portrait-hidden">
+                          <div>{book.publishedYear || '-'}</div>
+                          {book.editionNumber && (
+                            <div className="text-[10px] text-slate-400">{book.editionNumber}</div>
+                          )}
+                        </td>
+                        <td className="p-3 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => setEditingBook(book)}
+                              className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
+                              title="Upravit knihu"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteBook(book.id!)}
+                              className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
+                              title="Smazat knihu"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
