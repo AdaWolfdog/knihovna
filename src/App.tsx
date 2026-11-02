@@ -77,8 +77,16 @@ export function App() {
         {activeTab === 'books' && <BookListTab />}
       </main>
 
-      <footer className="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
-        <p>Knihovník Mobile &copy; {new Date().getFullYear()} – Aplikace pro evidenci a skenování knih</p>
+      <footer className="bg-white border-t border-slate-200 py-4 px-4 text-center text-xs text-slate-500">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
+          <span className="font-semibold text-slate-700">
+            Knihovník Mobile &copy; {new Date().getFullYear()}
+          </span>
+          <span className="hidden sm:inline text-slate-400">–</span>
+          <span className="text-slate-500">
+            Aplikace pro evidenci a skenování knih
+          </span>
+        </div>
       </footer>
     </div>
   );
