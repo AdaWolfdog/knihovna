@@ -294,7 +294,7 @@ export const BookListTab: React.FC = () => {
                     <th className="p-3 mobile-portrait-hidden">Žánr a Klíčová slova</th>
                     <th className="p-3 mobile-portrait-hidden">ISBN</th>
                     <th className="p-3 mobile-portrait-hidden">Umístění (Knihovna / Místnost / Police)</th>
-                    <th className="p-3 text-center">Počet kusů</th>
+                    <th className="p-3 text-center mobile-portrait-hidden">Počet kusů</th>
                     <th className="p-3 mobile-portrait-hidden">Rok / Vydání</th>
                     <th className="p-3 text-right">Akce</th>
                   </tr>
@@ -361,7 +361,8 @@ export const BookListTab: React.FC = () => {
                             <span className="font-semibold text-indigo-600">{shelf?.name || '?'}</span>
                           </div>
                         </td>
-                        <td className="p-3 text-center">
+                        {/* Separate quantity column on desktop / landscape */}
+                        <td className="p-3 text-center mobile-portrait-hidden">
                           <div className="inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-lg p-1">
                             <button
                               onClick={() => handleUpdateQuantity(book.id!, -1)}
@@ -389,21 +390,44 @@ export const BookListTab: React.FC = () => {
                           )}
                         </td>
                         <td className="p-3 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <button
-                              onClick={() => setEditingBook(book)}
-                              className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
-                              title="Upravit knihu"
-                            >
-                              <Edit3 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteBook(book.id!)}
-                              className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
-                              title="Smazat knihu"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                          <div className="flex flex-col items-end gap-1.5">
+                            {/* In mobile portrait mode, quantity adjuster appears inside the Actions cell */}
+                            <div className="mobile-portrait-only hidden items-center gap-1 bg-indigo-50 border border-indigo-200 rounded-lg p-0.5">
+                              <button
+                                onClick={() => handleUpdateQuantity(book.id!, -1)}
+                                className="w-5 h-5 flex items-center justify-center bg-white hover:bg-indigo-100 text-indigo-700 font-bold rounded text-xs shadow-xs transition cursor-pointer"
+                                title="Odebrat 1 kus"
+                              >
+                                -
+                              </button>
+                              <span className="font-extrabold text-indigo-900 px-1 text-xs whitespace-nowrap">
+                                {qty} ks
+                              </span>
+                              <button
+                                onClick={() => handleUpdateQuantity(book.id!, 1)}
+                                className="w-5 h-5 flex items-center justify-center bg-white hover:bg-indigo-100 text-indigo-700 font-bold rounded text-xs shadow-xs transition cursor-pointer"
+                                title="Přidat 1 kus"
+                              >
+                                +
+                              </button>
+                            </div>
+
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => setEditingBook(book)}
+                                className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
+                                title="Upravit knihu"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteBook(book.id!)}
+                                className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
+                                title="Smazat knihu"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         </td>
                       </tr>
