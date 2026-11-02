@@ -10,3 +10,25 @@ body {
   background-color: #f8fafc;
   color: #0f172a;
 }
+
+/* Helper classes for mobile portrait table columns */
+@media (max-width: 639px) and (orientation: portrait) {
+  .mobile-portrait-hidden {
+    display: none !important;
+  }
+  .mobile-portrait-info-banner {
+    display: flex !important;
+  }
+  .mobile-portrait-only {
+    display: flex !important;
+  }
+}
+
+@media (min-width: 640px), (orientation: landscape) {
+  .mobile-portrait-info-banner {
+    display: none !important;
+  }
+  .mobile-portrait-only {
+    display: none !important;
+  }
+}
