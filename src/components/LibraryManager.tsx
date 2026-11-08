@@ -4,6 +4,7 @@ import { db } from '../db/db';
 import { Plus, Trash2, Edit3, Check, X, Library as LibraryIcon, Folder, BookmarkCheck, ChevronRight, Eye, BookOpen, Image as ImageIcon, Smartphone } from 'lucide-react';
 import { type Book } from '../db/db';
 import { ManualBookModal } from './ManualBookModal';
+import { useLanguage } from '../i18n';
 
 interface LibraryManagerProps {
   activeShelfId: number | null;
@@ -27,6 +28,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
   setActiveShelfId,
   onSelectShelfForScanning,
 }) => {
+  const { t } = useLanguage();
   const libraries = useLiveQuery(() => db.libraries.toArray(), []) || [];
   const rooms = useLiveQuery(() => db.rooms.toArray(), []) || [];
   const shelves = useLiveQuery(() => db.shelves.toArray(), []) || [];
@@ -178,7 +180,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
 
   // Delete handlers
   const handleDeleteLibrary = async (id: number) => {
-    if (confirm('Opravdu chcete smazat tuto virtuální knihovnu včetně všech místností, polic a knih?')) {
+    if (confirm(t('confirmDeleteLibrary'))) {
       await db.transaction('rw', [db.libraries, db.rooms, db.shelves, db.books], async () => {
         await db.libraries.delete(id);
         await db.rooms.where('libraryId').equals(id).delete();
@@ -190,7 +192,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
   };
 
   const handleDeleteRoom = async (id: number) => {
-    if (confirm('Opravdu chcete smazat tuto místnost a všechny její police a knihy?')) {
+    if (confirm(t('confirmDeleteRoom'))) {
       await db.transaction('rw', [db.rooms, db.shelves, db.books], async () => {
         await db.rooms.delete(id);
         await db.shelves.where('roomId').equals(id).delete();
@@ -201,7 +203,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
   };
 
   const handleDeleteShelf = async (id: number) => {
-    if (confirm('Opravdu chcete smazat tuto polici a všechny knihy v ní?')) {
+    if (confirm(t('confirmDeleteShelf'))) {
       await db.transaction('rw', [db.shelves, db.books], async () => {
         await db.shelves.delete(id);
         await db.books.where('shelfId').equals(id).delete();
@@ -212,7 +214,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
 
   // Book actions in shelf
   const handleDeleteBook = async (id: number) => {
-    if (confirm('Opravdu chcete smazat tento záznam o knize z police?')) {
+    if (confirm(t('confirmDeleteBook'))) {
       await db.books.delete(id);
     }
   };
@@ -222,7 +224,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
     if (!book) return;
     const newQty = (book.quantity || 1) + delta;
     if (newQty <= 0) {
-      if (confirm('Chcete tuto knihu zcela odstranit ze seznamu?')) {
+      if (confirm(t('confirmDeleteBookCompletely'))) {
         await db.books.delete(bookId);
       }
     } else {
@@ -265,11 +267,10 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
       {/* Step Info Banner */}
       <div className="bg-indigo-50 border-l-4 border-indigo-600 p-4 rounded-r-lg">
         <h2 className="text-lg font-bold text-indigo-900 mb-1">
-          Správa knihoven, místností a polic
+          {t('libraryManagerBannerTitle')}
         </h2>
         <p className="text-sm text-indigo-700">
-          Zde si můžete uspořádat vaši virtuální knihovnu. Před zahájením skenování si vyberte
-          <strong> cíl (polici)</strong>, na kterou se naskenované knihy automaticky uloží.
+          {t('libraryManagerBannerDesc')}
         </p>
       </div>
 
@@ -279,12 +280,12 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
           <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
             <h3 className="font-semibold text-slate-800 flex items-center gap-2">
               <LibraryIcon className="w-5 h-5 text-indigo-600" />
-              1. Virtuální knihovny
+              {t('col1Title')}
             </h3>
             <button
               onClick={() => setShowAddLibrary(!showAddLibrary)}
-              className="p-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition"
-              title="Přidat knihovnu"
+              className="p-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition cursor-pointer"
+              title={t('addLibraryTitle')}
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -294,7 +295,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
             <form onSubmit={handleAddLibrary} className="mb-3 p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-2">
               <input
                 type="text"
-                placeholder="Název knihovny (např. Hlavní)"
+                placeholder={t('libraryNamePlaceholder')}
                 value={newLibraryName}
                 onChange={(e) => setNewLibraryName(e.target.value)}
                 className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -302,7 +303,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
               />
               <div>
                 <label className="block text-[11px] font-semibold text-slate-500 mb-1">
-                  Barva knihovny:
+                  {t('libraryColorLabel')}
                 </label>
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {PRESET_COLORS.map((c) => (
@@ -310,7 +311,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                       key={c.value}
                       type="button"
                       onClick={() => setNewLibraryColor(c.value)}
-                      className={`w-6 h-6 rounded-full border-2 transition ${
+                      className={`w-6 h-6 rounded-full border-2 transition cursor-pointer ${
                         newLibraryColor === c.value ? 'border-slate-800 scale-110' : 'border-transparent'
                       }`}
                       style={{ backgroundColor: c.value }}
@@ -322,16 +323,16 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
               <div className="flex gap-2 pt-1">
                 <button
                   type="submit"
-                  className="flex-1 py-1 px-3 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700"
+                  className="flex-1 py-1 px-3 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700 cursor-pointer"
                 >
-                  Uložit
+                  {t('saveBtn')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowAddLibrary(false)}
-                  className="py-1 px-3 bg-slate-100 text-slate-600 text-xs rounded-lg hover:bg-slate-200"
+                  className="py-1 px-3 bg-slate-100 text-slate-600 text-xs rounded-lg hover:bg-slate-200 cursor-pointer"
                 >
-                  Zrušit
+                  {t('cancelBtn')}
                 </button>
               </div>
             </form>
@@ -340,7 +341,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
           <div className="space-y-1.5 overflow-y-auto max-h-80 flex-1">
             {libraries.length === 0 ? (
               <p className="text-xs text-slate-400 py-4 text-center">
-                Zatím nemáte vytvořenou žádnou knihovnu.
+                {t('noLibrariesYet')}
               </p>
             ) : (
               libraries.map((lib) => {
@@ -365,7 +366,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                             key={c.value}
                             type="button"
                             onClick={() => setEditingLibraryColor(c.value)}
-                            className={`w-5 h-5 rounded-full border-2 transition ${
+                            className={`w-5 h-5 rounded-full border-2 transition cursor-pointer ${
                               editingLibraryColor === c.value ? 'border-slate-800 scale-110' : 'border-transparent'
                             }`}
                             style={{ backgroundColor: c.value }}
@@ -375,15 +376,15 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                       <div className="flex justify-end gap-1">
                         <button
                           onClick={() => handleSaveLibraryEdit(lib.id!)}
-                          className="p-1 bg-emerald-600 text-white rounded hover:bg-emerald-700"
-                          title="Uložit"
+                          className="p-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 cursor-pointer"
+                          title={t('saveBtn')}
                         >
                           <Check className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => setEditingLibraryId(null)}
-                          className="p-1 bg-slate-200 text-slate-700 rounded hover:bg-slate-300"
-                          title="Zrušit"
+                          className="p-1 bg-slate-200 text-slate-700 rounded hover:bg-slate-300 cursor-pointer"
+                          title={t('cancelBtn')}
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
@@ -418,7 +419,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                        {count} knih
+                        {count} {t('booksCountSuffix')}
                       </span>
                       <button
                         onClick={(e) => {
@@ -428,7 +429,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                           setEditingLibraryColor(libColor);
                         }}
                         className="text-slate-400 hover:text-indigo-600 p-1 rounded cursor-pointer"
-                        title="Upravit knihovnu"
+                        title={t('editLibraryTooltip')}
                       >
                         <Edit3 className="w-3.5 h-3.5" />
                       </button>
@@ -438,7 +439,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                           handleDeleteLibrary(lib.id!);
                         }}
                         className="text-slate-400 hover:text-red-600 p-1 rounded cursor-pointer"
-                        title="Smazat knihovnu"
+                        title={t('deleteLibraryTooltip')}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -455,13 +456,13 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
           <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
             <h3 className="font-semibold text-slate-800 flex items-center gap-2">
               <Folder className="w-5 h-5 text-indigo-600" />
-              2. Místnosti
+              {t('col2Title')}
             </h3>
             {selectedLibraryId && (
               <button
                 onClick={() => setShowAddRoom(!showAddRoom)}
-                className="p-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition"
-                title="Přidat místnost"
+                className="p-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition cursor-pointer"
+                title={t('addRoomTitle')}
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -472,7 +473,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
             <form onSubmit={handleAddRoom} className="mb-3 space-y-2">
               <input
                 type="text"
-                placeholder="Název místnosti (např. Studovna)"
+                placeholder={t('roomNamePlaceholder')}
                 value={newRoomName}
                 onChange={(e) => setNewRoomName(e.target.value)}
                 className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -481,16 +482,16 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
               <div className="flex gap-2">
                 <button
                   type="submit"
-                  className="flex-1 py-1 px-3 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700"
+                  className="flex-1 py-1 px-3 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700 cursor-pointer"
                 >
-                  Uložit
+                  {t('saveBtn')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowAddRoom(false)}
-                  className="py-1 px-3 bg-slate-100 text-slate-600 text-xs rounded-lg hover:bg-slate-200"
+                  className="py-1 px-3 bg-slate-100 text-slate-600 text-xs rounded-lg hover:bg-slate-200 cursor-pointer"
                 >
-                  Zrušit
+                  {t('cancelBtn')}
                 </button>
               </div>
             </form>
@@ -499,11 +500,11 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
           <div className="space-y-1.5 overflow-y-auto max-h-80 flex-1">
             {!selectedLibraryId ? (
               <p className="text-xs text-slate-400 py-4 text-center">
-                Nejprve vyberte nebo vytvořte knihovnu.
+                {t('selectLibraryFirst')}
               </p>
             ) : filteredRooms.length === 0 ? (
               <p className="text-xs text-slate-400 py-4 text-center">
-                V této knihovně zatím nemáte žádnou místnost.
+                {t('noRoomsYet')}
               </p>
             ) : (
               filteredRooms.map((room) => {
@@ -523,15 +524,15 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                       />
                       <button
                         onClick={() => handleSaveRoomEdit(room.id!)}
-                        className="p-1 bg-emerald-600 text-white rounded hover:bg-emerald-700"
-                        title="Uložit"
+                        className="p-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 cursor-pointer"
+                        title={t('saveBtn')}
                       >
                         <Check className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => setEditingRoomId(null)}
-                        className="p-1 bg-slate-200 text-slate-700 rounded hover:bg-slate-300"
-                        title="Zrušit"
+                        className="p-1 bg-slate-200 text-slate-700 rounded hover:bg-slate-300 cursor-pointer"
+                        title={t('cancelBtn')}
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -562,7 +563,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                        {count} knih
+                        {count} {t('booksCountSuffix')}
                       </span>
                       <button
                         onClick={(e) => {
@@ -571,7 +572,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                           setEditingRoomName(room.name);
                         }}
                         className="text-slate-400 hover:text-indigo-600 p-1 rounded cursor-pointer"
-                        title="Upravit místnost"
+                        title={t('editRoomTooltip')}
                       >
                         <Edit3 className="w-3.5 h-3.5" />
                       </button>
@@ -581,7 +582,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                           handleDeleteRoom(room.id!);
                         }}
                         className="text-slate-400 hover:text-red-600 p-1 rounded cursor-pointer"
-                        title="Smazat místnost"
+                        title={t('deleteRoomTooltip')}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -598,13 +599,13 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
           <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
             <h3 className="font-semibold text-slate-800 flex items-center gap-2">
               <BookmarkCheck className="w-5 h-5 text-indigo-600" />
-              3. Cílová police
+              {t('col3Title')}
             </h3>
             {selectedRoomId && (
               <button
                 onClick={() => setShowAddShelf(!showAddShelf)}
-                className="p-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition"
-                title="Přidat polici"
+                className="p-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition cursor-pointer"
+                title={t('addShelfTitle')}
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -615,7 +616,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
             <form onSubmit={handleAddShelf} className="mb-3 space-y-2">
               <input
                 type="text"
-                placeholder="Název police (např. A1 - Historie)"
+                placeholder={t('shelfNamePlaceholder')}
                 value={newShelfName}
                 onChange={(e) => setNewShelfName(e.target.value)}
                 className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -624,16 +625,16 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
               <div className="flex gap-2">
                 <button
                   type="submit"
-                  className="flex-1 py-1 px-3 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700"
+                  className="flex-1 py-1 px-3 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700 cursor-pointer"
                 >
-                  Uložit
+                  {t('saveBtn')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowAddShelf(false)}
-                  className="py-1 px-3 bg-slate-100 text-slate-600 text-xs rounded-lg hover:bg-slate-200"
+                  className="py-1 px-3 bg-slate-100 text-slate-600 text-xs rounded-lg hover:bg-slate-200 cursor-pointer"
                 >
-                  Zrušit
+                  {t('cancelBtn')}
                 </button>
               </div>
             </form>
@@ -642,11 +643,11 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
           <div className="space-y-1.5 overflow-y-auto max-h-80 flex-1">
             {!selectedRoomId ? (
               <p className="text-xs text-slate-400 py-4 text-center">
-                Nejprve vyberte nebo vytvořte místnost.
+                {t('selectRoomFirst')}
               </p>
             ) : filteredShelves.length === 0 ? (
               <p className="text-xs text-slate-400 py-4 text-center">
-                V této místnosti zatím nemáte žádnou polici.
+                {t('noShelvesYet')}
               </p>
             ) : (
               filteredShelves.map((shelf) => {
@@ -666,15 +667,15 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                       />
                       <button
                         onClick={() => handleSaveShelfEdit(shelf.id!)}
-                        className="p-1 bg-emerald-600 text-white rounded hover:bg-emerald-700"
-                        title="Uložit"
+                        className="p-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 cursor-pointer"
+                        title={t('saveBtn')}
                       >
                         <Check className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => setEditingShelfId(null)}
-                        className="p-1 bg-slate-200 text-slate-700 rounded hover:bg-slate-300"
-                        title="Zrušit"
+                        className="p-1 bg-slate-200 text-slate-700 rounded hover:bg-slate-300 cursor-pointer"
+                        title={t('cancelBtn')}
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -699,7 +700,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                         type="button"
                         onClick={() => setActiveShelfId(shelf.id!)}
                         className="text-left truncate font-inherit hover:underline cursor-pointer"
-                        title="Kliknutím zobrazíte knihy v polici"
+                        title={t('clickToViewBooksTooltip')}
                       >
                         {shelf.name}
                       </button>
@@ -714,23 +715,23 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                             ? 'bg-emerald-600 text-white border-emerald-600'
                             : 'bg-white text-slate-600 border-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200'
                         }`}
-                        title="Kliknutím zobrazíte knihy v polici"
+                        title={t('clickToViewBooksTooltip')}
                       >
                         <Eye className="w-3 h-3" />
-                        <span>{count} knih</span>
+                        <span>{count} {t('booksCountSuffix')}</span>
                       </button>
 
                       {isActive ? (
                         <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
-                          Aktivní
+                          {t('activeBadge')}
                         </span>
                       ) : (
                         <button
                           onClick={() => onSelectShelfForScanning(shelf.id!)}
                           className="flex items-center gap-1 text-xs bg-indigo-600 text-white px-2 py-1 rounded hover:bg-indigo-700 font-medium transition cursor-pointer"
-                          title="Nastavit jako aktivní cíl a přejít ke skenování"
+                          title={t('setTargetAndScanTooltip')}
                         >
-                          Vybrat <ChevronRight className="w-3 h-3" />
+                          {t('selectShelfForScanBtn')} <ChevronRight className="w-3 h-3" />
                         </button>
                       )}
 
@@ -740,7 +741,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                           setEditingShelfName(shelf.name);
                         }}
                         className="text-slate-400 hover:text-indigo-600 p-1 rounded cursor-pointer"
-                        title="Upravit polici"
+                        title={t('editShelfTooltip')}
                       >
                         <Edit3 className="w-3.5 h-3.5" />
                       </button>
@@ -748,7 +749,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                       <button
                         onClick={() => handleDeleteShelf(shelf.id!)}
                         className="text-slate-400 hover:text-red-600 p-1 rounded cursor-pointer"
-                        title="Smazat polici"
+                        title={t('deleteShelfTooltip')}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -771,9 +772,9 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
               </div>
               <h3 className="font-bold text-slate-900 text-base">
                 {activeShelf ? (
-                  <>Knihy v polici: <span className="text-indigo-600">{activeShelf.name}</span></>
+                  <>{t('shelfBooksSectionTitle')} <span className="text-indigo-600">{activeShelf.name}</span></>
                 ) : (
-                  'Knihy ve vybrané polici'
+                  t('shelfBooksSectionDefaultTitle')
                 )}
               </h3>
             </div>
@@ -783,12 +784,12 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                   className="w-2.5 h-2.5 rounded-full inline-block"
                   style={{ backgroundColor: activeShelfLibrary?.color || '#6366f1' }}
                 />
-                <span>{activeShelfLibrary?.name || 'Neznámá knihovna'}</span>
+                <span>{activeShelfLibrary?.name || '?'}</span>
                 <span>&rarr;</span>
-                <span>{activeShelfRoom?.name || 'Neznámá místnost'}</span>
+                <span>{activeShelfRoom?.name || '?'}</span>
                 <span>&rarr;</span>
                 <span className="font-medium text-slate-700">{activeShelf.name}</span>
-                <span className="text-slate-400">({activeShelfBooks.length} titulů / {activeShelfBooks.reduce((sum, b) => sum + (b.quantity || 1), 0)} ks)</span>
+                <span className="text-slate-400">({activeShelfBooks.length} {t('titlesCountSuffix')} / {activeShelfBooks.reduce((sum, b) => sum + (b.quantity || 1), 0)} {t('piecesSuffix')})</span>
               </p>
             )}
           </div>
@@ -799,7 +800,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                 onClick={() => onSelectShelfForScanning(activeShelf.id!)}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs transition cursor-pointer"
               >
-                <span>Skenovat do této police</span>
+                <span>{t('scanToThisShelfBtn')}</span>
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -808,31 +809,31 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
 
         {!activeShelf ? (
           <div className="p-10 text-center text-slate-400 text-sm">
-            Není vybrána žádná police. Vyberte polici ze seznamu výše pro zobrazení jejích knih.
+            {t('noShelfSelectedTableNotice')}
           </div>
         ) : activeShelfBooks.length === 0 ? (
           <div className="p-10 text-center text-slate-400 text-sm">
-            V této polici zatím nejsou žádné knihy. Knihy můžete přidat naskenováním čárového kódu v záložce Skenovat.
+            {t('noBooksInShelfTableNotice')}
           </div>
         ) : (
           <div>
             {/* Decent mobile orientation banner */}
             <div className="mobile-portrait-info-banner hidden items-center gap-2 bg-slate-50 border-b border-slate-200 px-4 py-2 text-xs text-slate-600">
               <Smartphone className="w-4 h-4 text-indigo-500 rotate-90 shrink-0" />
-              <span>Pro více kategorií otočte zařízení na šířku.</span>
+              <span>{t('orientationHint')}</span>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-slate-700">
                 <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase font-semibold">
                   <tr>
-                    <th className="p-3 w-14 text-center mobile-portrait-hidden">Obálka</th>
-                    <th className="p-3">Název a Autor</th>
-                    <th className="p-3 mobile-portrait-hidden">Žánr a Klíčová slova</th>
-                    <th className="p-3 mobile-portrait-hidden">ISBN</th>
-                    <th className="p-3 text-center mobile-portrait-hidden">Počet kusů</th>
-                    <th className="p-3 mobile-portrait-hidden">Rok / Vydání</th>
-                    <th className="p-3 text-right">Akce</th>
+                    <th className="p-3 w-14 text-center mobile-portrait-hidden">{t('thCover')}</th>
+                    <th className="p-3">{t('thTitleAuthor')}</th>
+                    <th className="p-3 mobile-portrait-hidden">{t('thGenreKeywords')}</th>
+                    <th className="p-3 mobile-portrait-hidden">{t('thIsbn')}</th>
+                    <th className="p-3 text-center mobile-portrait-hidden">{t('thQuantity')}</th>
+                    <th className="p-3 mobile-portrait-hidden">{t('thYearEdition')}</th>
+                    <th className="p-3 text-right">{t('thActions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -855,11 +856,11 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                         </td>
                         <td className="p-3">
                           <div className="font-bold text-slate-900 text-sm">
-                            {book.title || 'Bez názvu'}
+                            {book.title || t('unknownTitle')}
                           </div>
-                          <div className="text-slate-500">{book.author || 'Neznámý autor'}</div>
+                          <div className="text-slate-500">{book.author || t('unknownAuthor')}</div>
                           {book.translator && (
-                            <div className="text-[11px] text-slate-400">Překlad: {book.translator}</div>
+                            <div className="text-[11px] text-slate-400">{t('translationPrefix')} {book.translator}</div>
                           )}
                         </td>
                         <td className="p-3 max-w-[180px] mobile-portrait-hidden">
@@ -868,7 +869,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                               {book.genre}
                             </span>
                           ) : (
-                            <span className="text-slate-400 italic block mb-1">Bez žánru</span>
+                            <span className="text-slate-400 italic block mb-1">{t('noGenre')}</span>
                           )}
                           {book.keywords && (
                             <div className="text-[11px] text-slate-500 truncate" title={book.keywords}>
@@ -877,7 +878,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                           )}
                         </td>
                         <td className="p-3 font-mono text-slate-600 mobile-portrait-hidden">
-                          {book.isbn || <span className="text-slate-400 italic">Bez ISBN</span>}
+                          {book.isbn || <span className="text-slate-400 italic">{t('noIsbnText')}</span>}
                         </td>
                         {/* Separate quantity column on desktop / landscape */}
                         <td className="p-3 text-center mobile-portrait-hidden">
@@ -885,17 +886,17 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                             <button
                               onClick={() => handleUpdateQuantity(book.id!, -1)}
                               className="w-5 h-5 flex items-center justify-center bg-white hover:bg-indigo-100 text-indigo-700 font-bold rounded text-xs shadow-xs transition cursor-pointer"
-                              title="Odebrat 1 kus"
+                              title={t('decreaseQtyTooltip')}
                             >
                               -
                             </button>
                             <span className="font-extrabold text-indigo-900 px-1 text-sm whitespace-nowrap">
-                              {qty} ks
+                              {qty} {t('piecesSuffix')}
                             </span>
                             <button
                               onClick={() => handleUpdateQuantity(book.id!, 1)}
                               className="w-5 h-5 flex items-center justify-center bg-white hover:bg-indigo-100 text-indigo-700 font-bold rounded text-xs shadow-xs transition cursor-pointer"
-                              title="Přidat 1 kus"
+                              title={t('increaseQtyTooltip')}
                             >
                               +
                             </button>
@@ -914,17 +915,17 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                               <button
                                 onClick={() => handleUpdateQuantity(book.id!, -1)}
                                 className="w-5 h-5 flex items-center justify-center bg-white hover:bg-indigo-100 text-indigo-700 font-bold rounded text-xs shadow-xs transition cursor-pointer"
-                                title="Odebrat 1 kus"
+                                title={t('decreaseQtyTooltip')}
                               >
                                 -
                               </button>
                               <span className="font-extrabold text-indigo-900 px-1 text-xs whitespace-nowrap">
-                                {qty} ks
+                                {qty} {t('piecesSuffix')}
                               </span>
                               <button
                                 onClick={() => handleUpdateQuantity(book.id!, 1)}
                                 className="w-5 h-5 flex items-center justify-center bg-white hover:bg-indigo-100 text-indigo-700 font-bold rounded text-xs shadow-xs transition cursor-pointer"
-                                title="Přidat 1 kus"
+                                title={t('increaseQtyTooltip')}
                               >
                                 +
                               </button>
@@ -934,14 +935,14 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                               <button
                                 onClick={() => setEditingBook(book)}
                                 className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
-                                title="Upravit knihu"
+                                title={t('editBookTooltip')}
                               >
                                 <Edit3 className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => handleDeleteBook(book.id!)}
                                 className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
-                                title="Smazat knihu"
+                                title={t('deleteBookTooltip')}
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>

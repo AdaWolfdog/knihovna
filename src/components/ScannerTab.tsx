@@ -9,6 +9,7 @@ import { ManualBookModal } from './ManualBookModal';
 import { BookConfirmModal } from './BookConfirmModal';
 import catLoadingImg from '../assets/cat-loading.png';
 import catThumbsupImg from '../assets/cat-thumbsup.png';
+import { useLanguage } from '../i18n';
 
 interface ScannerTabProps {
   activeShelfId: number | null;
@@ -19,6 +20,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   activeShelfId,
   onNavigateToStructure,
 }) => {
+  const { t } = useLanguage();
   const [shelfDetails, setShelfDetails] = useState<{
     shelfName: string;
     roomName: string;
@@ -64,8 +66,6 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   const [hasScannerError, setHasScannerError] = useState(false);
 
   // OCR recognition fallback states
-  // 'initial_failure': "Skener nenalezl kód. Zkuste zlepšit osvětlení nebo lépe zaostřit na text."
-  // 'persistent_failure': "ISBN kód nebyl naskenován"
   const [ocrErrorState, setOcrErrorState] = useState<'initial_failure' | 'persistent_failure' | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -205,7 +205,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
 
     setStatusMessage({
       type: 'info',
-      text: 'Čtečka byla restartována a je připravena.',
+      text: t('scannerResetReady'),
     });
   };
 
@@ -250,22 +250,19 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
     // If 4.5s elapsed without finding barcode or valid text digits
     if (now - lastBarcodeDetectedTimeRef.current > 4500) {
       ocrAttemptCountRef.current += 1;
-      // Stop the camera automatically to prevent accidental scan without user awareness
       stopCamera();
 
       if (ocrAttemptCountRef.current === 1) {
-        // First failure: prompt user to improve lighting or focus
         setOcrErrorState('initial_failure');
         setStatusMessage({
           type: 'error',
-          text: 'Skener nenalezl kód. Zkuste zlepšit osvětlení nebo lépe zaostřit na text.',
+          text: t('ocrInitialFailureTitle'),
         });
       } else {
-        // Persistent failure on second or subsequent attempts: prompt manual entry
         setOcrErrorState('persistent_failure');
         setStatusMessage({
           type: 'error',
-          text: 'ISBN kód nebyl naskenován',
+          text: t('ocrPersistentFailureTitle'),
         });
       }
     }
@@ -287,16 +284,14 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           BarcodeFormat.QR_CODE,
         ]);
 
-        // Interval 100ms for fast real-time frame evaluation without CPU throttling
         zxingReaderRef.current = new BrowserMultiFormatReader(hints, 100);
       }
 
       setIsScanning(true);
       setHasScannerError(false);
       lastBarcodeDetectedTimeRef.current = Date.now();
-      setStatusMessage({ type: 'info', text: 'Spouštím fotoaparát...' });
+      setStatusMessage({ type: 'info', text: t('cameraStarting') });
 
-      // Start periodic OCR timer (checks every 1200ms)
       if (ocrIntervalRef.current) {
         clearInterval(ocrIntervalRef.current);
       }
@@ -304,7 +299,6 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         runOcrCheck();
       }, 1200);
 
-      // Build video constraints targeting back camera at optimal 720p for fast frame decoding
       const constraints: MediaStreamConstraints = {
         video: {
           facingMode: { ideal: 'environment' },
@@ -382,19 +376,19 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             if (errorMessage.toLowerCase().includes('notallowed') || errorMessage.toLowerCase().includes('permission')) {
               setStatusMessage({
                 type: 'error',
-                text: 'Kamera nemohla být spuštěna (zkontrolujte oprávnění v prohlížeči).',
+                text: t('cameraErrorPermission'),
               });
             } else {
               setStatusMessage({
                 type: 'error',
-                text: `Kamera nemohla být spuštěna (${errorMessage || 'neznámá chyba'}).`,
+                text: t('cameraErrorGeneral', { err: errorMessage || 'error' }),
               });
             }
           });
         }
       }
 
-      setStatusMessage({ type: 'info', text: 'Fotoaparát aktivní. Namiřte na čárový kód nebo čísla ISBN.' });
+      setStatusMessage({ type: 'info', text: t('cameraActiveTip') });
     } catch (err: any) {
       console.error('Error starting camera:', err);
       setIsScanning(false);
@@ -403,12 +397,12 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       if (errorMessage.toLowerCase().includes('notallowed') || errorMessage.toLowerCase().includes('permission')) {
         setStatusMessage({
           type: 'error',
-          text: 'Kamera nemohla být spuštěna (zkontrolujte oprávnění v prohlížeči).',
+          text: t('cameraErrorPermission'),
         });
       } else {
         setStatusMessage({
           type: 'error',
-          text: `Kamera nemohla být spuštěna (${errorMessage || 'neznámá chyba'}).`,
+          text: t('cameraErrorGeneral', { err: errorMessage || 'error' }),
         });
       }
     }
@@ -426,13 +420,13 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
     const currentShelfDetails = shelfDetailsRef.current;
 
     if (!currentShelfId || !currentShelfDetails) {
-      setStatusMessage({ type: 'error', text: 'Nejprve prosím vyberte cílovou polici v záložce "Knihovna & Police"!' });
+      setStatusMessage({ type: 'error', text: t('pleaseSelectTargetShelfFirst') });
       isProcessingRef.current = false;
       return;
     }
 
     setLoading(true);
-    setStatusMessage({ type: 'info', text: `Vyhledávám v katalozích (Knihovny.cz, Open Library...): ${cleanIsbn}` });
+    setStatusMessage({ type: 'info', text: t('searchingCatalogFor', { isbn: cleanIsbn }) });
 
     try {
       // 1. If we are currently in "isProcessingSkippedList" mode
@@ -443,12 +437,11 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           setManualModalIsbn(cleanIsbn);
           setShowManualModal(true);
           setLoading(false);
-          // Processing lock stays held until modal closes
           return;
         } else {
           setStatusMessage({
             type: 'info',
-            text: `Naskenovaný kód ${cleanIsbn} není v seznamu přeskočených. Zkuste naskenovat správnou přeskočenou knihu.`,
+            text: t('scannedCodeNotInSkipped', { isbn: cleanIsbn }),
           });
           setLoading(false);
           isProcessingRef.current = false;
@@ -474,7 +467,6 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           .first();
       } catch (dbErr) {
         console.error('Database query error during scan check:', dbErr);
-        // Continue to catalog lookup even if local query had unexpected issue
       }
 
       // 3. Lookup online catalog metadata with detailed network vs not-found distinction
@@ -506,7 +498,6 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
 
       // Case A: Duplicate on same shelf
       if (existingOnSameShelf) {
-        // Show duplicate modal in both Standard and Fast Scan Mode
         setDuplicateBook(existingOnSameShelf);
         setPendingBookData(candidateBook);
         setLoading(false);
@@ -518,18 +509,16 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         setLoading(false);
         isProcessingRef.current = false;
         if (isFastScanModeRef.current) {
-          // In Fast Scan Mode: offer Retry and Skip options without blocking completely
           setNetworkErrorIsbnBanner(cleanIsbn);
           setStatusMessage({
             type: 'error',
-            text: `Katalogy jsou dočasně nedostupné (chyba sítě). Zkuste načíst ISBN ${cleanIsbn} znovu, nebo knihu přeskočte.`,
+            text: t('catalogsUnavailableFastMode', { isbn: cleanIsbn }),
           });
         } else {
-          // Standard mode: Inform user with specific network error and offer retry option
           setHasScannerError(true);
           setStatusMessage({
             type: 'error',
-            text: `Katalogy jsou dočasně nedostupné pro ISBN ${cleanIsbn} (chyba sítě nebo časový limit). Zkuste to prosím znovu.`,
+            text: t('catalogsUnavailableNetworkError', { isbn: cleanIsbn }),
           });
         }
         return;
@@ -538,19 +527,16 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       // Case C: Genuinely not found in catalogs or existing DB
       if (!metadata && !existingInLibrary) {
         if (isFastScanModeRef.current) {
-          // FAST SCAN MODE: Show skip banner with "Přeskočit" option
           setUnrecognizedIsbnBanner(cleanIsbn);
           setStatusMessage({
             type: 'info',
-            text: `Kniha s ISBN ${cleanIsbn} nebyla v katalozích nalezena. V rychlém režimu můžete knihu přeskočit a doplnit později.`,
+            text: t('bookNotFoundFastMode', { isbn: cleanIsbn }),
           });
-          // Unlock so user can scan next book or choose to skip/fill
           isProcessingRef.current = false;
         } else {
-          // STANDARD MODE: Open manual modal immediately (lock held until modal closes)
           setStatusMessage({
             type: 'info',
-            text: `Kniha s ISBN ${cleanIsbn} nebyla v katalozích nalezena. Vyplňte údaje ručně.`,
+            text: t('bookNotFoundStandardMode', { isbn: cleanIsbn }),
           });
           setManualModalIsbn(cleanIsbn);
           setShowManualModal(true);
@@ -561,10 +547,9 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
 
       // Case D: Found metadata or existing library book
       if (isFastScanModeRef.current) {
-        // FAST SCAN MODE: Save automatically & trigger 3-second thumbs-up overlay with camera freeze
         const saved = await saveBookToDb(
           candidateBook,
-          metadata?.source || (existingInLibrary ? 'Import z databáze knihovny' : undefined)
+          metadata?.source || (existingInLibrary ? 'Import' : undefined)
         );
         if (saved) {
           setShowThumbsUpOverlay(true);
@@ -576,15 +561,14 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           isProcessingRef.current = false;
         }
       } else {
-        // STANDARD MODE ONLY: Open confirmation modal so user can review and edit details (lock held until modal finishes)
         setScannedMetadataToConfirm({
           bookData: candidateBook,
-          sourceName: metadata?.source || (existingInLibrary ? 'Import z databáze knihovny' : undefined),
+          sourceName: metadata?.source || (existingInLibrary ? 'Import' : undefined),
         });
       }
     } catch (err) {
       console.error('Processing ISBN error:', err);
-      setStatusMessage({ type: 'error', text: 'Chyba při zpracování ISBN.' });
+      setStatusMessage({ type: 'error', text: t('errorProcessingIsbn') });
       setHasScannerError(true);
       isProcessingRef.current = false;
     } finally {
@@ -601,7 +585,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
     isProcessingRef.current = false;
     setStatusMessage({
       type: 'info',
-      text: `Kniha ${isbnToSkip} byla přeskočena. Můžete pokračovat v rychlém skenování.`,
+      text: t('bookSkippedMsg', { isbn: isbnToSkip }),
     });
   };
 
@@ -618,22 +602,20 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       setIsProcessingSkippedList(false);
       setStatusMessage({
         type: 'success',
-        text: 'Rychlé skenování dokončeno! Všechny knihy byly úspěšně naskenovány.',
+        text: t('fastScanCompletedMsg'),
       });
       return;
     }
 
     if (skippedIsbns.length === 1) {
-      // Exactly 1 skipped book: open manual modal directly
       const targetIsbn = skippedIsbns[0];
       setManualModalIsbn(targetIsbn);
       setShowManualModal(true);
     } else {
-      // More than 1 skipped book: enter re-scan mode
       setIsProcessingSkippedList(true);
       setStatusMessage({
         type: 'info',
-        text: `V seznamu přeskočených máte ${skippedIsbns.length} knih. Naskenujte čárový kód jedné z přeskočených knih pro vyplnění jejích údajů.`,
+        text: t('rescanSkippedInstructions', { count: skippedIsbns.length }),
       });
     }
   };
@@ -646,7 +628,6 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
     const cleanIsbn = normalizeIsbn(bookData.isbn || '');
 
     try {
-      // Check if book already exists on THIS SAME shelf
       const existingOnSameShelf = await db.books
         .where('shelfId')
         .equals(currentShelfId)
@@ -654,7 +635,6 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         .first();
 
       if (existingOnSameShelf && existingOnSameShelf.id) {
-        // Increment quantity on existing record
         const updatedQuantity = (existingOnSameShelf.quantity || 1) + (bookData.quantity || 1);
         await db.books.update(existingOnSameShelf.id, {
           quantity: updatedQuantity,
@@ -670,19 +650,18 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         setRecentScans((prev) => [updatedBook, ...prev.filter((b) => b.id !== existingOnSameShelf.id)]);
         setStatusMessage({
           type: 'success',
-          text: `Navýšen počet kusů na ${updatedQuantity} ks v polici "${currentShelfDetails.shelfName}".`,
+          text: t('quantityIncreasedMsg', { qty: updatedQuantity, shelf: currentShelfDetails.shelfName }),
         });
         return true;
       }
 
-      // New entry on this shelf
       const newBook: Book = {
         libraryId: currentShelfDetails.libraryId,
         roomId: currentShelfDetails.roomId,
         shelfId: currentShelfId,
         isbn: bookData.isbn || '',
-        title: bookData.title || 'Bez názvu',
-        author: bookData.author || 'Neznámý autor',
+        title: bookData.title || t('unknownTitle'),
+        author: bookData.author || t('unknownAuthor'),
         publishedYear: bookData.publishedYear || '',
         translator: bookData.translator || '',
         editionNumber: bookData.editionNumber || '',
@@ -703,7 +682,6 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
 
       setRecentScans((prev) => [newBook, ...prev]);
 
-      // If we saved a skipped book, remove it from skippedIsbns
       const cleanIsbnForCheck = normalizeIsbn(bookData.isbn || '');
       if (cleanIsbnForCheck && skippedIsbnsRef.current.includes(cleanIsbnForCheck)) {
         const remaining = skippedIsbnsRef.current.filter((i) => i !== cleanIsbnForCheck);
@@ -714,21 +692,26 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           setIsFastScanMode(false);
           setStatusMessage({
             type: 'success',
-            text: 'Všechny přeskočené knihy byly úspěšně doplněny a uloženy!',
+            text: t('allSkippedSavedSuccess'),
           });
           return true;
         } else {
           setStatusMessage({
             type: 'info',
-            text: `Kniha uložena. Zbývá doplnit ${remaining.length} přeskočených knih. Naskenujte další přeskočenou knihu.`,
+            text: t('bookSavedRemainingSkipped', { count: remaining.length }),
           });
           return true;
         }
       }
 
+      const formattedSource = sourceName ? `${t('sourceLabelPrefix')} ${sourceName}` : t('manualSource');
       setStatusMessage({
         type: 'success',
-        text: `Uloženo do "${currentShelfDetails.shelfName}" (${sourceName ? `zdroj: ${sourceName}` : 'ruční zápis'}). Počet: ${newBook.quantity} ks`,
+        text: t('bookSavedSuccess', {
+          shelf: currentShelfDetails.shelfName,
+          source: formattedSource,
+          qty: newBook.quantity,
+        }),
       });
       return true;
     } catch (dbError) {
@@ -736,7 +719,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       setHasScannerError(true);
       setStatusMessage({
         type: 'error',
-        text: 'Chyba při ukládání do databáze! Kniha nebyla uložena. Zkuste to prosím znovu.',
+        text: t('dbSaveError'),
       });
       return false;
     }
@@ -760,7 +743,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         <div className="bg-emerald-600 text-white p-2.5 sm:p-4 pr-12 sm:pr-4 rounded-xl sm:rounded-2xl shadow-md flex items-center justify-between">
           <div>
             <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-emerald-200 block">
-              Cílové umístění skenování:
+              {t('targetScanLocation')}
             </span>
             <div className="text-xs sm:text-lg font-bold">
               {shelfDetails.libraryName} &rarr; {shelfDetails.roomName} &rarr;{' '}
@@ -771,7 +754,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             onClick={onNavigateToStructure}
             className="text-xs bg-emerald-700 hover:bg-emerald-800 text-white font-medium px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg transition cursor-pointer shrink-0 ml-2"
           >
-            Změnit
+            {t('changeShelf')}
           </button>
         </div>
       ) : (
@@ -780,10 +763,10 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             <AlertCircle className="w-6 h-6 text-amber-600 shrink-0" />
             <div>
               <h3 className="font-bold text-amber-900 text-sm">
-                Není vybrána cílová police!
+                {t('noShelfSelectedTitle')}
               </h3>
               <p className="text-xs text-amber-700">
-                Před skenováním knih musíte zvolit, do jaké police se mají ukládat.
+                {t('noShelfSelectedDesc')}
               </p>
             </div>
           </div>
@@ -791,7 +774,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             onClick={onNavigateToStructure}
             className="bg-amber-600 text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-amber-700 transition cursor-pointer"
           >
-            Vybrat polici
+            {t('selectShelfBtn')}
           </button>
         </div>
       )}
@@ -812,7 +795,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                 </div>
                 <div>
                   <h3 className="font-bold text-sm sm:text-base">
-                    Režim rychlého skenování
+                    {t('fastScanModeTitle')}
                   </h3>
                 </div>
               </div>
@@ -823,13 +806,13 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                   setIsFastScanMode(true);
                   setStatusMessage({
                     type: 'info',
-                    text: 'Aktivován režim rychlého skenování! Nenalezené knihy bude možné přeskočit.',
+                    text: t('fastScanModeActivated'),
                   });
                 }}
                 className="w-full sm:hidden py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Zap className="w-4 h-4 fill-current" />
-                <span>Režim rychlého skenování</span>
+                <span>{t('fastScanModeTitle')}</span>
               </button>
 
               {/* Desktop toggle button */}
@@ -839,13 +822,13 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                     setIsFastScanMode(true);
                     setStatusMessage({
                       type: 'info',
-                      text: 'Aktivován režim rychlého skenování! Nenalezené knihy bude možné přeskočit.',
+                      text: t('fastScanModeActivated'),
                     });
                   }}
                   className="py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Zap className="w-4 h-4 fill-current" />
-                  <span>Zapnout rychlé skenování</span>
+                  <span>{t('turnOnFastScan')}</span>
                 </button>
               </div>
             </>
@@ -858,10 +841,10 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="font-bold text-xs sm:text-base">
-                      Režim rychlého skenování
+                      {t('fastScanModeTitle')}
                     </h3>
                     <span className="bg-amber-600 text-white text-[9px] sm:text-[10px] uppercase font-bold px-1.5 sm:px-2 py-0.5 rounded-full">
-                      Aktivní
+                      {t('fastScanModeActive')}
                     </span>
                   </div>
                 </div>
@@ -874,7 +857,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                 >
                   <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   <span>
-                    Dokončit ({skippedIsbns.length})
+                    {t('finishFastScan')} ({skippedIsbns.length})
                   </span>
                 </button>
                 <button
@@ -887,7 +870,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                   }}
                   className="py-2 sm:py-2.5 px-2.5 sm:px-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-xs rounded-lg sm:rounded-xl transition cursor-pointer"
                 >
-                  Vypnout
+                  {t('turnOffFastScan')}
                 </button>
               </div>
             </>
@@ -898,7 +881,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         {skippedIsbns.length > 0 && (
           <div className="mt-2.5 sm:mt-3 pt-2.5 sm:pt-3 border-t border-amber-200 flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs">
             <span className="font-semibold text-amber-900 text-[11px] sm:text-xs">
-              Přeskočené ISBN ({skippedIsbns.length}):
+              {t('skippedIsbnsTitle')} ({skippedIsbns.length}):
             </span>
             {skippedIsbns.map((isbn) => (
               <span
@@ -919,10 +902,10 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             <AlertCircle className="w-6 h-6 text-amber-600 shrink-0" />
             <div>
               <div className="font-bold text-amber-900 text-sm">
-                Skener nenalezl kód. Zkuste zlepšit osvětlení nebo lépe zaostřit na text.
+                {t('ocrInitialFailureTitle')}
               </div>
               <p className="text-xs text-amber-700">
-                Skener byl dočasně pozastaven, aby nedošlo k nechtěnému načtení.
+                {t('ocrInitialFailureDesc')}
               </p>
             </div>
           </div>
@@ -934,7 +917,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             className="py-2 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer shrink-0"
           >
             <RefreshCw className="w-4 h-4" />
-            <span>Zkusit znovu</span>
+            <span>{t('retryBtn')}</span>
           </button>
         </div>
       )}
@@ -946,10 +929,10 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             <AlertCircle className="w-6 h-6 text-red-600 shrink-0" />
             <div>
               <div className="font-bold text-red-900 text-sm">
-                ISBN kód nebyl naskenován
+                {t('ocrPersistentFailureTitle')}
               </div>
               <p className="text-xs text-red-700">
-                Číselný kód ani čárový kód se nepodařilo přečíst. Můžete kód zadat ručně.
+                {t('ocrPersistentFailureDesc')}
               </p>
             </div>
           </div>
@@ -962,7 +945,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             className="py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer shrink-0"
           >
             <Edit3 className="w-4 h-4" />
-            <span>Ruční zadání ISBN kódu</span>
+            <span>{t('manualIsbnEntryBtn')}</span>
           </button>
         </div>
       )}
@@ -974,10 +957,10 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             <AlertCircle className="w-6 h-6 text-red-600 shrink-0" />
             <div>
               <div className="font-bold text-red-900 text-sm">
-                Výpadek sítě / katalogu pro ISBN {networkErrorIsbnBanner}
+                {t('networkErrorBannerTitle', { isbn: networkErrorIsbnBanner })}
               </div>
               <p className="text-xs text-red-700">
-                Online katalogy dočasně neodpověděly. Můžete to zkusit znovu nebo knihu přeskočit.
+                {t('networkErrorBannerDesc')}
               </p>
             </div>
           </div>
@@ -987,13 +970,13 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
               className="py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
             >
               <RefreshCw className="w-4 h-4" />
-              <span>Zkusit znovu</span>
+              <span>{t('retryBtn')}</span>
             </button>
             <button
               onClick={() => handleSkipIsbn(networkErrorIsbnBanner)}
               className="py-2 px-3 bg-red-100 hover:bg-red-200 text-red-900 font-semibold text-xs border border-red-300 rounded-xl transition cursor-pointer"
             >
-              Přeskočit knihu
+              {t('skipBookBtn')}
             </button>
           </div>
         </div>
@@ -1006,10 +989,10 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             <AlertCircle className="w-6 h-6 text-amber-700 shrink-0" />
             <div>
               <div className="font-bold text-amber-900 text-sm">
-                Kniha s ISBN {unrecognizedIsbnBanner} nebyla nalezena!
+                {t('unrecognizedBannerTitle', { isbn: unrecognizedIsbnBanner })}
               </div>
               <p className="text-xs text-amber-800">
-                V rychlém režimu můžete tuto knihu přeskočit a pokračovat v dalším skenování.
+                {t('unrecognizedBannerDesc')}
               </p>
             </div>
           </div>
@@ -1019,7 +1002,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
               className="py-2 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
             >
               <SkipForward className="w-4 h-4" />
-              <span>Přeskočit knihu</span>
+              <span>{t('skipBookBtn')}</span>
             </button>
             <button
               onClick={() => {
@@ -1030,7 +1013,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
               }}
               className="py-2 px-3 bg-white hover:bg-amber-50 text-amber-900 font-semibold text-xs border border-amber-300 rounded-xl transition cursor-pointer"
             >
-              Doplnit ihned
+              {t('fillNowBtn')}
             </button>
           </div>
         </div>
@@ -1043,10 +1026,10 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             <RotateCcw className="w-5 h-5 text-amber-400 shrink-0" />
             <div>
               <div className="font-bold text-xs sm:text-sm">
-                Došlo k potížím se čtením nebo spojením
+                {t('readingTroubleTitle')}
               </div>
               <p className="text-[11px] sm:text-xs text-slate-300">
-                Nemusíte obnovovat celou stránku (F5). Klepnutím můžete skener snadno uvolnit a restartovat.
+                {t('readingTroubleDesc')}
               </p>
             </div>
           </div>
@@ -1054,7 +1037,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             onClick={handleResetScanner}
             className="py-1.5 px-3 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold text-xs rounded-lg transition shrink-0 ml-3 cursor-pointer"
           >
-            Resetovat čtečku
+            {t('resetScannerBtn')}
           </button>
         </div>
       )}
@@ -1066,10 +1049,10 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             <RefreshCw className="w-6 h-6 text-indigo-200 animate-spin" />
             <div>
               <div className="font-bold text-sm">
-                Doplňování přeskočených knih ({skippedIsbns.length} zbývá)
+                {t('rescanSkippedHeading', { count: skippedIsbns.length })}
               </div>
               <p className="text-xs text-indigo-100">
-                Naskenujte čárový kód jedné z přeskočených knih na fotoaparátu pro vyplnění jejích údajů.
+                {t('rescanSkippedSubheading')}
               </p>
             </div>
           </div>
@@ -1082,7 +1065,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             }}
             className="py-1.5 px-3 bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-semibold rounded-lg transition"
           >
-            Vybrat ze seznamu
+            {t('selectFromListBtn')}
           </button>
         </div>
       )}
@@ -1093,7 +1076,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col items-center text-center">
           <h3 className="text-base font-bold text-slate-800 mb-3 flex items-center gap-2">
             <Camera className="w-5 h-5 text-indigo-600" />
-            Skenování fotoaparátem
+            {t('cameraScannerHeading')}
           </h3>
 
           <div className="w-full relative bg-slate-900 rounded-xl overflow-hidden h-[180px] sm:h-auto min-h-[180px] sm:min-h-[220px] flex items-center justify-center mb-3">
@@ -1116,7 +1099,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                   className="w-20 h-20 sm:w-28 sm:h-28 object-contain animate-bounce"
                 />
                 <span className="text-white font-bold text-xs sm:text-sm mt-1 bg-emerald-600 px-3 py-1 rounded-full shadow-md">
-                  Kniha uložena!
+                  {t('bookSavedOverlay')}
                 </span>
               </div>
             )}
@@ -1142,14 +1125,14 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                 onError={(e) => {
                   e.currentTarget.src = './assets/cat-loading.png';
                 }}
-                alt="Načítám..."
+                alt={t('searchingInCatalogs')}
                 className="w-10 h-10 object-contain mb-1.5 animate-bounce"
               />
               <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden border border-slate-300 relative shadow-inner">
                 <div className="bg-black h-full rounded-full w-full animate-pulse relative overflow-hidden" />
               </div>
               <span className="text-[11px] font-semibold text-slate-700 mt-1.5">
-                Vyhledávám v katalozích...
+                {t('searchingInCatalogs')}
               </span>
             </div>
           )}
@@ -1165,7 +1148,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                 className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Camera className="w-4 h-4" />
-                <span>Spustit skenování</span>
+                <span>{t('startScanningBtn')}</span>
               </button>
             ) : (
               <button
@@ -1173,7 +1156,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                 className="w-full py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer"
               >
                 <RefreshCw className="w-4 h-4" />
-                <span>Zastavit fotoaparát</span>
+                <span>{t('stopCameraBtn')}</span>
               </button>
             )}
           </div>
@@ -1184,13 +1167,13 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           <div>
             <h3 className="text-base font-bold text-slate-800 mb-3 flex items-center gap-2">
               <Search className="w-5 h-5 text-indigo-600" />
-              Zadání ISBN nebo ruční zápis
+              {t('manualIsbnHeading')}
             </h3>
 
             <form onSubmit={handleManualSubmitIsbn} className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  ISBN kód (10 nebo 13 číslic)
+                  {t('manualIsbnLabel')}
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -1198,14 +1181,14 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                     value={manualIsbn}
                     onChange={(e) => setManualIsbn(e.target.value)}
                     placeholder="978-80-..."
-                    className="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                    className="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-mono"
                   />
                   <button
                     type="submit"
                     disabled={!activeShelfId || !manualIsbn.trim() || loading}
                     className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition disabled:opacity-50 cursor-pointer"
                   >
-                    Vyhledat
+                    {t('searchBtn')}
                   </button>
                 </div>
               </div>
@@ -1214,7 +1197,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
 
           <div className="mt-6 pt-4 border-t border-slate-100">
             <p className="text-xs text-slate-500 mb-2">
-              Kniha nemá ISBN ani čárový kód?
+              {t('noIsbnQuestion')}
             </p>
             <button
               onClick={() => {
@@ -1225,7 +1208,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
               className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-sm rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               <BookPlus className="w-4 h-4 text-indigo-600" />
-              <span>Kompletně ruční zadání knihy</span>
+              <span>{t('fullManualEntryBtn')}</span>
             </button>
           </div>
         </div>
@@ -1252,12 +1235,12 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       {/* Recent Session Scans List */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
         <h3 className="text-sm font-bold text-slate-800 mb-3">
-          Právě naskenované knihy v této relaci ({recentScans.length})
+          {t('recentScansHeading')} ({recentScans.length})
         </h3>
 
         {recentScans.length === 0 ? (
           <p className="text-xs text-slate-400 py-3 text-center">
-            Zatím jste nenaskenovali žádnou knihu.
+            {t('noRecentScans')}
           </p>
         ) : (
           <div className="space-y-2 max-h-60 overflow-y-auto">
@@ -1282,7 +1265,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                     <div className="font-bold text-slate-900 truncate">{book.title}</div>
                     <div className="text-slate-500 truncate">
                       {book.author} {book.publishedYear ? `(${book.publishedYear})` : ''} | ISBN:{' '}
-                      {book.isbn || 'Bez ISBN'}
+                      {book.isbn || t('noIsbnText')}
                     </div>
                     {(book.genre || book.keywords) && (
                       <div className="text-[10px] text-indigo-600 truncate mt-0.5">
@@ -1295,10 +1278,10 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                 </div>
                 <div className="text-right">
                   <span className="inline-block bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-semibold">
-                    Počet: {book.quantity || 1} ks
+                    {t('quantityLabel')} {book.quantity || 1} {t('piecesSuffix')}
                   </span>
                   <div className="text-[10px] text-slate-400 mt-0.5">
-                    {new Date(book.scannedAt).toLocaleTimeString('cs-CZ')}
+                    {new Date(book.scannedAt).toLocaleTimeString()}
                   </div>
                 </div>
               </div>
@@ -1322,7 +1305,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           onCancel={() => {
             setScannedMetadataToConfirm(null);
             releaseModalLock();
-            setStatusMessage({ type: 'info', text: 'Uložení naskenované knihy zrušeno.' });
+            setStatusMessage({ type: 'info', text: t('confirmCancelMsg') });
           }}
         />
       )}
@@ -1337,7 +1320,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             const inFastMode = isFastScanModeRef.current;
             setDuplicateBook(null);
             setPendingBookData(null);
-            const saved = await saveBookToDb(dataToSave, 'Další exemplář');
+            const saved = await saveBookToDb(dataToSave, t('duplicateSourceAnotherCopy'));
             if (inFastMode && saved) {
               setShowThumbsUpOverlay(true);
               setTimeout(() => {
@@ -1352,7 +1335,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             setDuplicateBook(null);
             setPendingBookData(null);
             releaseModalLock();
-            setStatusMessage({ type: 'info', text: 'Skenování zrušeno (označeno jako chyba/duplicita).' });
+            setStatusMessage({ type: 'info', text: t('duplicateCancelledMsg') });
           }}
         />
       )}
@@ -1364,7 +1347,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           shelfName={shelfDetails.shelfName}
           onSave={async (bookData) => {
             setShowManualModal(false);
-            await saveBookToDb(bookData, 'Ruční zadání');
+            await saveBookToDb(bookData, t('manualSourceLabel'));
             releaseModalLock();
           }}
           onClose={() => {

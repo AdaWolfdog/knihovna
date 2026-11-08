@@ -5,10 +5,12 @@ import { Header } from './components/Header';
 import { ScannerTab } from './components/ScannerTab';
 import { LibraryManager } from './components/LibraryManager';
 import { BookListTab } from './components/BookListTab';
+import { LanguageProvider, useLanguage } from './i18n';
 
-export function App() {
+function AppContent() {
   const [activeTab, setActiveTab] = useState<'scan' | 'structure' | 'books'>('scan');
   const [activeShelfId, setActiveShelfId] = useState<number | null>(null);
+  const { t } = useLanguage();
 
   const shelves = useLiveQuery(() => db.shelves.toArray(), []) || [];
 
@@ -80,15 +82,23 @@ export function App() {
       <footer className="bg-white border-t border-slate-200 py-4 px-4 text-center text-xs text-slate-500">
         <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
           <span className="font-semibold text-slate-700">
-            Knihovník Mobile &copy; {new Date().getFullYear()}
+            {t('appTitle')} &copy; {new Date().getFullYear()}
           </span>
           <span className="hidden sm:inline text-slate-400">–</span>
           <span className="text-slate-500">
-            Aplikace pro evidenci a skenování knih
+            {t('footerText')}
           </span>
         </div>
       </footer>
     </div>
+  );
+}
+
+export function App() {
+  return (
+    <LanguageProvider>
+      <AppContent />
+    </LanguageProvider>
   );
 }
 
