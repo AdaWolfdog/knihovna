@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import type { Book } from '../db/db';
 import { X, Check, Camera, Upload, Image as ImageIcon, BookOpen } from 'lucide-react';
+import { useLanguage } from '../i18n';
 
 interface BookConfirmModalProps {
   initialData: Partial<Book>;
@@ -17,6 +18,7 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
   onConfirm,
   onCancel,
 }) => {
+  const { t } = useLanguage();
   const [isbn, setIsbn] = useState(initialData.isbn || '');
   const [title, setTitle] = useState(initialData.title || '');
   const [author, setAuthor] = useState(initialData.author || '');
@@ -52,7 +54,7 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      alert('Prosím vyplňte název knihy.');
+      alert(t('fillTitleAlert'));
       return;
     }
     onConfirm({
@@ -83,18 +85,19 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
             <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
             <div className="min-w-0">
               <h3 className="text-sm sm:text-lg font-bold text-slate-900 truncate">
-                Informace o naskenované knize
+                {t('confirmModalTitle')}
               </h3>
               <p className="text-[11px] sm:text-xs text-slate-500 truncate">
-                Police: <span className="font-semibold text-slate-800">{shelfName}</span>
-                {sourceName && <span> &bull; Zdroj: {sourceName}</span>}
+                {t('confirmModalShelf')}{' '}
+                <span className="font-semibold text-slate-800">{shelfName}</span>
+                {sourceName && <span> &bull; {t('confirmModalSource')} {sourceName}</span>}
               </p>
             </div>
           </div>
           <button
             onClick={onCancel}
             className="p-1 text-slate-400 hover:text-slate-600 rounded-lg transition cursor-pointer shrink-0"
-            title="Zavřít"
+            title={t('closeTooltip')}
           >
             <X className="w-5 h-5" />
           </button>
@@ -113,7 +116,7 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
               ) : (
                 <div className="text-center p-1 sm:p-2 text-slate-400">
                   <ImageIcon className="w-5 h-5 sm:w-8 sm:h-8 mx-auto stroke-1 mb-0.5 sm:mb-1" />
-                  <span className="text-[8px] sm:text-[10px] leading-tight">Bez obálky</span>
+                  <span className="text-[8px] sm:text-[10px] leading-tight">{t('noCover')}</span>
                 </div>
               )}
             </div>
@@ -121,7 +124,7 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
             <div className="flex-1 space-y-1.5 sm:space-y-3 min-w-0">
               <div>
                 <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 mb-0.5 sm:mb-1">
-                  Název knihy <span className="text-red-500">*</span>
+                  {t('formLabelBookTitle')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -134,7 +137,7 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
 
               <div>
                 <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 mb-0.5 sm:mb-1">
-                  Autor / Autoři
+                  {t('formLabelAuthor')}
                 </label>
                 <input
                   type="text"
@@ -146,7 +149,7 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
 
               <div>
                 <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 mb-0.5 sm:mb-1">
-                  ISBN
+                  {t('formLabelIsbn')}
                 </label>
                 <input
                   type="text"
@@ -161,7 +164,7 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
           <div className="grid grid-cols-3 gap-2 sm:gap-3">
             <div>
               <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 mb-0.5 sm:mb-1 truncate">
-                Rok vydání
+                {t('formLabelPublishedYear')}
               </label>
               <input
                 type="text"
@@ -173,7 +176,7 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
 
             <div>
               <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 mb-0.5 sm:mb-1 truncate">
-                Vydání
+                {t('formLabelEdition')}
               </label>
               <input
                 type="text"
@@ -186,7 +189,7 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
 
             <div>
               <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 mb-0.5 sm:mb-1 truncate">
-                Počet kusů <span className="text-red-500">*</span>
+                {t('formLabelQuantity')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
@@ -202,7 +205,7 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
           <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <div>
               <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 mb-0.5 sm:mb-1 truncate">
-                Nakladatelství
+                {t('formLabelPublisher')}
               </label>
               <input
                 type="text"
@@ -214,7 +217,7 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
 
             <div>
               <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 mb-0.5 sm:mb-1 truncate">
-                Místo vydání
+                {t('formLabelPlaceOfPublication')}
               </label>
               <input
                 type="text"
@@ -229,7 +232,7 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
           <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <div>
               <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 mb-0.5 sm:mb-1 truncate">
-                Žánr
+                {t('formLabelGenre')}
               </label>
               <input
                 type="text"
@@ -241,7 +244,7 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
 
             <div>
               <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 mb-0.5 sm:mb-1 truncate">
-                Klíčová slova
+                {t('formLabelKeywords')}
               </label>
               <input
                 type="text"
@@ -255,7 +258,7 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
           <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <div>
               <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 mb-0.5 sm:mb-1 truncate">
-                Překladatel
+                {t('formLabelTranslator')}
               </label>
               <input
                 type="text"
@@ -267,7 +270,7 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
 
             <div>
               <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 mb-0.5 sm:mb-1 truncate">
-                ČČNB
+                {t('formLabelCnb')}
               </label>
               <input
                 type="text"
@@ -281,7 +284,7 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
 
           <div>
             <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 mb-0.5 sm:mb-1">
-              Fyzický popis / Rozsah
+              {t('formLabelPhysicalDesc')}
             </label>
             <input
               type="text"
@@ -295,7 +298,7 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
           {/* Cover Photo Buttons */}
           <div className="border border-slate-200 rounded-xl p-2 sm:p-3 bg-slate-50/50 space-y-1 sm:space-y-2">
             <label className="block text-[11px] sm:text-xs font-semibold text-slate-700">
-              Obrázek přebalu (URL nebo fotka)
+              {t('formLabelCoverUrlOrPhoto')}
             </label>
             <div className="flex gap-1.5 sm:gap-2 items-center">
               <input
@@ -311,7 +314,7 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
                 className="flex items-center gap-1 text-[10px] sm:text-xs px-2 py-1 sm:px-2.5 sm:py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium rounded-lg border border-emerald-200 transition cursor-pointer shrink-0"
               >
                 <Camera className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                <span>Vyfotit</span>
+                <span>{t('takePhotoBtn')}</span>
               </button>
               <button
                 type="button"
@@ -319,7 +322,7 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
                 className="flex items-center gap-1 text-[10px] sm:text-xs px-2 py-1 sm:px-2.5 sm:py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg border border-slate-200 transition cursor-pointer shrink-0"
               >
                 <Upload className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                <span>Nahrát</span>
+                <span>{t('uploadPhotoBtn')}</span>
               </button>
               <input
                 ref={fileInputRef}
@@ -341,7 +344,7 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
 
           <div>
             <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 mb-0.5 sm:mb-1">
-              Poznámka / Stav knihy
+              {t('formLabelNotesBook')}
             </label>
             <input
               type="text"
@@ -358,14 +361,14 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
               onClick={onCancel}
               className="px-3 py-1.5 sm:px-4 sm:py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-medium rounded-xl transition cursor-pointer"
             >
-              Zrušit
+              {t('cancelBtn')}
             </button>
             <button
               type="submit"
               className="flex items-center gap-1.5 px-3.5 py-1.5 sm:px-5 sm:py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold rounded-xl transition shadow-md cursor-pointer"
             >
               <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span>Potvrdit a uložit</span>
+              <span>{t('confirmAndSaveBtn')}</span>
             </button>
           </div>
         </form>

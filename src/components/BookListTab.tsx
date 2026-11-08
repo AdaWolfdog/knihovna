@@ -4,8 +4,10 @@ import { db, type Book } from '../db/db';
 import { exportToXLSX, exportToCSV, prepareExportData } from '../services/exportService';
 import { Search, Trash2, Edit3, BookOpen, FileSpreadsheet, FileText, Filter, Image as ImageIcon, Smartphone } from 'lucide-react';
 import { ManualBookModal } from './ManualBookModal';
+import { useLanguage } from '../i18n';
 
 export const BookListTab: React.FC = () => {
+  const { t } = useLanguage();
   const books = useLiveQuery(() => db.books.toArray(), []) || [];
   const libraries = useLiveQuery(() => db.libraries.toArray(), []) || [];
   const rooms = useLiveQuery(() => db.rooms.toArray(), []) || [];
@@ -52,20 +54,20 @@ export const BookListTab: React.FC = () => {
 
   // Export handlers
   const handleExportXLSX = () => {
-    if (filteredBooks.length === 0) return alert('Žádné knihy k exportu.');
+    if (filteredBooks.length === 0) return alert(t('noBooksToExport'));
     const exportRows = prepareExportData(filteredBooks, librariesMap, roomsMap, shelvesMap);
     exportToXLSX(exportRows, `export_knih_${new Date().toISOString().substring(0, 10)}.xlsx`);
   };
 
   const handleExportCSV = () => {
-    if (filteredBooks.length === 0) return alert('Žádné knihy k exportu.');
+    if (filteredBooks.length === 0) return alert(t('noBooksToExport'));
     const exportRows = prepareExportData(filteredBooks, librariesMap, roomsMap, shelvesMap);
     exportToCSV(exportRows, `export_knih_${new Date().toISOString().substring(0, 10)}.csv`);
   };
 
   // Delete book
   const handleDeleteBook = async (id: number) => {
-    if (confirm('Opravdu chcete smazat tento záznam o knize?')) {
+    if (confirm(t('confirmDeleteBook'))) {
       await db.books.delete(id);
     }
   };
@@ -96,7 +98,7 @@ export const BookListTab: React.FC = () => {
     if (!book) return;
     const newQty = (book.quantity || 1) + delta;
     if (newQty <= 0) {
-      if (confirm('Chcete tuto knihu zcela odstranit ze seznamu?')) {
+      if (confirm(t('confirmDeleteBookCompletely'))) {
         await db.books.delete(bookId);
       }
     } else {
@@ -126,10 +128,10 @@ export const BookListTab: React.FC = () => {
         <div>
           <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-indigo-600" />
-            Seznam naskenovaných knih ({filteredBooks.length} z {books.length})
+            {t('bookListTitle')} ({filteredBooks.length} / {books.length})
           </h2>
           <p className="text-xs text-slate-500">
-            Prohlížejte, vyhledávejte a exportujte kompletní fond do tabulek Excel nebo CSV.
+            {t('bookListSubtitle')}
           </p>
         </div>
 
@@ -140,7 +142,7 @@ export const BookListTab: React.FC = () => {
             className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs rounded-xl transition shadow-sm disabled:opacity-50 cursor-pointer"
           >
             <FileSpreadsheet className="w-4 h-4" />
-            <span>Exportovat do Excel (.xlsx)</span>
+            <span>{t('exportXlsxBtn')}</span>
           </button>
 
           <button
@@ -149,7 +151,7 @@ export const BookListTab: React.FC = () => {
             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs rounded-xl transition shadow-sm disabled:opacity-50 cursor-pointer"
           >
             <FileText className="w-4 h-4" />
-            <span>Exportovat do CSV</span>
+            <span>{t('exportCsvBtn')}</span>
           </button>
         </div>
       </div>
@@ -161,7 +163,7 @@ export const BookListTab: React.FC = () => {
             <div className="p-1.5 bg-indigo-600 text-white rounded-lg">
               <Filter className="w-4 h-4" />
             </div>
-            <span className="text-base">Filtrování a vyhledávání knih</span>
+            <span className="text-base">{t('filterSearchHeading')}</span>
           </div>
 
           {(selectedLibraryFilter !== 'all' ||
@@ -175,9 +177,9 @@ export const BookListTab: React.FC = () => {
                 setSelectedShelfFilter('all');
                 setSearchQuery('');
               }}
-              className="text-xs bg-indigo-100 hover:bg-indigo-200 text-indigo-800 font-semibold px-3 py-1 rounded-lg transition"
+              className="text-xs bg-indigo-100 hover:bg-indigo-200 text-indigo-800 font-semibold px-3 py-1 rounded-lg transition cursor-pointer"
             >
-              Vynulovat filtry
+              {t('resetFiltersBtn')}
             </button>
           )}
         </div>
@@ -186,7 +188,7 @@ export const BookListTab: React.FC = () => {
           {/* Search Input */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">
-              Vyhledat text (Název, autor, žánr, klíčová slova)
+              {t('searchQueryLabel')}
             </label>
             <div className="relative">
               <Search className="w-4 h-4 text-indigo-500 absolute left-3 top-3" />
@@ -194,7 +196,7 @@ export const BookListTab: React.FC = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Hledat..."
+                placeholder={t('searchPlaceholder')}
                 className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm"
               />
             </div>
@@ -203,7 +205,7 @@ export const BookListTab: React.FC = () => {
           {/* Library Filter */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">
-              1. Virtuální knihovna
+              {t('col1Title')}
             </label>
             <select
               value={selectedLibraryFilter}
@@ -215,7 +217,7 @@ export const BookListTab: React.FC = () => {
               }}
               className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-white font-medium shadow-sm"
             >
-              <option value="all">Všechny knihovny</option>
+              <option value="all">{t('allLibraries')}</option>
               {libraries.map((lib) => (
                 <option key={lib.id} value={lib.id}>
                   {lib.name}
@@ -227,7 +229,7 @@ export const BookListTab: React.FC = () => {
           {/* Room Filter */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">
-              2. Místnost
+              {t('col2Title')}
             </label>
             <select
               value={selectedRoomFilter}
@@ -238,7 +240,7 @@ export const BookListTab: React.FC = () => {
               }}
               className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-white font-medium shadow-sm"
             >
-              <option value="all">Všechny místnosti</option>
+              <option value="all">{t('allRooms')}</option>
               {availableRooms.map((room) => (
                 <option key={room.id} value={room.id}>
                   {room.name}
@@ -250,7 +252,7 @@ export const BookListTab: React.FC = () => {
           {/* Shelf Filter */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">
-              3. Police
+              {t('col3Title')}
             </label>
             <select
               value={selectedShelfFilter}
@@ -260,7 +262,7 @@ export const BookListTab: React.FC = () => {
               }}
               className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-white font-medium shadow-sm"
             >
-              <option value="all">Všechny police</option>
+              <option value="all">{t('allShelves')}</option>
               {availableShelves.map((shelf) => (
                 <option key={shelf.id} value={shelf.id}>
                   {shelf.name}
@@ -275,28 +277,28 @@ export const BookListTab: React.FC = () => {
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         {filteredBooks.length === 0 ? (
           <div className="p-12 text-center text-slate-400 text-sm">
-            Nebyly nalezeny žádné odpovídající knihy.
+            {t('noBooksFound')}
           </div>
         ) : (
           <div>
             {/* Decent mobile orientation banner */}
             <div className="mobile-portrait-info-banner hidden items-center gap-2 bg-slate-50 border-b border-slate-200 px-4 py-2 text-xs text-slate-600">
               <Smartphone className="w-4 h-4 text-indigo-500 rotate-90 shrink-0" />
-              <span>Pro více kategorií otočte zařízení na šířku.</span>
+              <span>{t('orientationHint')}</span>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-slate-700">
                 <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase font-semibold">
                   <tr>
-                    <th className="p-3 w-14 text-center mobile-portrait-hidden">Obálka</th>
-                    <th className="p-3">Název a Autor</th>
-                    <th className="p-3 mobile-portrait-hidden">Žánr a Klíčová slova</th>
-                    <th className="p-3 mobile-portrait-hidden">ISBN</th>
-                    <th className="p-3 mobile-portrait-hidden">Umístění (Knihovna / Místnost / Police)</th>
-                    <th className="p-3 text-center mobile-portrait-hidden">Počet kusů</th>
-                    <th className="p-3 mobile-portrait-hidden">Rok / Vydání</th>
-                    <th className="p-3 text-right">Akce</th>
+                    <th className="p-3 w-14 text-center mobile-portrait-hidden">{t('thCover')}</th>
+                    <th className="p-3">{t('thTitleAuthor')}</th>
+                    <th className="p-3 mobile-portrait-hidden">{t('thGenreKeywords')}</th>
+                    <th className="p-3 mobile-portrait-hidden">{t('thIsbn')}</th>
+                    <th className="p-3 mobile-portrait-hidden">{t('thLocation')}</th>
+                    <th className="p-3 text-center mobile-portrait-hidden">{t('thQuantity')}</th>
+                    <th className="p-3 mobile-portrait-hidden">{t('thYearEdition')}</th>
+                    <th className="p-3 text-right">{t('thActions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -324,11 +326,11 @@ export const BookListTab: React.FC = () => {
                         </td>
                         <td className="p-3">
                           <div className="font-bold text-slate-900 text-sm">
-                            {book.title || 'Bez názvu'}
+                            {book.title || t('unknownTitle')}
                           </div>
-                          <div className="text-slate-500">{book.author || 'Neznámý autor'}</div>
+                          <div className="text-slate-500">{book.author || t('unknownAuthor')}</div>
                           {book.translator && (
-                            <div className="text-[11px] text-slate-400">Překlad: {book.translator}</div>
+                            <div className="text-[11px] text-slate-400">{t('translationPrefix')} {book.translator}</div>
                           )}
                         </td>
                         <td className="p-3 max-w-[180px] mobile-portrait-hidden">
@@ -337,7 +339,7 @@ export const BookListTab: React.FC = () => {
                               {book.genre}
                             </span>
                           ) : (
-                            <span className="text-slate-400 italic block mb-1">Bez žánru</span>
+                            <span className="text-slate-400 italic block mb-1">{t('noGenre')}</span>
                           )}
                           {book.keywords && (
                             <div className="text-[11px] text-slate-500 truncate" title={book.keywords}>
@@ -346,7 +348,7 @@ export const BookListTab: React.FC = () => {
                           )}
                         </td>
                         <td className="p-3 font-mono text-slate-600 mobile-portrait-hidden">
-                          {book.isbn || <span className="text-slate-400 italic">Bez ISBN</span>}
+                          {book.isbn || <span className="text-slate-400 italic">{t('noIsbnText')}</span>}
                         </td>
                         <td className="p-3 mobile-portrait-hidden">
                           <div className="flex items-center gap-1.5">
@@ -367,17 +369,17 @@ export const BookListTab: React.FC = () => {
                             <button
                               onClick={() => handleUpdateQuantity(book.id!, -1)}
                               className="w-5 h-5 flex items-center justify-center bg-white hover:bg-indigo-100 text-indigo-700 font-bold rounded text-xs shadow-xs transition cursor-pointer"
-                              title="Odebrat 1 kus"
+                              title={t('decreaseQtyTooltip')}
                             >
                               -
                             </button>
                             <span className="font-extrabold text-indigo-900 px-1 text-sm whitespace-nowrap">
-                              {qty} ks
+                              {qty} {t('piecesSuffix')}
                             </span>
                             <button
                               onClick={() => handleUpdateQuantity(book.id!, 1)}
                               className="w-5 h-5 flex items-center justify-center bg-white hover:bg-indigo-100 text-indigo-700 font-bold rounded text-xs shadow-xs transition cursor-pointer"
-                              title="Přidat 1 kus"
+                              title={t('increaseQtyTooltip')}
                             >
                               +
                             </button>
@@ -396,17 +398,17 @@ export const BookListTab: React.FC = () => {
                               <button
                                 onClick={() => handleUpdateQuantity(book.id!, -1)}
                                 className="w-5 h-5 flex items-center justify-center bg-white hover:bg-indigo-100 text-indigo-700 font-bold rounded text-xs shadow-xs transition cursor-pointer"
-                                title="Odebrat 1 kus"
+                                title={t('decreaseQtyTooltip')}
                               >
                                 -
                               </button>
                               <span className="font-extrabold text-indigo-900 px-1 text-xs whitespace-nowrap">
-                                {qty} ks
+                                {qty} {t('piecesSuffix')}
                               </span>
                               <button
                                 onClick={() => handleUpdateQuantity(book.id!, 1)}
                                 className="w-5 h-5 flex items-center justify-center bg-white hover:bg-indigo-100 text-indigo-700 font-bold rounded text-xs shadow-xs transition cursor-pointer"
-                                title="Přidat 1 kus"
+                                title={t('increaseQtyTooltip')}
                               >
                                 +
                               </button>
@@ -416,14 +418,14 @@ export const BookListTab: React.FC = () => {
                               <button
                                 onClick={() => setEditingBook(book)}
                                 className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
-                                title="Upravit knihu"
+                                title={t('editBookTooltip')}
                               >
                                 <Edit3 className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => handleDeleteBook(book.id!)}
                                 className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
-                                title="Smazat knihu"
+                                title={t('deleteBookTooltip')}
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>

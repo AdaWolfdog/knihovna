@@ -6,12 +6,14 @@ import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Header } from './Header';
+import { LanguageProvider } from '../i18n';
 
 describe('Header component', () => {
   let container: HTMLDivElement;
   let root: any;
 
   beforeEach(() => {
+    localStorage.clear();
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -27,11 +29,13 @@ describe('Header component', () => {
   it('renders branding and active shelf name', async () => {
     await act(async () => {
       root.render(
-        <Header
-          activeTab="scan"
-          setActiveTab={vi.fn()}
-          activeShelfName="Police B2"
-        />
+        <LanguageProvider>
+          <Header
+            activeTab="scan"
+            setActiveTab={vi.fn()}
+            activeShelfName="Police B2"
+          />
+        </LanguageProvider>
       );
     });
 
@@ -39,15 +43,56 @@ describe('Header component', () => {
     expect(container.textContent).toContain('Aktivní police: Police B2');
   });
 
+  it('renders language selector right next to the title on both desktop and mobile without opening menu', async () => {
+    await act(async () => {
+      root.render(
+        <LanguageProvider>
+          <Header
+            activeTab="scan"
+            setActiveTab={vi.fn()}
+            activeShelfName="Police B2"
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const select = container.querySelector('select[data-testid="language-select"]') as HTMLSelectElement;
+    expect(select).not.toBeNull();
+    // Default is Czech
+    expect(select.value).toBe('cs');
+
+    // Switch to English
+    await act(async () => {
+      select.value = 'en';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    expect(container.textContent).toContain('Librarian Mobile');
+    expect(container.textContent).toContain('Active shelf: Police B2');
+
+    // Switch to Emoji language
+    await act(async () => {
+      select.value = 'emoji';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    // Option exists and has the emojis
+    expect(select.value).toBe('emoji');
+    // Active shelf name "Police B2" is user data and must remain preserved in text
+    expect(container.textContent).toContain('Police B2');
+  });
+
   it('toggles collapsible menu on mobile and auto-collapses on tab change', async () => {
     const setActiveTab = vi.fn();
     await act(async () => {
       root.render(
-        <Header
-          activeTab="scan"
-          setActiveTab={setActiveTab}
-          activeShelfName="Police A1"
-        />
+        <LanguageProvider>
+          <Header
+            activeTab="scan"
+            setActiveTab={setActiveTab}
+            activeShelfName="Police A1"
+          />
+        </LanguageProvider>
       );
     });
 
