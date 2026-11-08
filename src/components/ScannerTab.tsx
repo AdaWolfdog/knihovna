@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { BrowserMultiFormatReader, BarcodeFormat, DecodeHintType } from '@zxing/library';
 import { lookupBookByIsbnDetailed, normalizeIsbn } from '../services/isbnService';
+import { recognizeIsbnFromSource } from '../services/isbnOcrService';
 import { db, type Book } from '../db/db';
-import { Camera, Search, CheckCircle, AlertCircle, RefreshCw, BookPlus, Zap, SkipForward, ArrowRight, Image as ImageIcon, RotateCcw } from 'lucide-react';
+import { Camera, Search, CheckCircle, AlertCircle, RefreshCw, BookPlus, Zap, SkipForward, ArrowRight, Image as ImageIcon, RotateCcw, Edit3 } from 'lucide-react';
 import { DuplicateModal } from './DuplicateModal';
 import { ManualBookModal } from './ManualBookModal';
 import { BookConfirmModal } from './BookConfirmModal';
@@ -62,6 +63,11 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   // Error recovery / Reset state
   const [hasScannerError, setHasScannerError] = useState(false);
 
+  // OCR recognition fallback states
+  // 'initial_failure': "Skener nenalezl kód. Zkuste zlepšit osvětlení nebo lépe zaostřit na text."
+  // 'persistent_failure': "ISBN kód nebyl naskenován"
+  const [ocrErrorState, setOcrErrorState] = useState<'initial_failure' | 'persistent_failure' | null>(null);
+
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const zxingReaderRef = useRef<BrowserMultiFormatReader | null>(null);
   const isProcessingRef = useRef<boolean>(false);
@@ -73,6 +79,12 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   const isFastScanModeRef = useRef<boolean>(isFastScanMode);
   const isProcessingSkippedListRef = useRef<boolean>(isProcessingSkippedList);
   const skippedIsbnsRef = useRef<string[]>(skippedIsbns);
+
+  // OCR fallback timers and attempt tracking
+  const lastBarcodeDetectedTimeRef = useRef<number>(Date.now());
+  const ocrAttemptCountRef = useRef<number>(0);
+  const ocrIntervalRef = useRef<any>(null);
+  const isScanningRef = useRef<boolean>(isScanning);
 
   // Keep refs up-to-date with states to avoid stale closures in camera callbacks
   useEffect(() => {
@@ -94,6 +106,10 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   useEffect(() => {
     skippedIsbnsRef.current = skippedIsbns;
   }, [skippedIsbns]);
+
+  useEffect(() => {
+    isScanningRef.current = isScanning;
+  }, [isScanning]);
 
   // Track modal open status to pause scanning while modal is active
   useEffect(() => {
@@ -141,6 +157,10 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   }, [activeShelfId]);
 
   const stopCamera = () => {
+    if (ocrIntervalRef.current) {
+      clearInterval(ocrIntervalRef.current);
+      ocrIntervalRef.current = null;
+    }
     if (zxingReaderRef.current) {
       try {
         zxingReaderRef.current.reset();
@@ -169,8 +189,10 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
     isModalOpenRef.current = false;
     lastScannedIsbnRef.current = '';
     lastScanTimeRef.current = 0;
+    ocrAttemptCountRef.current = 0;
     setLoading(false);
     setHasScannerError(false);
+    setOcrErrorState(null);
     setNetworkErrorIsbnBanner(null);
     setUnrecognizedIsbnBanner(null);
 
@@ -185,6 +207,68 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       type: 'info',
       text: 'Čtečka byla restartována a je připravena.',
     });
+  };
+
+  // Automated OCR fallback loop checking for written ISBN when no barcode is seen
+  const runOcrCheck = async () => {
+    if (!isScanningRef.current || isProcessingRef.current || isModalOpenRef.current) {
+      return;
+    }
+
+    const now = Date.now();
+    // Only attempt OCR if camera has been running for >= 2.5s without finding a barcode
+    if (now - lastBarcodeDetectedTimeRef.current < 2500) {
+      return;
+    }
+
+    // Try recognizing text from video frame
+    try {
+      const recognizedIsbn = videoRef.current ? await recognizeIsbnFromSource(videoRef.current) : null;
+      if (recognizedIsbn) {
+        const clean = normalizeIsbn(recognizedIsbn);
+        if (
+          clean === lastScannedIsbnRef.current &&
+          now - lastScanTimeRef.current < 2500
+        ) {
+          return;
+        }
+
+        // Successfully found text ISBN!
+        isProcessingRef.current = true;
+        lastScanTimeRef.current = now;
+        lastScannedIsbnRef.current = clean;
+        ocrAttemptCountRef.current = 0;
+        setOcrErrorState(null);
+
+        await handleProcessIsbn(clean);
+        return;
+      }
+    } catch (ocrErr) {
+      console.warn('OCR scan attempt warning:', ocrErr);
+    }
+
+    // If 4.5s elapsed without finding barcode or valid text digits
+    if (now - lastBarcodeDetectedTimeRef.current > 4500) {
+      ocrAttemptCountRef.current += 1;
+      // Stop the camera automatically to prevent accidental scan without user awareness
+      stopCamera();
+
+      if (ocrAttemptCountRef.current === 1) {
+        // First failure: prompt user to improve lighting or focus
+        setOcrErrorState('initial_failure');
+        setStatusMessage({
+          type: 'error',
+          text: 'Skener nenalezl kód. Zkuste zlepšit osvětlení nebo lépe zaostřit na text.',
+        });
+      } else {
+        // Persistent failure on second or subsequent attempts: prompt manual entry
+        setOcrErrorState('persistent_failure');
+        setStatusMessage({
+          type: 'error',
+          text: 'ISBN kód nebyl naskenován',
+        });
+      }
+    }
   };
 
   // Toggle Camera Scanning using high-performance ZXing
@@ -209,7 +293,16 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
 
       setIsScanning(true);
       setHasScannerError(false);
+      lastBarcodeDetectedTimeRef.current = Date.now();
       setStatusMessage({ type: 'info', text: 'Spouštím fotoaparát...' });
+
+      // Start periodic OCR timer (checks every 1200ms)
+      if (ocrIntervalRef.current) {
+        clearInterval(ocrIntervalRef.current);
+      }
+      ocrIntervalRef.current = setInterval(() => {
+        runOcrCheck();
+      }, 1200);
 
       // Build video constraints targeting back camera at optimal 720p for fast frame decoding
       const constraints: MediaStreamConstraints = {
@@ -238,6 +331,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
 
       const onResultCallback = async (result: any) => {
         if (result) {
+          lastBarcodeDetectedTimeRef.current = Date.now();
           const decodedText = result.getText();
           const now = Date.now();
           const cleanIsbn = normalizeIsbn(decodedText);
@@ -253,6 +347,8 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           isProcessingRef.current = true;
           lastScanTimeRef.current = now;
           lastScannedIsbnRef.current = cleanIsbn;
+          ocrAttemptCountRef.current = 0;
+          setOcrErrorState(null);
 
           try {
             await handleProcessIsbn(decodedText);
@@ -298,7 +394,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         }
       }
 
-      setStatusMessage({ type: 'info', text: 'Fotoaparát aktivní. Namiřte na čárový kód.' });
+      setStatusMessage({ type: 'info', text: 'Fotoaparát aktivní. Namiřte na čárový kód nebo čísla ISBN.' });
     } catch (err: any) {
       console.error('Error starting camera:', err);
       setIsScanning(false);
@@ -816,6 +912,61 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         )}
       </div>
 
+      {/* OCR Error Notification Banner: Initial failure */}
+      {ocrErrorState === 'initial_failure' && (
+        <div className="bg-amber-50 border-2 border-amber-400 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in shadow-sm">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-6 h-6 text-amber-600 shrink-0" />
+            <div>
+              <div className="font-bold text-amber-900 text-sm">
+                Skener nenalezl kód. Zkuste zlepšit osvětlení nebo lépe zaostřit na text.
+              </div>
+              <p className="text-xs text-amber-700">
+                Skener byl dočasně pozastaven, aby nedošlo k nechtěnému načtení.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setOcrErrorState(null);
+              startCamera();
+            }}
+            className="py-2 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer shrink-0"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>Zkusit znovu</span>
+          </button>
+        </div>
+      )}
+
+      {/* OCR Error Notification Banner: Persistent failure */}
+      {ocrErrorState === 'persistent_failure' && (
+        <div className="bg-red-50 border-2 border-red-400 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in shadow-sm">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-6 h-6 text-red-600 shrink-0" />
+            <div>
+              <div className="font-bold text-red-900 text-sm">
+                ISBN kód nebyl naskenován
+              </div>
+              <p className="text-xs text-red-700">
+                Číselný kód ani čárový kód se nepodařilo přečíst. Můžete kód zadat ručně.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setOcrErrorState(null);
+              setManualModalIsbn('');
+              setShowManualModal(true);
+            }}
+            className="py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer shrink-0"
+          >
+            <Edit3 className="w-4 h-4" />
+            <span>Ruční zadání ISBN kódu</span>
+          </button>
+        </div>
+      )}
+
       {/* Network Error banner in Fast Mode */}
       {networkErrorIsbnBanner && isFastScanMode && (
         <div className="bg-red-50 border-2 border-red-400 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in">
@@ -1006,7 +1157,10 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           <div className="w-full flex gap-2">
             {!isScanning ? (
               <button
-                onClick={startCamera}
+                onClick={() => {
+                  setOcrErrorState(null);
+                  startCamera();
+                }}
                 disabled={!activeShelfId}
                 className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
               >

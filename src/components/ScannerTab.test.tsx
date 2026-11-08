@@ -7,6 +7,7 @@ import { createRoot } from 'react-dom/client';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ScannerTab } from './ScannerTab';
 import * as isbnService from '../services/isbnService';
+import * as isbnOcrService from '../services/isbnOcrService';
 import { db, type Book } from '../db/db';
 
 let scanCallback: ((result: any) => Promise<void>) | null = null;
@@ -200,7 +201,7 @@ describe('ScannerTab component real workflow', () => {
     let callCount = 0;
     let resolveRetryPromise: any;
 
-    vi.spyOn(isbnService, 'lookupBookByIsbnDetailed').mockImplementation(async (isbn: string) => {
+    vi.spyOn(isbnService, 'lookupBookByIsbnDetailed').mockImplementation(async (_isbn: string) => {
       callCount++;
       if (callCount === 1) {
         // First scan results in network failure
@@ -412,5 +413,121 @@ describe('ScannerTab component real workflow', () => {
     const thumbsUpImg = container.querySelector('img[alt="Kniha naskenována!"]');
     expect(thumbsUpImg).not.toBeNull();
     expect(container.textContent).toContain('Kniha uložena!');
+  });
+
+  it('automatically recognizes digits when no barcode is present', async () => {
+    let now = 1000;
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
+
+    vi.spyOn(isbnOcrService, 'recognizeIsbnFromSource').mockResolvedValue('9788073352677');
+    vi.spyOn(isbnService, 'lookupBookByIsbnDetailed').mockResolvedValue({
+      metadata: {
+        isbn: '9788073352677',
+        title: 'Kniha z číslic bez čárového kódu',
+        author: 'Autor Číslic',
+        publishedYear: '2023',
+      },
+      isNetworkError: false,
+    });
+
+    await act(async () => {
+      root.render(<ScannerTab activeShelfId={10} onNavigateToStructure={() => {}} />);
+    });
+
+    // Enable fast scan mode
+    const fastModeBtn = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Zapnout rychlé skenování') || b.textContent?.includes('Režim rychlého skenování')
+    );
+    await act(async () => {
+      fastModeBtn?.click();
+    });
+
+    // Start camera
+    const startBtn = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Spustit skenování')
+    );
+    await act(async () => {
+      startBtn?.click();
+    });
+
+    // Advance mock time past 2500ms
+    now += 3000;
+
+    // Wait for OCR interval to tick
+    await act(async () => {
+      await new Promise((res) => setTimeout(res, 1300));
+    });
+
+    // OCR should have been called and the book automatically saved
+    expect(isbnOcrService.recognizeIsbnFromSource).toHaveBeenCalled();
+    expect(booksStore.length).toBe(1);
+    expect(booksStore[0].isbn).toBe('9788073352677');
+    expect(booksStore[0].title).toBe('Kniha z číslic bez čárového kódu');
+  });
+
+  it('shows lighting warning, stops camera and offers retry on first OCR failure', async () => {
+    let now = 1000;
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
+
+    vi.spyOn(isbnOcrService, 'recognizeIsbnFromSource').mockResolvedValue(null);
+
+    await act(async () => {
+      root.render(<ScannerTab activeShelfId={10} onNavigateToStructure={() => {}} />);
+    });
+
+    const startBtn = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Spustit skenování')
+    );
+    await act(async () => {
+      startBtn?.click();
+    });
+
+    // Advance time beyond 4500ms threshold
+    now += 5000;
+
+    // Wait for OCR interval to fire
+    await act(async () => {
+      await new Promise((res) => setTimeout(res, 1300));
+    });
+
+    // Warning banner must be displayed
+    expect(container.textContent).toContain('Skener nenalezl kód. Zkuste zlepšit osvětlení nebo lépe zaostřit na text.');
+
+    // Camera is automatically turned off
+    expect(container.textContent).toContain('Spustit skenování');
+
+    // "Zkusit znovu" button is visible
+    const retryOcrBtn = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Zkusit znovu')
+    );
+    expect(retryOcrBtn).toBeDefined();
+
+    // Click "Zkusit znovu" - restarts camera
+    await act(async () => {
+      retryOcrBtn?.click();
+    });
+
+    expect(container.textContent).toContain('Zastavit fotoaparát');
+
+    // Advance time again past 4500ms -> persistent failure!
+    now += 5000;
+
+    await act(async () => {
+      await new Promise((res) => setTimeout(res, 1300));
+    });
+
+    // Now persistent failure banner appears
+    expect(container.textContent).toContain('ISBN kód nebyl naskenován');
+    const manualBtn = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Ruční zadání ISBN kódu')
+    );
+    expect(manualBtn).toBeDefined();
+
+    // Clicking manual button opens the manual entry modal
+    await act(async () => {
+      manualBtn?.click();
+    });
+
+    expect(container.textContent).toContain('Ruční zadání údajů o knize');
   });
 });
