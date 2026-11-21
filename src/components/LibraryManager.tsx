@@ -39,9 +39,8 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
   const [showAddShelf, setShowAddShelf] = useState(false);
 
   // Edit states
-  const [editingLibrary, setEditingLibrary] = useState<{ id: number; mode: 'color' | 'details' } | null>(null);
+  const [editingLibrary, setEditingLibrary] = useState<{ id: number; mode: 'color' | 'name' } | null>(null);
   const [editingLibraryName, setEditingLibraryName] = useState('');
-  const [editingLibraryColor, setEditingLibraryColor] = useState<string>(DEFAULT_LIBRARY_COLOR);
 
   const [editingRoomId, setEditingRoomId] = useState<number | null>(null);
   const [editingRoomName, setEditingRoomName] = useState('');
@@ -92,24 +91,23 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
     setSelectedLibraryId(id);
   };
 
-  const startLibraryEdit = (library: Library, mode: 'color' | 'details') => {
+  const startLibraryEdit = (library: Library, mode: 'color' | 'name') => {
     if (library.id === undefined) return;
     setEditingLibrary({ id: library.id, mode });
-    setEditingLibraryName(library.name);
-    setEditingLibraryColor(library.color || DEFAULT_LIBRARY_COLOR);
+    if (mode === 'name') setEditingLibraryName(library.name);
   };
 
-  const handleSaveLibraryEdit = async () => {
+  const saveLibraryEdit = async (changes: Pick<Library, 'name'> | Pick<Library, 'color'>) => {
     if (!editingLibrary) return;
 
-    const { id, mode } = editingLibrary;
-    const name = editingLibraryName.trim();
-    if (mode === 'details' && !name) return;
-
-    await db.libraries.update(id, mode === 'color'
-      ? { color: editingLibraryColor }
-      : { name, color: editingLibraryColor });
+    await db.libraries.update(editingLibrary.id, changes);
     setEditingLibrary((current) => current === editingLibrary ? null : current);
+  };
+
+  const handleSaveLibraryName = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const name = editingLibraryName.trim();
+    if (name) void saveLibraryEdit({ name });
   };
 
   // Save Room Edit
@@ -313,46 +311,13 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                 const isEditing = editingLibrary && editingLibrary.id === lib.id;
                 const libColor = lib.color || DEFAULT_LIBRARY_COLOR;
 
-                if (isEditing) {
-                  const colorOnly = editingLibrary.mode === 'color';
+                if (isEditing && editingLibrary.mode === 'color') {
                   return (
                     <div key={lib.id} className="p-2 bg-indigo-50 border border-indigo-300 rounded-lg space-y-2">
-                      {colorOnly ? (
-                        <span className="block truncate text-xs font-semibold">{lib.name}</span>
-                      ) : (
-                        <input
-                          type="text"
-                          value={editingLibraryName}
-                          onChange={(e) => setEditingLibraryName(e.target.value)}
-                          className="w-full px-2 py-1 text-xs border border-slate-300 rounded outline-none"
-                          autoFocus
-                        />
-                      )}
-                      <div className="flex items-center gap-1 flex-wrap">
-                        {LIBRARY_COLORS.map((c, index) => (
-                          <button
-                            key={c.value}
-                            type="button"
-                            onClick={() => setEditingLibraryColor(c.value)}
-                            aria-pressed={editingLibraryColor === c.value}
-                            title={c.name}
-                            autoFocus={colorOnly && index === 0}
-                            className={`w-5 h-5 rounded-full border-2 transition cursor-pointer ${
-                              editingLibraryColor === c.value ? 'border-slate-800 scale-110' : 'border-transparent'
-                            }`}
-                            style={{ backgroundColor: c.value }}
-                          />
-                        ))}
-                      </div>
-                      <div className="flex justify-end gap-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate text-xs font-semibold">{lib.name}</span>
                         <button
-                          onClick={handleSaveLibraryEdit}
-                          className="p-1 bg-emerald-600 text-on-accent rounded hover:bg-emerald-700 cursor-pointer"
-                          title={t('saveBtn')}
-                        >
-                          <Check className="w-3.5 h-3.5" />
-                        </button>
-                        <button
+                          type="button"
                           onClick={() => setEditingLibrary(null)}
                           className="p-1 bg-slate-200 text-slate-700 rounded hover:bg-slate-300 cursor-pointer"
                           title={t('cancelBtn')}
@@ -360,7 +325,54 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                           <X className="w-3.5 h-3.5" />
                         </button>
                       </div>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {LIBRARY_COLORS.map((c, index) => (
+                          <button
+                            key={c.value}
+                            type="button"
+                            onClick={() => void saveLibraryEdit({ color: c.value })}
+                            aria-pressed={libColor === c.value}
+                            title={c.name}
+                            autoFocus={index === 0}
+                            className={`w-5 h-5 rounded-full border-2 transition cursor-pointer ${
+                              libColor === c.value ? 'border-slate-800 scale-110' : 'border-transparent'
+                            }`}
+                            style={{ backgroundColor: c.value }}
+                          />
+                        ))}
+                      </div>
                     </div>
+                  );
+                }
+
+                if (isEditing) {
+                  return (
+                    <form key={lib.id} onSubmit={handleSaveLibraryName} className="flex items-center gap-2 p-2 bg-indigo-50 border border-indigo-300 rounded-lg">
+                      <input
+                        type="text"
+                        value={editingLibraryName}
+                        onChange={(e) => setEditingLibraryName(e.target.value)}
+                        aria-label={t('libraryNamePlaceholder')}
+                        className="min-w-0 flex-1 px-2 py-1 text-xs border border-slate-300 rounded outline-none"
+                        autoFocus
+                        required
+                      />
+                      <button
+                        type="submit"
+                        className="p-1 bg-emerald-600 text-on-accent rounded hover:bg-emerald-700 cursor-pointer"
+                        title={t('saveBtn')}
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingLibrary(null)}
+                        className="p-1 bg-slate-200 text-slate-700 rounded hover:bg-slate-300 cursor-pointer"
+                        title={t('cancelBtn')}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </form>
                   );
                 }
 
@@ -399,7 +411,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          startLibraryEdit(lib, 'details');
+                          startLibraryEdit(lib, 'name');
                         }}
                         className="text-slate-400 hover:text-indigo-600 p-1 rounded cursor-pointer"
                         title={t('editLibraryTooltip')}
