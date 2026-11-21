@@ -7,8 +7,20 @@ import { LibraryManager } from './components/LibraryManager';
 import { BookListTab } from './components/BookListTab';
 import { LanguageProvider, useLanguage } from './i18n';
 
+type Tab = 'scan' | 'structure' | 'books';
+const ACTIVE_TAB_KEY = 'knihovnik_active_tab';
+
+function readActiveTab(): Tab {
+  try {
+    const saved = sessionStorage.getItem(ACTIVE_TAB_KEY);
+    return saved === 'structure' || saved === 'books' ? saved : 'scan';
+  } catch {
+    return 'scan';
+  }
+}
+
 function AppContent() {
-  const [activeTab, setActiveTab] = useState<'scan' | 'structure' | 'books'>('scan');
+  const [activeTab, setActiveTabState] = useState(readActiveTab);
   const [selectedShelfId, setActiveShelfId] = useState<number | null>(null);
   const { t } = useLanguage();
 
@@ -26,6 +38,15 @@ function AppContent() {
       console.error('Failed to initialize the library:', error);
     });
   }, []);
+
+  const setActiveTab = (tab: Tab) => {
+    setActiveTabState(tab);
+    try {
+      sessionStorage.setItem(ACTIVE_TAB_KEY, tab);
+    } catch {
+      // Navigation still works when browser storage is unavailable.
+    }
+  };
 
   const activeShelf = shelves.find((shelf) => shelf.id === selectedShelfId) ?? shelves[0];
   const activeShelfId = activeShelf?.id ?? null;
