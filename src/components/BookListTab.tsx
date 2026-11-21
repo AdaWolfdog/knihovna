@@ -1,3 +1,4 @@
+import { BookQuantityControl } from './BookQuantityControl';
 import React, { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Book } from '../db/db';
@@ -89,20 +90,6 @@ export const BookListTab: React.FC = () => {
     if (editingBook && editingBook.id) {
       await db.books.update(editingBook.id, updatedFields);
       setEditingBook(null);
-    }
-  };
-
-  // Change quantity inline
-  const handleUpdateQuantity = async (bookId: number, delta: number) => {
-    const book = books.find((b) => b.id === bookId);
-    if (!book) return;
-    const newQty = (book.quantity || 1) + delta;
-    if (newQty <= 0) {
-      if (confirm(t('confirmDeleteBookCompletely'))) {
-        await db.books.delete(bookId);
-      }
-    } else {
-      await db.books.update(bookId, { quantity: newQty });
     }
   };
 
@@ -307,7 +294,6 @@ export const BookListTab: React.FC = () => {
                     const room = roomsMap.get(book.roomId);
                     const shelf = shelvesMap.get(book.shelfId);
                     const libColor = lib?.color || '#6366f1';
-                    const qty = book.quantity || 1;
 
                     return (
                       <tr key={book.id} className="hover:bg-slate-50/80 transition">
@@ -365,25 +351,7 @@ export const BookListTab: React.FC = () => {
                         </td>
                         {/* Separate quantity column on desktop / landscape */}
                         <td className="p-3 text-center mobile-portrait-hidden">
-                          <div className="inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-lg p-1">
-                            <button
-                              onClick={() => handleUpdateQuantity(book.id!, -1)}
-                              className="w-5 h-5 flex items-center justify-center bg-white hover:bg-indigo-100 text-indigo-700 font-bold rounded text-xs shadow-xs transition cursor-pointer"
-                              title={t('decreaseQtyTooltip')}
-                            >
-                              -
-                            </button>
-                            <span className="font-extrabold text-indigo-900 px-1 text-sm whitespace-nowrap">
-                              {qty} {t('piecesSuffix')}
-                            </span>
-                            <button
-                              onClick={() => handleUpdateQuantity(book.id!, 1)}
-                              className="w-5 h-5 flex items-center justify-center bg-white hover:bg-indigo-100 text-indigo-700 font-bold rounded text-xs shadow-xs transition cursor-pointer"
-                              title={t('increaseQtyTooltip')}
-                            >
-                              +
-                            </button>
-                          </div>
+                          <BookQuantityControl book={book} />
                         </td>
                         <td className="p-3 mobile-portrait-hidden">
                           <div>{book.publishedYear || '-'}</div>
@@ -394,25 +362,7 @@ export const BookListTab: React.FC = () => {
                         <td className="p-3 text-right">
                           <div className="flex flex-col items-end gap-1.5">
                             {/* In mobile portrait mode, quantity adjuster appears inside the Actions cell */}
-                            <div className="mobile-portrait-only hidden items-center gap-1 bg-indigo-50 border border-indigo-200 rounded-lg p-0.5">
-                              <button
-                                onClick={() => handleUpdateQuantity(book.id!, -1)}
-                                className="w-5 h-5 flex items-center justify-center bg-white hover:bg-indigo-100 text-indigo-700 font-bold rounded text-xs shadow-xs transition cursor-pointer"
-                                title={t('decreaseQtyTooltip')}
-                              >
-                                -
-                              </button>
-                              <span className="font-extrabold text-indigo-900 px-1 text-xs whitespace-nowrap">
-                                {qty} {t('piecesSuffix')}
-                              </span>
-                              <button
-                                onClick={() => handleUpdateQuantity(book.id!, 1)}
-                                className="w-5 h-5 flex items-center justify-center bg-white hover:bg-indigo-100 text-indigo-700 font-bold rounded text-xs shadow-xs transition cursor-pointer"
-                                title={t('increaseQtyTooltip')}
-                              >
-                                +
-                              </button>
-                            </div>
+                            <BookQuantityControl book={book} compact />
 
                             <div className="flex items-center justify-end gap-1">
                               <button

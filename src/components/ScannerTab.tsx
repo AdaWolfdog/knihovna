@@ -22,6 +22,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
 }) => {
   const { t } = useLanguage();
   const [shelfDetails, setShelfDetails] = useState<{
+    shelfId: number;
     shelfName: string;
     roomName: string;
     libraryName: string;
@@ -61,6 +62,10 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   // Manual modal state
   const [showManualModal, setShowManualModal] = useState(false);
   const [manualModalIsbn, setManualModalIsbn] = useState('');
+
+  const [saving, setSaving] = useState(false);
+  const [modalSaveError, setModalSaveError] = useState<string>();
+  const savingRef = useRef(false);
 
   // Error recovery / Reset state
   const [hasScannerError, setHasScannerError] = useState(false);
@@ -125,6 +130,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   // Release processing lock when all modals close
   const releaseModalLock = () => {
     isModalOpenRef.current = false;
+    setModalSaveError(undefined);
     setTimeout(() => {
       isProcessingRef.current = false;
     }, 400);
@@ -137,13 +143,15 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       return;
     }
 
+    let cancelled = false;
     const loadShelf = async () => {
       const shelf = await db.shelves.get(activeShelfId);
       if (shelf) {
         const room = await db.rooms.get(shelf.roomId);
         const library = await db.libraries.get(shelf.libraryId);
-        if (room && library) {
+        if (!cancelled && room && library) {
           setShelfDetails({
+            shelfId: activeShelfId,
             shelfName: shelf.name,
             roomName: room.name,
             libraryName: library.name,
@@ -153,7 +161,10 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         }
       }
     };
-    loadShelf();
+    void loadShelf().catch((error: unknown) => {
+      if (!cancelled) console.error('Failed to load the target shelf:', error);
+    });
+    return () => { cancelled = true; };
   }, [activeShelfId]);
 
   const stopCamera = () => {
@@ -419,7 +430,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
     const currentShelfId = activeShelfIdRef.current;
     const currentShelfDetails = shelfDetailsRef.current;
 
-    if (!currentShelfId || !currentShelfDetails) {
+    if (!currentShelfId || currentShelfDetails?.shelfId !== currentShelfId) {
       setStatusMessage({ type: 'error', text: t('pleaseSelectTargetShelfFirst') });
       isProcessingRef.current = false;
       return;
@@ -623,68 +634,57 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   const saveBookToDb = async (bookData: Partial<Book>, sourceName?: string): Promise<boolean> => {
     const currentShelfId = activeShelfIdRef.current;
     const currentShelfDetails = shelfDetailsRef.current;
-    if (!currentShelfDetails || !currentShelfId) return false;
+    if (!currentShelfId || currentShelfDetails?.shelfId !== currentShelfId
+      || (bookData.shelfId !== undefined && bookData.shelfId !== currentShelfId)) {
+      return false;
+    }
 
     const cleanIsbn = normalizeIsbn(bookData.isbn || '');
 
     try {
-      const existingOnSameShelf = await db.books
-        .where('shelfId')
-        .equals(currentShelfId)
-        .and((b) => normalizeIsbn(b.isbn) === cleanIsbn && cleanIsbn !== '')
-        .first();
+      const { book, isExisting } = await db.transaction('rw', [db.shelves, db.books], async () => {
+        const shelf = await db.shelves.get(currentShelfId);
+        if (!shelf) throw new Error('The target shelf no longer exists');
 
-      if (existingOnSameShelf && existingOnSameShelf.id) {
-        const updatedQuantity = (existingOnSameShelf.quantity || 1) + (bookData.quantity || 1);
-        await db.books.update(existingOnSameShelf.id, {
-          quantity: updatedQuantity,
-          scannedAt: new Date(),
-        });
+        const existing = cleanIsbn
+          ? await db.books.where('shelfId').equals(currentShelfId)
+              .and((book) => normalizeIsbn(book.isbn) === cleanIsbn).first()
+          : undefined;
+        const scannedAt = new Date();
+        if (existing?.id !== undefined) {
+          const quantity = (existing.quantity || 1) + (bookData.quantity || 1);
+          await db.books.update(existing.id, { quantity, scannedAt });
+          return { book: { ...existing, quantity, scannedAt }, isExisting: true };
+        }
 
-        const updatedBook: Book = {
-          ...existingOnSameShelf,
-          quantity: updatedQuantity,
-          scannedAt: new Date(),
+        const newBook: Book = {
+          libraryId: shelf.libraryId,
+          roomId: shelf.roomId,
+          shelfId: currentShelfId,
+          isbn: bookData.isbn || '',
+          title: bookData.title || t('unknownTitle'),
+          author: bookData.author || t('unknownAuthor'),
+          publishedYear: bookData.publishedYear || '',
+          translator: bookData.translator || '',
+          editionNumber: bookData.editionNumber || '',
+          quantity: bookData.quantity || 1,
+          genre: bookData.genre || '',
+          keywords: bookData.keywords || '',
+          coverUrl: bookData.coverUrl || '',
+          notes: bookData.notes || '',
+          publisher: bookData.publisher || '',
+          placeOfPublication: bookData.placeOfPublication || '',
+          cnb: bookData.cnb || '',
+          physicalDescription: bookData.physicalDescription || '',
+          scannedAt,
         };
+        const id = await db.books.add(newBook);
+        return { book: { ...newBook, id }, isExisting: false };
+      });
 
-        setRecentScans((prev) => [updatedBook, ...prev.filter((b) => b.id !== existingOnSameShelf.id)]);
-        setStatusMessage({
-          type: 'success',
-          text: t('quantityIncreasedMsg', { qty: updatedQuantity, shelf: currentShelfDetails.shelfName }),
-        });
-        return true;
-      }
-
-      const newBook: Book = {
-        libraryId: currentShelfDetails.libraryId,
-        roomId: currentShelfDetails.roomId,
-        shelfId: currentShelfId,
-        isbn: bookData.isbn || '',
-        title: bookData.title || t('unknownTitle'),
-        author: bookData.author || t('unknownAuthor'),
-        publishedYear: bookData.publishedYear || '',
-        translator: bookData.translator || '',
-        editionNumber: bookData.editionNumber || '',
-        quantity: bookData.quantity || 1,
-        genre: bookData.genre || '',
-        keywords: bookData.keywords || '',
-        coverUrl: bookData.coverUrl || '',
-        notes: bookData.notes || '',
-        publisher: bookData.publisher || '',
-        placeOfPublication: bookData.placeOfPublication || '',
-        cnb: bookData.cnb || '',
-        physicalDescription: bookData.physicalDescription || '',
-        scannedAt: new Date(),
-      };
-
-      const id = await db.books.add(newBook);
-      newBook.id = id;
-
-      setRecentScans((prev) => [newBook, ...prev]);
-
-      const cleanIsbnForCheck = normalizeIsbn(bookData.isbn || '');
-      if (cleanIsbnForCheck && skippedIsbnsRef.current.includes(cleanIsbnForCheck)) {
-        const remaining = skippedIsbnsRef.current.filter((i) => i !== cleanIsbnForCheck);
+      setRecentScans((prev) => [book, ...prev.filter((scan) => scan.id !== book.id)]);
+      if (cleanIsbn && skippedIsbnsRef.current.includes(cleanIsbn)) {
+        const remaining = skippedIsbnsRef.current.filter((i) => i !== cleanIsbn);
         setSkippedIsbns(remaining);
 
         if (remaining.length === 0) {
@@ -704,13 +704,21 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         }
       }
 
+      if (isExisting) {
+        setStatusMessage({
+          type: 'success',
+          text: t('quantityIncreasedMsg', { qty: book.quantity, shelf: currentShelfDetails.shelfName }),
+        });
+        return true;
+      }
+
       const formattedSource = sourceName ? `${t('sourceLabelPrefix')} ${sourceName}` : t('manualSource');
       setStatusMessage({
         type: 'success',
         text: t('bookSavedSuccess', {
           shelf: currentShelfDetails.shelfName,
           source: formattedSource,
-          qty: newBook.quantity,
+          qty: book.quantity,
         }),
       });
       return true;
@@ -722,6 +730,22 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         text: t('dbSaveError'),
       });
       return false;
+    }
+  };
+
+  const saveFromModal = async (bookData: Partial<Book>, source?: string) => {
+    if (savingRef.current) return false;
+
+    savingRef.current = true;
+    setSaving(true);
+    setModalSaveError(undefined);
+    try {
+      const saved = await saveBookToDb(bookData, source);
+      if (!saved) setModalSaveError(t('dbSaveError'));
+      return saved;
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
   };
 
@@ -1092,9 +1116,6 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
               <div className="absolute inset-0 bg-slate-900/85 backdrop-blur-xs flex flex-col items-center justify-center p-2 z-20 animate-fade-in">
                 <img
                   src={catThumbsupImg}
-                  onError={(e) => {
-                    e.currentTarget.src = './assets/cat-thumbsup.png';
-                  }}
                   alt="Kniha naskenována!"
                   className="w-20 h-20 sm:w-28 sm:h-28 object-contain animate-bounce"
                 />
@@ -1122,9 +1143,6 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             <div className="w-full mb-3 p-3 bg-slate-900/5 rounded-xl border border-slate-200 flex flex-col items-center animate-fade-in">
               <img
                 src={catLoadingImg}
-                onError={(e) => {
-                  e.currentTarget.src = './assets/cat-loading.png';
-                }}
                 alt={t('searchingInCatalogs')}
                 className="w-10 h-10 object-contain mb-1.5 animate-bounce"
               />
@@ -1295,11 +1313,12 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         <BookConfirmModal
           initialData={scannedMetadataToConfirm.bookData}
           shelfName={shelfDetails.shelfName}
+          saving={saving}
+          saveError={modalSaveError}
           sourceName={scannedMetadataToConfirm.sourceName}
           onConfirm={async (confirmedData) => {
-            const source = scannedMetadataToConfirm.sourceName;
+            if (!await saveFromModal(confirmedData, scannedMetadataToConfirm.sourceName)) return;
             setScannedMetadataToConfirm(null);
-            await saveBookToDb(confirmedData, source);
             releaseModalLock();
           }}
           onCancel={() => {
@@ -1315,13 +1334,14 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         <DuplicateModal
           existingBook={duplicateBook}
           shelfName={shelfDetails.shelfName}
+          saving={saving}
+          saveError={modalSaveError}
           onAddExemplar={async () => {
-            const dataToSave = pendingBookData;
             const inFastMode = isFastScanModeRef.current;
+            if (!await saveFromModal(pendingBookData, t('duplicateSourceAnotherCopy'))) return;
             setDuplicateBook(null);
             setPendingBookData(null);
-            const saved = await saveBookToDb(dataToSave, t('duplicateSourceAnotherCopy'));
-            if (inFastMode && saved) {
+            if (inFastMode) {
               setShowThumbsUpOverlay(true);
               setTimeout(() => {
                 setShowThumbsUpOverlay(false);
@@ -1345,9 +1365,11 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         <ManualBookModal
           initialIsbn={manualModalIsbn}
           shelfName={shelfDetails.shelfName}
+          saving={saving}
+          saveError={modalSaveError}
           onSave={async (bookData) => {
+            if (!await saveFromModal(bookData, t('manualSourceLabel'))) return;
             setShowManualModal(false);
-            await saveBookToDb(bookData, t('manualSourceLabel'));
             releaseModalLock();
           }}
           onClose={() => {

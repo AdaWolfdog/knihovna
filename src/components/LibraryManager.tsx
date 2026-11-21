@@ -1,3 +1,4 @@
+import { BookQuantityControl } from './BookQuantityControl';
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
@@ -34,8 +35,8 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
   const shelves = useLiveQuery(() => db.shelves.toArray(), []) || [];
   const books = useLiveQuery(() => db.books.toArray(), []) || [];
 
-  const [selectedLibraryId, setSelectedLibraryId] = useState<number | null>(null);
-  const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null);
+  const [requestedLibraryId, setSelectedLibraryId] = useState<number | null>(null);
+  const [requestedRoomId, setSelectedRoomId] = useState<number | null>(null);
 
   // Form states
   const [newLibraryName, setNewLibraryName] = useState('');
@@ -61,29 +62,19 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
   // Book edit state
   const [editingBook, setEditingBook] = useState<Book | null>(null);
 
-  // Auto-select first library if none selected
-  React.useEffect(() => {
-    if (libraries.length > 0 && !selectedLibraryId) {
-      setSelectedLibraryId(libraries[0].id!);
-    }
-  }, [libraries, selectedLibraryId]);
-
-  // Auto-select first room if library changed or room not selected
-  React.useEffect(() => {
-    if (selectedLibraryId) {
-      const roomList = rooms.filter((r) => r.libraryId === selectedLibraryId);
-      if (roomList.length > 0 && (!selectedRoomId || !roomList.some((r) => r.id === selectedRoomId))) {
-        setSelectedRoomId(roomList[0].id!);
-      }
-    }
-  }, [selectedLibraryId, rooms, selectedRoomId]);
+  const selectedLibraryId = (libraries.find((library) => library.id === requestedLibraryId) ?? libraries[0])?.id ?? null;
+  const filteredRooms = rooms.filter((room) => room.libraryId === selectedLibraryId);
+  const selectedRoomId = (filteredRooms.find((room) => room.id === requestedRoomId) ?? filteredRooms[0])?.id ?? null;
+  const filteredShelves = shelves.filter((shelf) =>
+    shelf.roomId === selectedRoomId && shelf.libraryId === selectedLibraryId
+  );
 
   // When library or room changes, if the selected context contains only 1 shelf, automatically set it as active
   React.useEffect(() => {
     if (!selectedLibraryId) return;
 
     if (selectedRoomId) {
-      const roomShelves = shelves.filter((s) => s.roomId === selectedRoomId);
+      const roomShelves = shelves.filter((s) => s.roomId === selectedRoomId && s.libraryId === selectedLibraryId);
       if (roomShelves.length === 1 && activeShelfId !== roomShelves[0].id) {
         setActiveShelfId(roomShelves[0].id!);
         return;
@@ -93,16 +84,6 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
     const libraryShelves = shelves.filter((s) => s.libraryId === selectedLibraryId);
     if (libraryShelves.length === 1 && activeShelfId !== libraryShelves[0].id) {
       setActiveShelfId(libraryShelves[0].id!);
-      return;
-    }
-
-    // If the active shelf does not belong to the selected room/library at all,
-    // and there are shelves in the selected room, default to the first one if only 1 exists
-    if (selectedRoomId) {
-      const roomShelves = shelves.filter((s) => s.roomId === selectedRoomId);
-      if (roomShelves.length === 1 && activeShelfId !== roomShelves[0].id) {
-        setActiveShelfId(roomShelves[0].id!);
-      }
     }
   }, [selectedLibraryId, selectedRoomId, shelves, activeShelfId, setActiveShelfId]);
 
@@ -187,7 +168,6 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
         await db.shelves.where('libraryId').equals(id).delete();
         await db.books.where('libraryId').equals(id).delete();
       });
-      if (selectedLibraryId === id) setSelectedLibraryId(null);
     }
   };
 
@@ -198,7 +178,6 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
         await db.shelves.where('roomId').equals(id).delete();
         await db.books.where('roomId').equals(id).delete();
       });
-      if (selectedRoomId === id) setSelectedRoomId(null);
     }
   };
 
@@ -208,7 +187,6 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
         await db.shelves.delete(id);
         await db.books.where('shelfId').equals(id).delete();
       });
-      if (activeShelfId === id) setActiveShelfId(null);
     }
   };
 
@@ -216,19 +194,6 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
   const handleDeleteBook = async (id: number) => {
     if (confirm(t('confirmDeleteBook'))) {
       await db.books.delete(id);
-    }
-  };
-
-  const handleUpdateQuantity = async (bookId: number, delta: number) => {
-    const book = books.find((b) => b.id === bookId);
-    if (!book) return;
-    const newQty = (book.quantity || 1) + delta;
-    if (newQty <= 0) {
-      if (confirm(t('confirmDeleteBookCompletely'))) {
-        await db.books.delete(bookId);
-      }
-    } else {
-      await db.books.update(bookId, { quantity: newQty });
     }
   };
 
@@ -250,9 +215,6 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
       setEditingBook(null);
     }
   };
-
-  const filteredRooms = rooms.filter((r) => r.libraryId === selectedLibraryId);
-  const filteredShelves = shelves.filter((s) => s.roomId === selectedRoomId);
 
   // Books in active shelf
   const activeShelf = shelves.find((s) => s.id === activeShelfId);
@@ -396,14 +358,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                 return (
                   <div
                     key={lib.id}
-                    onClick={() => {
-                      setSelectedLibraryId(lib.id!);
-                      // If this library has only 1 shelf, immediately set it as active
-                      const libShelves = shelves.filter((s) => s.libraryId === lib.id);
-                      if (libShelves.length === 1) {
-                        setActiveShelfId(libShelves[0].id!);
-                      }
-                    }}
+                    onClick={() => setSelectedLibraryId(lib.id!)}
                     className={`flex items-center justify-between p-2.5 rounded-lg text-sm cursor-pointer transition ${
                       isSelected
                         ? 'bg-indigo-50 border border-indigo-300 text-indigo-900 font-medium'
@@ -543,14 +498,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                 return (
                   <div
                     key={room.id}
-                    onClick={() => {
-                      setSelectedRoomId(room.id!);
-                      // If this room has only 1 shelf, immediately set it as active
-                      const rShelves = shelves.filter((s) => s.roomId === room.id);
-                      if (rShelves.length === 1) {
-                        setActiveShelfId(rShelves[0].id!);
-                      }
-                    }}
+                    onClick={() => setSelectedRoomId(room.id!)}
                     className={`flex items-center justify-between p-2.5 rounded-lg text-sm cursor-pointer transition ${
                       isSelected
                         ? 'bg-indigo-50 border border-indigo-300 text-indigo-900 font-medium'
@@ -838,7 +786,6 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {activeShelfBooks.map((book) => {
-                    const qty = book.quantity || 1;
                     return (
                       <tr key={book.id} className="hover:bg-slate-50/80 transition">
                         <td className="p-3 text-center mobile-portrait-hidden">
@@ -882,25 +829,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                         </td>
                         {/* Separate quantity column on desktop / landscape */}
                         <td className="p-3 text-center mobile-portrait-hidden">
-                          <div className="inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-lg p-1">
-                            <button
-                              onClick={() => handleUpdateQuantity(book.id!, -1)}
-                              className="w-5 h-5 flex items-center justify-center bg-white hover:bg-indigo-100 text-indigo-700 font-bold rounded text-xs shadow-xs transition cursor-pointer"
-                              title={t('decreaseQtyTooltip')}
-                            >
-                              -
-                            </button>
-                            <span className="font-extrabold text-indigo-900 px-1 text-sm whitespace-nowrap">
-                              {qty} {t('piecesSuffix')}
-                            </span>
-                            <button
-                              onClick={() => handleUpdateQuantity(book.id!, 1)}
-                              className="w-5 h-5 flex items-center justify-center bg-white hover:bg-indigo-100 text-indigo-700 font-bold rounded text-xs shadow-xs transition cursor-pointer"
-                              title={t('increaseQtyTooltip')}
-                            >
-                              +
-                            </button>
-                          </div>
+                          <BookQuantityControl book={book} />
                         </td>
                         <td className="p-3 mobile-portrait-hidden">
                           <div>{book.publishedYear || '-'}</div>
@@ -911,25 +840,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                         <td className="p-3 text-right">
                           <div className="flex flex-col items-end gap-1.5">
                             {/* In mobile portrait mode, quantity adjuster appears inside the Actions cell */}
-                            <div className="mobile-portrait-only hidden items-center gap-1 bg-indigo-50 border border-indigo-200 rounded-lg p-0.5">
-                              <button
-                                onClick={() => handleUpdateQuantity(book.id!, -1)}
-                                className="w-5 h-5 flex items-center justify-center bg-white hover:bg-indigo-100 text-indigo-700 font-bold rounded text-xs shadow-xs transition cursor-pointer"
-                                title={t('decreaseQtyTooltip')}
-                              >
-                                -
-                              </button>
-                              <span className="font-extrabold text-indigo-900 px-1 text-xs whitespace-nowrap">
-                                {qty} {t('piecesSuffix')}
-                              </span>
-                              <button
-                                onClick={() => handleUpdateQuantity(book.id!, 1)}
-                                className="w-5 h-5 flex items-center justify-center bg-white hover:bg-indigo-100 text-indigo-700 font-bold rounded text-xs shadow-xs transition cursor-pointer"
-                                title={t('increaseQtyTooltip')}
-                              >
-                                +
-                              </button>
-                            </div>
+                            <BookQuantityControl book={book} compact />
 
                             <div className="flex items-center justify-end gap-1">
                               <button

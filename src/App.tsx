@@ -9,45 +9,26 @@ import { LanguageProvider, useLanguage } from './i18n';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState<'scan' | 'structure' | 'books'>('scan');
-  const [activeShelfId, setActiveShelfId] = useState<number | null>(null);
+  const [selectedShelfId, setActiveShelfId] = useState<number | null>(null);
   const { t } = useLanguage();
 
   const shelves = useLiveQuery(() => db.shelves.toArray(), []) || [];
 
-  // Seed default library structure if empty
   useEffect(() => {
-    const initDefaultDb = async () => {
-      const libCount = await db.libraries.count();
-      if (libCount === 0) {
-        const libId = await db.libraries.add({
-          name: 'Hlavní knihovna',
-          createdAt: new Date(),
-        });
-        const roomId = await db.rooms.add({
-          libraryId: libId,
-          name: 'Hlavní místnost',
-          createdAt: new Date(),
-        });
-        const shelfId = await db.shelves.add({
-          libraryId: libId,
-          roomId: roomId,
-          name: 'Police A1',
-          createdAt: new Date(),
-        });
-        setActiveShelfId(shelfId);
-      }
-    };
-    initDefaultDb();
+    void db.transaction('rw', [db.libraries, db.rooms, db.shelves], async () => {
+      if (await db.libraries.count()) return;
+
+      const createdAt = new Date();
+      const libraryId = await db.libraries.add({ name: 'Hlavní knihovna', createdAt });
+      const roomId = await db.rooms.add({ libraryId, name: 'Hlavní místnost', createdAt });
+      await db.shelves.add({ libraryId, roomId, name: 'Police A1', createdAt });
+    }).catch((error: unknown) => {
+      console.error('Failed to initialize the library:', error);
+    });
   }, []);
 
-  // Set active shelf if not set
-  useEffect(() => {
-    if (shelves.length > 0 && activeShelfId === null) {
-      setActiveShelfId(shelves[0].id!);
-    }
-  }, [shelves, activeShelfId]);
-
-  const activeShelf = shelves.find((s) => s.id === activeShelfId);
+  const activeShelf = shelves.find((shelf) => shelf.id === selectedShelfId) ?? shelves[0];
+  const activeShelfId = activeShelf?.id ?? null;
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans">

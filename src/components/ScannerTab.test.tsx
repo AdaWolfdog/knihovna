@@ -64,6 +64,8 @@ describe('ScannerTab component real workflow', () => {
     scanCallback = null;
     decodeReject = null;
 
+    vi.spyOn(db, 'transaction').mockImplementation(async (_mode, _tables, callback) => callback());
+
     vi.spyOn(db.shelves, 'get').mockImplementation(async (id: any) => {
       if (id === 10) {
         return { id: 10, name: 'Police A1', roomId: 20, libraryId: 30, createdAt: new Date() };
@@ -145,6 +147,39 @@ describe('ScannerTab component real workflow', () => {
 
     expect(scanCallback).not.toBeNull();
     expect(container.textContent).toContain('Zastavit fotoaparát');
+  });
+
+  it('keeps a completed scan form open when saving fails and allows a retry', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(isbnService, 'lookupBookByIsbnDetailed').mockResolvedValue({
+      metadata: { isbn: '9788025703670', title: 'Životy slavných' },
+      isNetworkError: false,
+    });
+    vi.mocked(db.books.add).mockRejectedValueOnce(new Error('Write failed'));
+
+    await act(async () => {
+      root.render(<ScannerTab activeShelfId={10} onNavigateToStructure={() => {}} />);
+    });
+    const startBtn = Array.from(container.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Spustit skenování')
+    );
+    await act(async () => startBtn.click());
+    await act(async () => scanCallback({ getText: () => '9788025703670' }));
+
+    const form = container.querySelector('.fixed form');
+    expect(form).not.toBeNull();
+    const submit = () => form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    await act(async () => submit());
+
+    expect(container.querySelector('.fixed form')).toBe(form);
+    expect(form.querySelector('input[required]').value).toBe('Životy slavných');
+    expect(form.querySelector('[role="alert"]').textContent).toContain('Kniha nebyla uložena');
+    expect(booksStore).toHaveLength(0);
+
+    await act(async () => submit());
+
+    expect(container.querySelector('.fixed form')).toBeNull();
+    expect(booksStore).toHaveLength(1);
   });
 
   it('debounces repeated scans of the exact same barcode within cooldown window', async () => {

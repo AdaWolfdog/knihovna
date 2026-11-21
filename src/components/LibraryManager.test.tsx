@@ -62,6 +62,14 @@ describe('LibraryManager shelf books section', () => {
     vi.spyOn(db.libraries, 'toArray').mockImplementation(() => [...librariesStore] as any);
     vi.spyOn(db.rooms, 'toArray').mockImplementation(() => [...roomsStore] as any);
     vi.spyOn(db.shelves, 'toArray').mockImplementation(() => [...shelvesStore] as any);
+    let pendingTransaction = Promise.resolve();
+    vi.spyOn(db, 'transaction').mockImplementation((_mode, _tables, callback) => {
+      const result = pendingTransaction.then(callback);
+      pendingTransaction = result.then(() => undefined);
+      return result;
+    });
+
+    vi.spyOn(db.books, 'get').mockImplementation(async (id) => booksStore.find((book) => book.id === id));
     vi.spyOn(db.books, 'toArray').mockImplementation(() => [...booksStore] as any);
 
     vi.spyOn(db.books, 'update').mockImplementation(async (id: any, changes: any) => {
@@ -115,7 +123,7 @@ describe('LibraryManager shelf books section', () => {
     expect(shelfSection?.textContent).not.toContain('Kniha na jiné polici');
   });
 
-  it('allows changing quantity (+ / -) in shelf books section', async () => {
+  it('applies each rapid click using the latest quantity', async () => {
     await act(async () => {
       root.render(
         <LibraryManager
@@ -132,9 +140,10 @@ describe('LibraryManager shelf books section', () => {
 
     await act(async () => {
       plusBtn.click();
+      plusBtn.click();
     });
 
-    expect(db.books.update).toHaveBeenCalledWith(1, { quantity: 3 });
+    expect(db.books.update).toHaveBeenLastCalledWith(1, { quantity: 4 });
   });
 
   it('allows deleting a book from the shelf section with confirm', async () => {

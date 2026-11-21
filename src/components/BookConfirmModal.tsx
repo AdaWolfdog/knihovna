@@ -6,6 +6,8 @@ import { useLanguage } from '../i18n';
 interface BookConfirmModalProps {
   initialData: Partial<Book>;
   shelfName: string;
+  saving?: boolean;
+  saveError?: string;
   sourceName?: string;
   onConfirm: (bookData: Partial<Book>) => void;
   onCancel: () => void;
@@ -14,6 +16,8 @@ interface BookConfirmModalProps {
 export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
   initialData,
   shelfName,
+  saving = false,
+  saveError,
   sourceName,
   onConfirm,
   onCancel,
@@ -53,6 +57,7 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
     if (!title.trim()) {
       alert(t('fillTitleAlert'));
       return;
@@ -95,6 +100,7 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
             </div>
           </div>
           <button
+            disabled={saving}
             onClick={onCancel}
             className="p-1 text-slate-400 hover:text-slate-600 rounded-lg transition cursor-pointer shrink-0"
             title={t('closeTooltip')}
@@ -355,15 +361,18 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
             />
           </div>
 
+          {saveError && <p role="alert" className="text-sm text-red-700">{saveError}</p>}
           <div className="flex justify-end gap-2 sm:gap-3 pt-1.5 sm:pt-2 border-t border-slate-100">
             <button
               type="button"
+              disabled={saving}
               onClick={onCancel}
               className="px-3 py-1.5 sm:px-4 sm:py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-medium rounded-xl transition cursor-pointer"
             >
               {t('cancelBtn')}
             </button>
             <button
+              disabled={saving}
               type="submit"
               className="flex items-center gap-1.5 px-3.5 py-1.5 sm:px-5 sm:py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold rounded-xl transition shadow-md cursor-pointer"
             >

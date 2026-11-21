@@ -65,3 +65,28 @@ export class LibraryDatabase extends Dexie {
 }
 
 export const db = new LibraryDatabase();
+
+export async function changeBookQuantity(
+  id: number,
+  delta: -1 | 1,
+  confirmDeletion: () => boolean,
+) {
+  const changeQuantity = (allowDeletion: boolean) => db.transaction('rw', db.books, async () => {
+    const book = await db.books.get(id);
+    if (!book) return;
+
+    const quantity = (book.quantity || 1) + delta;
+    if (quantity > 0) {
+      await db.books.update(id, { quantity });
+    } else if (allowDeletion) {
+      await db.books.delete(id);
+    } else {
+      return 'confirmDeletion';
+    }
+  });
+
+  if (await changeQuantity(false) === 'confirmDeletion' && confirmDeletion()) {
+    // Re-read the book after the prompt in case another tab changed the quantity.
+    await changeQuantity(true);
+  }
+}

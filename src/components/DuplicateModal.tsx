@@ -6,6 +6,8 @@ import { useLanguage } from '../i18n';
 interface DuplicateModalProps {
   existingBook: Book;
   shelfName: string;
+  saving?: boolean;
+  saveError?: string;
   onAddExemplar: () => void;
   onCancel: () => void;
 }
@@ -13,6 +15,8 @@ interface DuplicateModalProps {
 export const DuplicateModal: React.FC<DuplicateModalProps> = ({
   existingBook,
   shelfName,
+  saving = false,
+  saveError,
   onAddExemplar,
   onCancel,
 }) => {
@@ -60,8 +64,10 @@ export const DuplicateModal: React.FC<DuplicateModalProps> = ({
           {t('duplicateExplanation', { qty: (existingBook.quantity || 1) + 1 })}
         </p>
 
+        {saveError && <p role="alert" className="text-sm text-red-700">{saveError}</p>}
         <div className="flex flex-col sm:flex-row gap-3">
           <button
+            disabled={saving}
             onClick={onAddExemplar}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-xl transition shadow-sm cursor-pointer"
           >
@@ -69,6 +75,7 @@ export const DuplicateModal: React.FC<DuplicateModalProps> = ({
             <span>{t('addExemplarBtn')}</span>
           </button>
           <button
+            disabled={saving}
             onClick={onCancel}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-sm rounded-xl transition cursor-pointer"
           >
