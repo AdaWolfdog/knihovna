@@ -27,7 +27,7 @@ describe('Header component', () => {
     delete document.documentElement.dataset.theme;
   });
 
-  it('renders the app title and subtitle', async () => {
+  it('renders the app title without a subtitle', async () => {
     await act(async () => {
       root.render(
         <LanguageProvider>
@@ -39,8 +39,8 @@ describe('Header component', () => {
       );
     });
 
-    expect(container.textContent).toContain('iKnihovna');
-    expect(container.textContent).toContain('Skenování & Správa fondů');
+    expect(container.querySelector('header h1')?.textContent).toBe('iKnihovna');
+    expect(container.querySelector('header p')).toBeNull();
   });
 
   it('renders language selector right next to the title on both desktop and mobile without opening menu', async () => {
@@ -67,7 +67,6 @@ describe('Header component', () => {
     });
 
     expect(container.textContent).toContain('iKnihovna');
-    expect(container.textContent).toContain('Scanning & Catalog Management');
 
     // Switch to Emoji language
     await act(async () => {

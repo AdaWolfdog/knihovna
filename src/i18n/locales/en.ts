@@ -3,7 +3,6 @@ import type { TranslationKey } from './cs';
 export const en: Record<TranslationKey, string> = {
   // Common / Header
   appTitle: 'iKnihovna',
-  appSubtitle: 'Scanning & Catalog Management',
   navScan: 'Scan',
   navStructure: 'Library & Shelves',
   navBooks: 'Books & Export',

@@ -1,7 +1,6 @@
 export const cs = {
   // Common / Header
   appTitle: 'iKnihovna',
-  appSubtitle: 'Skenování & Správa fondů',
   navScan: 'Skenovat',
   navStructure: 'Knihovna & Police',
   navBooks: 'Knihy & Export',

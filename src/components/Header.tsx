@@ -26,14 +26,9 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="p-2 bg-indigo-600 rounded-lg shrink-0">
                 <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-on-accent" />
               </div>
-              <div className="min-w-0">
-                <h1 className="text-lg sm:text-xl font-bold tracking-tight text-chrome-text my-0 leading-tight truncate">
-                  {t('appTitle')}
-                </h1>
-                <p className="text-[11px] sm:text-xs text-chrome-muted truncate">
-                  {t('appSubtitle')}
-                </p>
-              </div>
+              <h1 className="min-w-0 text-lg sm:text-xl font-bold tracking-tight text-chrome-text my-0 leading-tight truncate">
+                {t('appTitle')}
+              </h1>
 
               {/* Appearance controls stay available while mobile navigation is collapsed. */}
               <div className="flex items-center gap-1 shrink-0">
