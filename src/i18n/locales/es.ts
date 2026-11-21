@@ -13,7 +13,7 @@ export const es: Record<TranslationKey, string> = {
   footerText: 'Aplicación para inventario y escaneo de libros',
 
   themeSelect: 'Elegir tema',
-  themeForest: 'Sala de lectura del bosque (predeterminado)',
+  themeForest: 'Sala de lectura del bosque',
   themeBlueprint: 'Plano azul',
   themeNight: 'Sala de lectura nocturna',
   themeSummer: 'Día de verano',

@@ -13,7 +13,7 @@ export const de: Record<TranslationKey, string> = {
   footerText: 'Anwendung zur Erfassung und zum Scannen von Büchern',
 
   themeSelect: 'Farbschema wählen',
-  themeForest: 'Waldlesezimmer (Standard)',
+  themeForest: 'Waldlesezimmer',
   themeBlueprint: 'Blaudruck',
   themeNight: 'Nachtlesezimmer',
   themeSummer: 'Sommertag',

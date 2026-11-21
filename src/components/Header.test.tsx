@@ -95,10 +95,12 @@ describe('Header component', () => {
         select.dispatchEvent(new Event('change', { bubbles: true }));
       });
       expect(document.documentElement.dataset.theme).toBe(value);
+      expect(getThemeSelect().parentElement?.querySelector('span')?.textContent?.trim())
+        .toBe(getThemeSelect().selectedOptions[0].textContent);
     };
 
     expect(Array.from(getThemeSelect().options, (option) => option.textContent)).toEqual([
-      'Lesní čítárna (výchozí)', 'Noční čítárna', 'Letní den',
+      'Lesní čítárna', 'Noční čítárna', 'Letní den',
       'Modrotisk', 'Černobílý - světlý', 'Černobílý - tmavý',
     ]);
     expect(document.documentElement.dataset.theme).toBe('forest');

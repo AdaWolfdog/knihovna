@@ -33,10 +33,13 @@ export function ThemeSelect() {
 
   return (
     <label
-      className="relative grid size-8 shrink-0 place-items-center rounded-lg border border-chrome-line bg-chrome-panel text-chrome-text hover:bg-chrome-hover focus-within:ring-2 focus-within:ring-chrome-muted"
+      className="relative inline-flex h-8 min-w-8 shrink-0 items-center justify-center gap-1.5 sm:px-2 rounded-lg border border-chrome-line bg-chrome-panel text-chrome-text hover:bg-chrome-hover focus-within:ring-2 focus-within:ring-chrome-muted"
       title={`${t('themeSelect')} · ${t(selected.label)}`}
     >
       <Palette className="size-4 pointer-events-none" aria-hidden="true" />
+      <span className="hidden whitespace-nowrap text-xs font-medium sm:inline" aria-hidden="true">
+        {t(selected.label)}
+      </span>
       <select
         value={theme}
         aria-label={t('themeSelect')}

@@ -11,7 +11,7 @@ export const cs = {
   footerText: 'Aplikace pro evidenci a skenování knih',
 
   themeSelect: 'Výběr motivu',
-  themeForest: 'Lesní čítárna (výchozí)',
+  themeForest: 'Lesní čítárna',
   themeBlueprint: 'Modrotisk',
   themeNight: 'Noční čítárna',
   themeSummer: 'Letní den',
