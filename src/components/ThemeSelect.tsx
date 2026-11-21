@@ -5,9 +5,9 @@ import { useLanguage } from '../i18n';
 const STORAGE_KEY = 'knihovnik_preferred_theme';
 const THEMES = [
   { id: 'forest', label: 'themeForest' },
-  { id: 'blueprint', label: 'themeBlueprint' },
   { id: 'night', label: 'themeNight' },
   { id: 'summer', label: 'themeSummer' },
+  { id: 'blueprint', label: 'themeBlueprint' },
   { id: 'mono-light', label: 'themeMonoLight' },
   { id: 'mono-dark', label: 'themeMonoDark' },
 ] as const;

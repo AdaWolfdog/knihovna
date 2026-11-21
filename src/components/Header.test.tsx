@@ -98,8 +98,8 @@ describe('Header component', () => {
     };
 
     expect(Array.from(getThemeSelect().options, (option) => option.textContent)).toEqual([
-      'Lesní čítárna (výchozí)', 'Modrotisk', 'Noční čítárna',
-      'Letní den', 'Černobílý - světlý', 'Černobílý - tmavý',
+      'Lesní čítárna (výchozí)', 'Noční čítárna', 'Letní den',
+      'Modrotisk', 'Černobílý - světlý', 'Černobílý - tmavý',
     ]);
     expect(document.documentElement.dataset.theme).toBe('forest');
     await choose('blueprint');
