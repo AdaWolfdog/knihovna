@@ -4,7 +4,6 @@ export const es: Record<TranslationKey, string> = {
   // Common / Header
   appTitle: 'iKnihovna',
   appSubtitle: 'Escaneo y Gestión de Fondos',
-  activeShelf: 'Estante activo:',
   navScan: 'Escanear',
   navStructure: 'Biblioteca y Estantes',
   navBooks: 'Libros y Exportar',

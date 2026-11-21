@@ -6,13 +6,11 @@ import { ThemeSelect } from './ThemeSelect';
 interface HeaderProps {
   activeTab: 'scan' | 'structure' | 'books';
   setActiveTab: (tab: 'scan' | 'structure' | 'books') => void;
-  activeShelfName?: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   activeTab,
   setActiveTab,
-  activeShelfName,
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { language, setLanguage, t } = useLanguage();
@@ -33,13 +31,7 @@ export const Header: React.FC<HeaderProps> = ({
                   {t('appTitle')}
                 </h1>
                 <p className="text-[11px] sm:text-xs text-chrome-muted truncate">
-                  {activeShelfName ? (
-                    <span className="text-chrome-muted font-medium">
-                      {t('activeShelf')} {activeShelfName}
-                    </span>
-                  ) : (
-                    t('appSubtitle')
-                  )}
+                  {t('appSubtitle')}
                 </p>
               </div>
 

@@ -27,21 +27,20 @@ describe('Header component', () => {
     delete document.documentElement.dataset.theme;
   });
 
-  it('renders branding and active shelf name', async () => {
+  it('renders the app title and subtitle', async () => {
     await act(async () => {
       root.render(
         <LanguageProvider>
           <Header
             activeTab="scan"
             setActiveTab={vi.fn()}
-            activeShelfName="Police B2"
           />
         </LanguageProvider>
       );
     });
 
     expect(container.textContent).toContain('iKnihovna');
-    expect(container.textContent).toContain('Aktivní police: Police B2');
+    expect(container.textContent).toContain('Skenování & Správa fondů');
   });
 
   it('renders language selector right next to the title on both desktop and mobile without opening menu', async () => {
@@ -51,7 +50,6 @@ describe('Header component', () => {
           <Header
             activeTab="scan"
             setActiveTab={vi.fn()}
-            activeShelfName="Police B2"
           />
         </LanguageProvider>
       );
@@ -69,7 +67,7 @@ describe('Header component', () => {
     });
 
     expect(container.textContent).toContain('iKnihovna');
-    expect(container.textContent).toContain('Active shelf: Police B2');
+    expect(container.textContent).toContain('Scanning & Catalog Management');
 
     // Switch to Emoji language
     await act(async () => {
@@ -80,8 +78,6 @@ describe('Header component', () => {
     // Option exists and has the emojis
     expect(select.value).toBe('emoji');
     expect(container.querySelector('h1')?.textContent).toBe('iKnihovna');
-    // Active shelf name "Police B2" is user data and must remain preserved in text
-    expect(container.textContent).toContain('Police B2');
   });
 
   it('offers exactly the six themes and remembers the choice across a remount', async () => {
@@ -125,7 +121,6 @@ describe('Header component', () => {
           <Header
             activeTab="scan"
             setActiveTab={setActiveTab}
-            activeShelfName="Police A1"
           />
         </LanguageProvider>
       );
