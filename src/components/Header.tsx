@@ -79,7 +79,7 @@ export const Header: React.FC<HeaderProps> = ({
                 type="button"
                 onClick={() => setIsMobileMenuOpen(true)}
                 aria-label="Rozbalit menu"
-                className="sm:hidden min-h-11 self-center px-3 py-2 text-base font-bold text-chrome-muted hover:text-chrome-text bg-chrome-panel hover:bg-chrome-hover rounded-lg transition-colors cursor-pointer shrink-0"
+                className="sm:hidden h-8 self-center px-3 text-xs font-bold text-chrome-text bg-chrome-panel hover:bg-chrome-hover rounded-lg transition-colors cursor-pointer shrink-0"
                 title={t('expandMenu')}
               >
                 MENU
