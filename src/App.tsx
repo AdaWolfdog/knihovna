@@ -34,7 +34,7 @@ function AppContent() {
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans">
       <Header activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      <main className="flex-1 pb-12">
+      <main className={activeTab === 'scan' ? 'sm:flex-1 sm:pb-12' : 'flex-1 pb-12'}>
         {activeTab === 'scan' && (
           <ScannerTab
             activeShelfId={activeShelfId}
