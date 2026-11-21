@@ -161,7 +161,7 @@ export const de: Record<TranslationKey, string> = {
   exportCsvBtn: 'Nach CSV exportieren',
   filterSearchHeading: 'Filtern und Suchen von Büchern',
   resetFiltersBtn: 'Filter zurücksetzen',
-  searchQueryLabel: 'Suchen (Titel, Autor, Genre, Schlagwörter)',
+  searchQueryLabel: 'Titel, Autor, Genre, Schlagwörter...',
   searchPlaceholder: 'Suchen...',
   allLibraries: 'Alle Bibliotheken',
   allRooms: 'Alle Räume',

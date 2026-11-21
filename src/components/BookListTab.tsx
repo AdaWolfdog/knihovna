@@ -171,20 +171,20 @@ export const BookListTab: React.FC = () => {
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 items-end sm:grid-cols-2 md:grid-cols-4 gap-4">
           {/* Search Input */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">
               {t('searchQueryLabel')}
             </label>
             <div className="relative">
-              <Search className="w-4 h-4 text-indigo-500 absolute left-3 top-3" />
+              <Search className="w-4 h-4 text-indigo-500 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t('searchPlaceholder')}
-                className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm"
+                className="h-10 w-full pl-9 pr-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm"
               />
             </div>
           </div>
@@ -202,7 +202,7 @@ export const BookListTab: React.FC = () => {
                 setSelectedRoomFilter('all');
                 setSelectedShelfFilter('all');
               }}
-              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-white font-medium shadow-sm"
+              className="h-10 w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-white font-medium shadow-sm"
             >
               <option value="all">{t('allLibraries')}</option>
               {libraries.map((lib) => (
@@ -225,7 +225,7 @@ export const BookListTab: React.FC = () => {
                 setSelectedRoomFilter(val);
                 setSelectedShelfFilter('all');
               }}
-              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-white font-medium shadow-sm"
+              className="h-10 w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-white font-medium shadow-sm"
             >
               <option value="all">{t('allRooms')}</option>
               {availableRooms.map((room) => (
@@ -247,7 +247,7 @@ export const BookListTab: React.FC = () => {
                 const val = e.target.value === 'all' ? 'all' : Number(e.target.value);
                 setSelectedShelfFilter(val);
               }}
-              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-white font-medium shadow-sm"
+              className="h-10 w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-white font-medium shadow-sm"
             >
               <option value="all">{t('allShelves')}</option>
               {availableShelves.map((shelf) => (

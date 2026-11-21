@@ -159,7 +159,7 @@ export const cs = {
   exportCsvBtn: 'Exportovat do CSV',
   filterSearchHeading: 'Filtrování a vyhledávání knih',
   resetFiltersBtn: 'Vynulovat filtry',
-  searchQueryLabel: 'Vyhledat (Název, autor, žánr, klíčová slova)',
+  searchQueryLabel: 'Název, autor, žánr, klíčová slova...',
   searchPlaceholder: 'Hledat...',
   allLibraries: 'Všechny knihovny',
   allRooms: 'Všechny místnosti',
