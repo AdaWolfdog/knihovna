@@ -16,6 +16,16 @@ export interface BookMetadata {
   physicalDescription?: string;
 }
 
+type BookDetails = Pick<BookMetadata, 'coverUrl' | 'genre' | 'keywords'>;
+
+export function getMissingBookDetails(current: BookDetails, found: BookDetails): BookDetails {
+  const changes: BookDetails = {};
+  for (const field of ['coverUrl', 'genre', 'keywords'] as const) {
+    if (!current[field]?.trim() && found[field]?.trim()) changes[field] = found[field];
+  }
+  return changes;
+}
+
 export interface CatalogLookupResult {
   metadata: BookMetadata | null;
   /**

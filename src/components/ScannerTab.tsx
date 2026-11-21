@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { BrowserMultiFormatReader, BarcodeFormat, DecodeHintType } from '@zxing/library';
-import { lookupBookByIsbnDetailed, normalizeIsbn } from '../services/isbnService';
+import { getMissingBookDetails, lookupBookByIsbnDetailed, normalizeIsbn } from '../services/isbnService';
 import { recognizeIsbnFromSource } from '../services/isbnOcrService';
 import { db, type Book } from '../db/db';
 import { Camera, Search, CheckCircle, AlertCircle, RefreshCw, BookPlus, Zap, SkipForward, ArrowRight, Image as ImageIcon, RotateCcw, Edit3 } from 'lucide-react';
@@ -656,9 +656,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           const changes = {
             quantity,
             scannedAt,
-            ...(!existing.genre && bookData.genre ? { genre: bookData.genre } : {}),
-            ...(!existing.keywords && bookData.keywords ? { keywords: bookData.keywords } : {}),
-            ...(!existing.coverUrl && bookData.coverUrl ? { coverUrl: bookData.coverUrl } : {}),
+            ...getMissingBookDetails(existing, bookData),
           };
           await db.books.update(existing.id, changes);
           return { book: { ...existing, ...changes }, isExisting: true };

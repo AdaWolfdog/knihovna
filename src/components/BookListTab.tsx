@@ -1,10 +1,11 @@
+import { BookActions } from './BookActions';
 import { DEFAULT_LIBRARY_COLOR } from './libraryColors';
 import { BookQuantityControl } from './BookQuantityControl';
 import React, { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Book } from '../db/db';
 import { exportToXLSX, exportToCSV, prepareExportData } from '../services/exportService';
-import { Search, Trash2, Edit3, BookOpen, FileSpreadsheet, FileText, Filter, Image as ImageIcon, Smartphone } from 'lucide-react';
+import { Search, BookOpen, FileSpreadsheet, FileText, Filter, Image as ImageIcon, Smartphone } from 'lucide-react';
 import { ManualBookModal } from './ManualBookModal';
 import { useLanguage } from '../i18n';
 
@@ -366,22 +367,11 @@ export const BookListTab: React.FC = () => {
                             {/* In mobile portrait mode, quantity adjuster appears inside the Actions cell */}
                             <BookQuantityControl book={book} compact />
 
-                            <div className="flex items-center justify-end gap-1">
-                              <button
-                                onClick={() => setEditingBook(book)}
-                                className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
-                                title={t('editBookTooltip')}
-                              >
-                                <Edit3 className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteBook(book.id!)}
-                                className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
-                                title={t('deleteBookTooltip')}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
+                            <BookActions
+                              book={book}
+                              onEdit={() => setEditingBook(book)}
+                              onDelete={() => handleDeleteBook(book.id!)}
+                            />
                           </div>
                         </td>
                       </tr>

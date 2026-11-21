@@ -1,3 +1,4 @@
+import { BookActions } from './BookActions';
 import { DEFAULT_LIBRARY_COLOR, LIBRARY_COLORS } from './libraryColors';
 import { BookQuantityControl } from './BookQuantityControl';
 import React, { useState } from 'react';
@@ -872,22 +873,11 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                             {/* In mobile portrait mode, quantity adjuster appears inside the Actions cell */}
                             <BookQuantityControl book={book} compact />
 
-                            <div className="flex items-center justify-end gap-1">
-                              <button
-                                onClick={() => setEditingBook(book)}
-                                className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
-                                title={t('editBookTooltip')}
-                              >
-                                <Edit3 className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteBook(book.id!)}
-                                className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
-                                title={t('deleteBookTooltip')}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
+                            <BookActions
+                              book={book}
+                              onEdit={() => setEditingBook(book)}
+                              onDelete={() => handleDeleteBook(book.id!)}
+                            />
                           </div>
                         </td>
                       </tr>
