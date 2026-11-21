@@ -86,7 +86,7 @@ export const ManualBookModal: React.FC<ManualBookModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-chrome/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-overlay/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50 overflow-y-auto">
       <div className="bg-white rounded-2xl max-w-lg w-full p-3.5 sm:p-6 shadow-2xl border border-slate-100 my-auto animate-fade-in max-h-[96dvh] sm:max-h-none overflow-y-auto">
         <div className="flex items-center justify-between pb-2 sm:pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2 text-indigo-600 min-w-0">
@@ -241,7 +241,7 @@ export const ManualBookModal: React.FC<ManualBookModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setCoverUrl('')}
-                    className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 p-0.5 bg-red-600 text-on-accent rounded-full opacity-90 hover:opacity-100 transition cursor-pointer"
+                    className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 p-0.5 bg-danger text-on-danger inset-ring-1 inset-ring-danger-outline rounded-full opacity-90 hover:opacity-100 transition cursor-pointer"
                     title={t('removeCoverTooltip')}
                   >
                     <X className="w-2.5 h-2.5 sm:w-3 sm:h-3" />

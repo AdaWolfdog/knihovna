@@ -83,7 +83,7 @@ describe('Header component', () => {
     expect(container.textContent).toContain('Police B2');
   });
 
-  it('offers exactly the three themes and remembers the choice across a remount', async () => {
+  it('offers exactly the six themes and remembers the choice across a remount', async () => {
     const header = <Header activeTab="scan" setActiveTab={vi.fn()} />;
     await act(async () => root.render(header));
 
@@ -99,14 +99,18 @@ describe('Header component', () => {
 
     expect(Array.from(getThemeSelect().options, (option) => option.textContent)).toEqual([
       'Lesní čítárna (výchozí)', 'Modrotisk', 'Noční čítárna',
+      'Letní den', 'Černobílý - světlý', 'Černobílý - tmavý',
     ]);
     expect(document.documentElement.dataset.theme).toBe('forest');
     await choose('blueprint');
     await choose('night');
+    await choose('summer');
+    await choose('mono-light');
+    await choose('mono-dark');
 
     await act(async () => root.render(null));
     await act(async () => root.render(header));
-    expect(getThemeSelect().value).toBe('night');
+    expect(getThemeSelect().value).toBe('mono-dark');
     await choose('forest');
   });
 

@@ -16,6 +16,9 @@ export const de: Record<TranslationKey, string> = {
   themeForest: 'Waldlesezimmer (Standard)',
   themeBlueprint: 'Blaudruck',
   themeNight: 'Nachtlesezimmer',
+  themeSummer: 'Sommertag',
+  themeMonoLight: 'Schwarzweiß - hell',
+  themeMonoDark: 'Schwarzweiß - dunkel',
 
   // ScannerTab
   targetScanLocation: 'Zielort für Scan:',

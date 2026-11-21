@@ -16,6 +16,9 @@ export const es: Record<TranslationKey, string> = {
   themeForest: 'Sala de lectura del bosque (predeterminado)',
   themeBlueprint: 'Plano azul',
   themeNight: 'Sala de lectura nocturna',
+  themeSummer: 'Día de verano',
+  themeMonoLight: 'Blanco y negro - claro',
+  themeMonoDark: 'Blanco y negro - oscuro',
 
   // ScannerTab
   targetScanLocation: 'Ubicación de escaneo de destino:',

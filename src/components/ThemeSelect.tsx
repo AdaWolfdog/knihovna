@@ -7,6 +7,9 @@ const THEMES = [
   { id: 'forest', label: 'themeForest' },
   { id: 'blueprint', label: 'themeBlueprint' },
   { id: 'night', label: 'themeNight' },
+  { id: 'summer', label: 'themeSummer' },
+  { id: 'mono-light', label: 'themeMonoLight' },
+  { id: 'mono-dark', label: 'themeMonoDark' },
 ] as const;
 type Theme = (typeof THEMES)[number]['id'];
 

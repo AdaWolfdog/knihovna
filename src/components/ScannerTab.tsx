@@ -1103,7 +1103,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             {t('cameraScannerHeading')}
           </h3>
 
-          <div className="w-full relative bg-chrome rounded-xl overflow-hidden h-[180px] sm:h-auto min-h-[180px] sm:min-h-[220px] flex items-center justify-center mb-3">
+          <div className="w-full relative bg-overlay rounded-xl overflow-hidden h-[180px] sm:h-auto min-h-[180px] sm:min-h-[220px] flex items-center justify-center mb-3">
             <video
               ref={videoRef}
               className="w-full h-full object-cover max-h-[180px] sm:max-h-[300px]"
@@ -1113,7 +1113,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
 
             {/* Thumbs-Up Overlay (Fast mode success cat display) */}
             {showThumbsUpOverlay && (
-              <div className="absolute inset-0 bg-chrome/85 backdrop-blur-xs flex flex-col items-center justify-center p-2 z-20 animate-fade-in">
+              <div className="absolute inset-0 bg-overlay/85 backdrop-blur-xs flex flex-col items-center justify-center p-2 z-20 animate-fade-in">
                 <img
                   src={catThumbsupImg}
                   alt="Kniha naskenována!"
@@ -1132,8 +1132,8 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             )}
 
             {!isScanning && !showThumbsUpOverlay && (
-              <div className="absolute inset-0 flex flex-col sm:flex-col items-center justify-center p-2 sm:p-4 bg-chrome/90 text-chrome-muted space-y-1 sm:space-y-3">
-                <Camera className="w-8 h-8 sm:w-12 sm:h-12 text-chrome-muted stroke-1" />
+              <div className="absolute inset-0 flex flex-col sm:flex-col items-center justify-center p-2 sm:p-4 bg-overlay/90 space-y-1 sm:space-y-3">
+                <Camera className="w-8 h-8 sm:w-12 sm:h-12 text-overlay-muted stroke-1" />
               </div>
             )}
           </div>
@@ -1171,7 +1171,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             ) : (
               <button
                 onClick={stopCamera}
-                className="w-full py-2.5 px-4 bg-red-600 hover:bg-red-700 text-on-accent font-semibold text-sm rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-2.5 px-4 bg-danger hover:bg-danger-hover text-on-danger inset-ring-1 inset-ring-danger-outline font-semibold text-sm rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer"
               >
                 <RefreshCw className="w-4 h-4" />
                 <span>{t('stopCameraBtn')}</span>

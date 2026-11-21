@@ -83,7 +83,7 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-chrome/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-overlay/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50 overflow-y-auto">
       <div className="bg-white rounded-2xl max-w-lg w-full p-3.5 sm:p-6 shadow-2xl border border-slate-100 my-auto animate-fade-in max-h-[96dvh] sm:max-h-none overflow-y-auto">
         <div className="flex items-center justify-between pb-2 sm:pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2 text-emerald-600 min-w-0">

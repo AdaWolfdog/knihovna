@@ -14,6 +14,9 @@ export const cs = {
   themeForest: 'Lesní čítárna (výchozí)',
   themeBlueprint: 'Modrotisk',
   themeNight: 'Noční čítárna',
+  themeSummer: 'Letní den',
+  themeMonoLight: 'Černobílý - světlý',
+  themeMonoDark: 'Černobílý - tmavý',
 
   // ScannerTab
   targetScanLocation: 'Cílové umístění skenování:',

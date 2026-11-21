@@ -23,7 +23,7 @@ export const DuplicateModal: React.FC<DuplicateModalProps> = ({
   const { t } = useLanguage();
 
   return (
-    <div className="fixed inset-0 bg-chrome/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-overlay/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center gap-3 text-amber-600 mb-4">
           <div className="p-2 bg-amber-100 rounded-full">
