@@ -1,3 +1,4 @@
+import { DEFAULT_LIBRARY_COLOR, LIBRARY_COLORS } from './libraryColors';
 import { BookQuantityControl } from './BookQuantityControl';
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -12,17 +13,6 @@ interface LibraryManagerProps {
   setActiveShelfId: (id: number | null) => void;
   onSelectShelfForScanning: (shelfId: number) => void;
 }
-
-const PRESET_COLORS = [
-  { name: 'Indigo', value: '#6366f1' },
-  { name: 'Smaragdová', value: '#10b981' },
-  { name: 'Jantarová', value: '#f59e0b' },
-  { name: 'Červená', value: '#f43f5e' },
-  { name: 'Fialová', value: '#a855f7' },
-  { name: 'Modrá', value: '#0284c7' },
-  { name: 'Tyrkysová', value: '#14b8a6' },
-  { name: 'Šedá', value: '#64748b' },
-];
 
 export const LibraryManager: React.FC<LibraryManagerProps> = ({
   activeShelfId,
@@ -40,7 +30,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
 
   // Form states
   const [newLibraryName, setNewLibraryName] = useState('');
-  const [newLibraryColor, setNewLibraryColor] = useState('#6366f1');
+  const [newLibraryColor, setNewLibraryColor] = useState<string>(DEFAULT_LIBRARY_COLOR);
   const [newRoomName, setNewRoomName] = useState('');
   const [newShelfName, setNewShelfName] = useState('');
 
@@ -51,7 +41,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
   // Edit states
   const [editingLibraryId, setEditingLibraryId] = useState<number | null>(null);
   const [editingLibraryName, setEditingLibraryName] = useState('');
-  const [editingLibraryColor, setEditingLibraryColor] = useState('#6366f1');
+  const [editingLibraryColor, setEditingLibraryColor] = useState<string>(DEFAULT_LIBRARY_COLOR);
 
   const [editingRoomId, setEditingRoomId] = useState<number | null>(null);
   const [editingRoomName, setEditingRoomName] = useState('');
@@ -97,7 +87,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
       createdAt: new Date(),
     });
     setNewLibraryName('');
-    setNewLibraryColor('#6366f1');
+    setNewLibraryColor(DEFAULT_LIBRARY_COLOR);
     setShowAddLibrary(false);
     setSelectedLibraryId(id);
   };
@@ -268,11 +258,12 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                   {t('libraryColorLabel')}
                 </label>
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  {PRESET_COLORS.map((c) => (
+                  {LIBRARY_COLORS.map((c) => (
                     <button
                       key={c.value}
                       type="button"
                       onClick={() => setNewLibraryColor(c.value)}
+                      aria-pressed={newLibraryColor === c.value}
                       className={`w-6 h-6 rounded-full border-2 transition cursor-pointer ${
                         newLibraryColor === c.value ? 'border-slate-800 scale-110' : 'border-transparent'
                       }`}
@@ -310,7 +301,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                 const count = books.filter((b) => b.libraryId === lib.id).length;
                 const isSelected = selectedLibraryId === lib.id;
                 const isEditing = editingLibraryId === lib.id;
-                const libColor = lib.color || '#6366f1';
+                const libColor = lib.color || DEFAULT_LIBRARY_COLOR;
 
                 if (isEditing) {
                   return (
@@ -323,11 +314,13 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                         autoFocus
                       />
                       <div className="flex items-center gap-1 flex-wrap">
-                        {PRESET_COLORS.map((c) => (
+                        {LIBRARY_COLORS.map((c) => (
                           <button
                             key={c.value}
                             type="button"
                             onClick={() => setEditingLibraryColor(c.value)}
+                            aria-pressed={editingLibraryColor === c.value}
+                            title={c.name}
                             className={`w-5 h-5 rounded-full border-2 transition cursor-pointer ${
                               editingLibraryColor === c.value ? 'border-slate-800 scale-110' : 'border-transparent'
                             }`}
@@ -730,7 +723,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
               <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
                 <span
                   className="w-2.5 h-2.5 rounded-full inline-block"
-                  style={{ backgroundColor: activeShelfLibrary?.color || '#6366f1' }}
+                  style={{ backgroundColor: activeShelfLibrary?.color || DEFAULT_LIBRARY_COLOR }}
                 />
                 <span>{activeShelfLibrary?.name || '?'}</span>
                 <span>&rarr;</span>

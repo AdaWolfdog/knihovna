@@ -1,3 +1,4 @@
+import { DEFAULT_LIBRARY_COLOR } from './libraryColors';
 import { BookQuantityControl } from './BookQuantityControl';
 import React, { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -293,7 +294,7 @@ export const BookListTab: React.FC = () => {
                     const lib = librariesMap.get(book.libraryId);
                     const room = roomsMap.get(book.roomId);
                     const shelf = shelvesMap.get(book.shelfId);
-                    const libColor = lib?.color || '#6366f1';
+                    const libColor = lib?.color || DEFAULT_LIBRARY_COLOR;
 
                     return (
                       <tr key={book.id} className="hover:bg-slate-50/80 transition">
