@@ -1,5 +1,69 @@
 @import "tailwindcss";
 
+/* Lesní čítárna. Keep the existing utility families mapped to their UI roles. */
+@theme {
+  --color-white: #fcfdf7;
+  --color-slate-50: #f7f8f0;
+  --color-slate-100: #f1f3e8;
+  --color-slate-200: #dfe5d7;
+  --color-slate-300: #c7d1c0;
+  --color-slate-400: #687563;
+  --color-slate-500: #5b6958;
+  --color-slate-600: #4c5b49;
+  --color-slate-700: #3e4d3f;
+  --color-slate-750: #374438;
+  --color-slate-800: #2e3c31;
+  --color-slate-900: #202e26;
+
+  /* Main actions */
+  --color-indigo-50: #eaf3ee;
+  --color-indigo-100: #d9e9e1;
+  --color-indigo-200: #bcd7ca;
+  --color-indigo-300: #96bdad;
+  --color-indigo-400: #6da492;
+  --color-indigo-500: #377763;
+  --color-indigo-600: #235348;
+  --color-indigo-700: #1b443a;
+  --color-indigo-800: #16392f;
+  --color-indigo-900: #112d26;
+
+  /* Confirmations and success */
+  --color-emerald-50: #f1f5e9;
+  --color-emerald-100: #e7efd9;
+  --color-emerald-200: #d1dfbc;
+  --color-emerald-300: #b3c696;
+  --color-emerald-400: #91aa70;
+  --color-emerald-500: #667f49;
+  --color-emerald-600: #577038;
+  --color-emerald-700: #465d2d;
+  --color-emerald-800: #384c23;
+  --color-emerald-900: #2b3b1b;
+
+  /* Warnings */
+  --color-amber-50: #fff7e9;
+  --color-amber-100: #faedd4;
+  --color-amber-200: #f4dcb2;
+  --color-amber-300: #eac58b;
+  --color-amber-400: #e4b368;
+  --color-amber-500: #d9a04a;
+  --color-amber-600: #936222;
+  --color-amber-700: #78501d;
+  --color-amber-800: #644119;
+  --color-amber-900: #513414;
+
+  /* Errors and destructive actions */
+  --color-red-50: #fcf0f1;
+  --color-red-100: #f7e1e4;
+  --color-red-200: #efcbd1;
+  --color-red-300: #e3adb6;
+  --color-red-400: #cb8390;
+  --color-red-500: #ad5060;
+  --color-red-600: #a04450;
+  --color-red-700: #8a3644;
+  --color-red-800: #722c38;
+  --color-red-900: #5b232d;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -7,8 +71,8 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: var(--color-slate-100);
+  color: var(--color-slate-900);
 }
 
 /* Helper classes for mobile portrait table columns */
