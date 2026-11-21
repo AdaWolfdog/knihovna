@@ -140,7 +140,7 @@ describe('Header component', () => {
 
     // Find and click the structure tab
     const structureTab = Array.from(container.querySelectorAll('button')).find((b) =>
-      b.textContent?.includes('Knihovna & Police')
+      b.textContent?.includes('Moje knihovna')
     );
     expect(structureTab).toBeDefined();
 

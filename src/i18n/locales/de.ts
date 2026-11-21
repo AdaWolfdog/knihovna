@@ -4,7 +4,7 @@ export const de: Record<TranslationKey, string> = {
   // Common / Header
   appTitle: 'iKnihovna',
   navScan: 'Scannen',
-  navStructure: 'Bibliothek & Regale',
+  navStructure: 'Meine Bibliothek',
   navBooks: 'Bücher & Export',
   expandMenu: 'Menü aufklappen',
   collapseMenu: 'Einklappen',
@@ -56,7 +56,7 @@ export const de: Record<TranslationKey, string> = {
   cameraActiveTip: 'Kamera aktiv. Auf Barcode oder ISBN-Nummern richten.',
   cameraErrorPermission: 'Kamera konnte nicht gestartet werden (Berechtigungen im Browser prüfen).',
   cameraErrorGeneral: 'Kamera konnte nicht gestartet werden ({err}).',
-  pleaseSelectTargetShelfFirst: 'Bitte wählen Sie zuerst ein Zielregal im Reiter „Bibliothek & Regale“!',
+  pleaseSelectTargetShelfFirst: 'Bitte wählen Sie zuerst ein Zielregal im Reiter „Meine Bibliothek“!',
   searchingCatalogFor: 'Kataloge durchsuchen (Knihovny.cz, Open Library...): {isbn}',
   scannedCodeNotInSkipped: 'Gescannter Code {isbn} ist nicht in der Liste der übersprungenen. Bitte das richtige Buch scannen.',
   catalogsUnavailableNetworkError: 'Kataloge für ISBN {isbn} vorübergehend nicht erreichbar (Netzwerkfehler oder Timeout). Bitte erneut versuchen.',
@@ -96,7 +96,7 @@ export const de: Record<TranslationKey, string> = {
 
   // LibraryManager
   libraryManagerBannerTitle: 'Verwaltung von Bibliotheken, Räumen und Regalen',
-  libraryManagerBannerDesc: 'Organisieren Sie hier Ihre virtuelle Bibliothek. Wählen Sie vor dem Scannen ein Zielregal aus.',
+  libraryManagerBannerDesc: 'Organisieren Sie hier Ihre virtuelle Bibliothek. Sie können Bibliotheken, Räume und Regale hinzufügen, löschen und bearbeiten.',
   col1Title: '1. Virtuelle Bibliotheken',
   col2Title: '2. Räume',
   col3Title: '3. Zielregal',
@@ -161,7 +161,7 @@ export const de: Record<TranslationKey, string> = {
   exportCsvBtn: 'Nach CSV exportieren',
   filterSearchHeading: 'Filtern und Suchen von Büchern',
   resetFiltersBtn: 'Filter zurücksetzen',
-  searchQueryLabel: 'Text suchen (Titel, Autor, Genre, Schlagwörter)',
+  searchQueryLabel: 'Suchen (Titel, Autor, Genre, Schlagwörter)',
   searchPlaceholder: 'Suchen...',
   allLibraries: 'Alle Bibliotheken',
   allRooms: 'Alle Räume',

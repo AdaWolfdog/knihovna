@@ -4,7 +4,7 @@ export const en: Record<TranslationKey, string> = {
   // Common / Header
   appTitle: 'iKnihovna',
   navScan: 'Scan',
-  navStructure: 'Library & Shelves',
+  navStructure: 'My Library',
   navBooks: 'Books & Export',
   expandMenu: 'Expand menu',
   collapseMenu: 'Collapse',
@@ -56,7 +56,7 @@ export const en: Record<TranslationKey, string> = {
   cameraActiveTip: 'Camera active. Point at barcode or ISBN numbers.',
   cameraErrorPermission: 'Camera could not be started (check browser permissions).',
   cameraErrorGeneral: 'Camera could not be started ({err}).',
-  pleaseSelectTargetShelfFirst: 'Please select a target shelf first in "Library & Shelves"!',
+  pleaseSelectTargetShelfFirst: 'Please select a target shelf first in "My Library"!',
   searchingCatalogFor: 'Searching catalogs (Knihovny.cz, Open Library...): {isbn}',
   scannedCodeNotInSkipped: 'Scanned code {isbn} is not in the skipped list. Try scanning the correct skipped book.',
   catalogsUnavailableNetworkError: 'Catalogs temporarily unavailable for ISBN {isbn} (network error or timeout). Please try again.',
@@ -96,7 +96,7 @@ export const en: Record<TranslationKey, string> = {
 
   // LibraryManager
   libraryManagerBannerTitle: 'Library, room and shelf management',
-  libraryManagerBannerDesc: 'Organize your virtual library here. Before scanning, select a target shelf where scanned books will be saved.',
+  libraryManagerBannerDesc: 'Organize your virtual library here. You can add, delete, and edit libraries, rooms, and shelves.',
   col1Title: '1. Virtual libraries',
   col2Title: '2. Rooms',
   col3Title: '3. Target shelf',
@@ -161,7 +161,7 @@ export const en: Record<TranslationKey, string> = {
   exportCsvBtn: 'Export to CSV',
   filterSearchHeading: 'Filter and search books',
   resetFiltersBtn: 'Reset filters',
-  searchQueryLabel: 'Search text (Title, author, genre, keywords)',
+  searchQueryLabel: 'Search (Title, author, genre, keywords)',
   searchPlaceholder: 'Search...',
   allLibraries: 'All libraries',
   allRooms: 'All rooms',

@@ -2,7 +2,7 @@ export const cs = {
   // Common / Header
   appTitle: 'iKnihovna',
   navScan: 'Skenovat',
-  navStructure: 'Knihovna & Police',
+  navStructure: 'Moje knihovna',
   navBooks: 'Knihy & Export',
   expandMenu: 'Rozbalit menu',
   collapseMenu: 'Sbalit',
@@ -54,7 +54,7 @@ export const cs = {
   cameraActiveTip: 'Fotoaparát aktivní. Namiřte na čárový kód nebo čísla ISBN.',
   cameraErrorPermission: 'Kamera nemohla být spuštěna (zkontrolujte oprávnění v prohlížeči).',
   cameraErrorGeneral: 'Kamera nemohla být spuštěna ({err}).',
-  pleaseSelectTargetShelfFirst: 'Nejprve prosím vyberte cílovou polici v záložce "Knihovna & Police"!',
+  pleaseSelectTargetShelfFirst: 'Nejprve prosím vyberte cílovou polici v záložce "Moje knihovna"!',
   searchingCatalogFor: 'Vyhledávám v katalozích (Knihovny.cz, Open Library...): {isbn}',
   scannedCodeNotInSkipped: 'Naskenovaný kód {isbn} není v seznamu přeskočených. Zkuste naskenovat správnou přeskočenou knihu.',
   catalogsUnavailableNetworkError: 'Katalogy jsou dočasně nedostupné pro ISBN {isbn} (chyba sítě nebo časový limit). Zkuste to prosím znovu.',
@@ -94,7 +94,7 @@ export const cs = {
 
   // LibraryManager
   libraryManagerBannerTitle: 'Správa knihoven, místností a polic',
-  libraryManagerBannerDesc: 'Zde si můžete uspořádat vaši virtuální knihovnu. Před zahájením skenování si vyberte cíl (polici), na kterou se naskenované knihy automaticky uloží.',
+  libraryManagerBannerDesc: 'Zde si uspořádejte vaši virtuální knihovnu. Můžete přidávat, mazat a upravovat nové knihovny, místnosti a police.',
   col1Title: '1. Virtuální knihovny',
   col2Title: '2. Místnosti',
   col3Title: '3. Cílová police',
@@ -159,7 +159,7 @@ export const cs = {
   exportCsvBtn: 'Exportovat do CSV',
   filterSearchHeading: 'Filtrování a vyhledávání knih',
   resetFiltersBtn: 'Vynulovat filtry',
-  searchQueryLabel: 'Vyhledat text (Název, autor, žánr, klíčová slova)',
+  searchQueryLabel: 'Vyhledat (Název, autor, žánr, klíčová slova)',
   searchPlaceholder: 'Hledat...',
   allLibraries: 'Všechny knihovny',
   allRooms: 'Všechny místnosti',

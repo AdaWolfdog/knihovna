@@ -4,7 +4,7 @@ export const es: Record<TranslationKey, string> = {
   // Common / Header
   appTitle: 'iKnihovna',
   navScan: 'Escanear',
-  navStructure: 'Biblioteca y Estantes',
+  navStructure: 'Mi biblioteca',
   navBooks: 'Libros y Exportar',
   expandMenu: 'Desplegar menú',
   collapseMenu: 'Plegar',
@@ -56,7 +56,7 @@ export const es: Record<TranslationKey, string> = {
   cameraActiveTip: 'Cámara activa. Apunte al código de barras o números ISBN.',
   cameraErrorPermission: 'No se pudo iniciar la cámara (compruebe los permisos del navegador).',
   cameraErrorGeneral: 'No se pudo iniciar la cámara ({err}).',
-  pleaseSelectTargetShelfFirst: '¡Primero seleccione un estante de destino en la pestaña "Biblioteca y Estantes"!',
+  pleaseSelectTargetShelfFirst: '¡Primero seleccione un estante de destino en la pestaña "Mi biblioteca"!',
   searchingCatalogFor: 'Buscando en catálogos (Knihovny.cz, Open Library...): {isbn}',
   scannedCodeNotInSkipped: 'El código {isbn} escaneado no está en la lista de omitidos. Intente escanear el libro omitido correcto.',
   catalogsUnavailableNetworkError: 'Catálogos no disponibles temporalmente para el ISBN {isbn} (error de red o tiempo de espera agotado). Vuelva a intentarlo.',
@@ -96,7 +96,7 @@ export const es: Record<TranslationKey, string> = {
 
   // LibraryManager
   libraryManagerBannerTitle: 'Gestión de bibliotecas, salas y estantes',
-  libraryManagerBannerDesc: 'Organice aquí su biblioteca virtual. Antes de escanear, elija un estante de destino donde se guardarán los libros.',
+  libraryManagerBannerDesc: 'Organice aquí su biblioteca virtual. Puede añadir, eliminar y editar bibliotecas, salas y estantes.',
   col1Title: '1. Bibliotecas virtuales',
   col2Title: '2. Salas',
   col3Title: '3. Estante de destino',
@@ -161,7 +161,7 @@ export const es: Record<TranslationKey, string> = {
   exportCsvBtn: 'Exportar a CSV',
   filterSearchHeading: 'Filtrado y búsqueda de libros',
   resetFiltersBtn: 'Restablecer filtros',
-  searchQueryLabel: 'Buscar texto (Título, autor, género, palabras clave)',
+  searchQueryLabel: 'Buscar (Título, autor, género, palabras clave)',
   searchPlaceholder: 'Buscar...',
   allLibraries: 'Todas las bibliotecas',
   allRooms: 'Todas las salas',
