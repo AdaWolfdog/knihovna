@@ -52,6 +52,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
   const [editingBook, setEditingBook] = useState<Book | null>(null);
 
   const selectedLibraryId = (libraries.find((library) => library.id === requestedLibraryId) ?? libraries[0])?.id ?? null;
+  const selectedLibraryColor = libraries.find((library) => library.id === selectedLibraryId)?.color || DEFAULT_LIBRARY_COLOR;
   const filteredRooms = rooms.filter((room) => room.libraryId === selectedLibraryId);
   const selectedRoomId = (filteredRooms.find((room) => room.id === requestedRoomId) ?? filteredRooms[0])?.id ?? null;
   const filteredShelves = shelves.filter((shelf) =>
@@ -536,7 +537,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                     }`}
                   >
                     <div className="flex items-center gap-2 truncate">
-                      <Folder className={`w-4 h-4 ${isSelected ? 'text-indigo-600' : 'text-slate-400'}`} />
+                      <Folder className="size-4 shrink-0" style={{ color: selectedLibraryColor }} aria-hidden="true" />
                       <span className="truncate">{room.name}</span>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
@@ -671,9 +672,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                     }`}
                   >
                     <div className="flex items-center gap-2 truncate">
-                      <BookmarkCheck
-                        className={`w-4 h-4 ${isActive ? 'text-emerald-600' : 'text-slate-400'}`}
-                      />
+                      <BookmarkCheck className="size-4 shrink-0" style={{ color: selectedLibraryColor }} aria-hidden="true" />
                       <button
                         type="button"
                         onClick={() => setActiveShelfId(shelf.id!)}
@@ -832,8 +831,9 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                           )}
                         </td>
                         <td className="p-3">
-                          <div className="font-bold text-slate-900 text-sm">
-                            {book.title || t('unknownTitle')}
+                          <div className="flex items-start gap-1.5 font-bold text-slate-900 text-sm">
+                            <BookOpen className="mt-0.5 size-4 shrink-0" style={{ color: activeShelfLibrary?.color || DEFAULT_LIBRARY_COLOR }} aria-hidden="true" />
+                            <span>{book.title || t('unknownTitle')}</span>
                           </div>
                           <div className="text-slate-500">{book.author || t('unknownAuthor')}</div>
                           {book.translator && (

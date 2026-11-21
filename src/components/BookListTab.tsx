@@ -312,8 +312,9 @@ export const BookListTab: React.FC = () => {
                           )}
                         </td>
                         <td className="p-3">
-                          <div className="font-bold text-slate-900 text-sm">
-                            {book.title || t('unknownTitle')}
+                          <div className="flex items-start gap-1.5 font-bold text-slate-900 text-sm">
+                            <BookOpen className="mt-0.5 size-4 shrink-0" style={{ color: libColor }} aria-hidden="true" />
+                            <span>{book.title || t('unknownTitle')}</span>
                           </div>
                           <div className="text-slate-500">{book.author || t('unknownAuthor')}</div>
                           {book.translator && (
