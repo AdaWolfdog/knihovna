@@ -134,6 +134,6 @@ describe('i18n infrastructure & emoji translation', () => {
     });
 
     expect(container.querySelector('[data-testid="current-lang"]')?.textContent).toBe('de');
-    expect(container.querySelector('[data-testid="app-title"]')?.textContent).toBe('Bibliothekar Mobile');
+    expect(container.querySelector('[data-testid="app-title"]')?.textContent).toBe('iKnihovna');
   });
 });

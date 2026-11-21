@@ -2,7 +2,7 @@ import type { TranslationKey } from './cs';
 
 export const de: Record<TranslationKey, string> = {
   // Common / Header
-  appTitle: 'Bibliothekar Mobile',
+  appTitle: 'iKnihovna',
   appSubtitle: 'Scannen & Bestandsverwaltung',
   activeShelf: 'Aktives Regal:',
   navScan: 'Scannen',

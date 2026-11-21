@@ -92,7 +92,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const t = (key: TranslationKey, params?: Record<string, string | number>): string => {
     if (language === 'emoji') {
-      if (FORM_LABEL_KEYS.has(key)) {
+      if (key === 'appTitle' || FORM_LABEL_KEYS.has(key)) {
         return cs[key];
       }
       let baseText = cs[key] || '';

@@ -1,4 +1,4 @@
-# Knihovník Mobile
+# iKnihovna
 
 Aplikace pro skenování a správy knihovního katalogu vytvořená v React + TypeScript + Vite.
 

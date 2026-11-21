@@ -40,7 +40,7 @@ describe('Header component', () => {
       );
     });
 
-    expect(container.textContent).toContain('Knihovník Mobile');
+    expect(container.textContent).toContain('iKnihovna');
     expect(container.textContent).toContain('Aktivní police: Police B2');
   });
 
@@ -68,7 +68,7 @@ describe('Header component', () => {
       select.dispatchEvent(new Event('change', { bubbles: true }));
     });
 
-    expect(container.textContent).toContain('Librarian Mobile');
+    expect(container.textContent).toContain('iKnihovna');
     expect(container.textContent).toContain('Active shelf: Police B2');
 
     // Switch to Emoji language
@@ -79,6 +79,7 @@ describe('Header component', () => {
 
     // Option exists and has the emojis
     expect(select.value).toBe('emoji');
+    expect(container.querySelector('h1')?.textContent).toBe('iKnihovna');
     // Active shelf name "Police B2" is user data and must remain preserved in text
     expect(container.textContent).toContain('Police B2');
   });
