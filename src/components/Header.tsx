@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { QrCode, Library as LibraryIcon, BookOpen, Download, ChevronUp, ChevronDown, Globe } from 'lucide-react';
+import { QrCode, Library as LibraryIcon, BookOpen, Download, ChevronUp, Globe } from 'lucide-react';
 import { useLanguage, LANGUAGES, type Language } from '../i18n';
 import { ThemeSelect } from './ThemeSelect';
 
@@ -74,16 +74,15 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             </div>
 
-            {/* Mobile collapse / expand toggle icon in bottom right of the collapsed header */}
             {!isMobileMenuOpen && (
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(true)}
                 aria-label="Rozbalit menu"
-                className="sm:hidden self-center p-1.5 text-chrome-muted hover:text-chrome-text bg-chrome-panel hover:bg-chrome-hover rounded-lg transition-colors cursor-pointer shrink-0"
+                className="sm:hidden self-center px-2 py-1.5 text-xs font-semibold text-chrome-muted hover:text-chrome-text bg-chrome-panel hover:bg-chrome-hover rounded-lg transition-colors cursor-pointer shrink-0"
                 title={t('expandMenu')}
               >
-                <ChevronDown className="w-5 h-5" />
+                MENU
               </button>
             )}
           </div>
