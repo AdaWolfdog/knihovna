@@ -1,3 +1,5 @@
+import { resolveBookCover } from './bookCoverService';
+
 export interface BookMetadata {
   isbn: string;
   title: string;
@@ -399,13 +401,13 @@ export async function fetchBookByIsbn(isbnInput: string): Promise<BookMetadata |
  * - Genuinely not found in any catalog
  * - Network/catalog failure (where all tried catalogs had transient network errors)
  */
-export async function lookupBookByIsbnDetailed(isbnInput: string): Promise<CatalogLookupResult> {
+export async function lookupBookByIsbnDetailed(isbnInput: string, { findCover = true } = {}): Promise<CatalogLookupResult> {
   const isbn = normalizeIsbn(isbnInput);
   if (!isbn) {
     return { metadata: null, isNetworkError: false };
   }
 
-  const catalogs = [
+  const catalogs: Array<(isbn: string, options?: FetchOptions) => Promise<CoverCatalogResult>> = [
     fetchFromKnihovnyCzDetailed,
     fetchFromGoogleBooksDetailed,
     fetchFromOpenLibraryDetailed,
@@ -421,6 +423,7 @@ export async function lookupBookByIsbnDetailed(isbnInput: string): Promise<Catal
     }
 
     const metadata = result.metadata;
+    const covers = [result.coverCandidates ?? (metadata.coverUrl ? [metadata.coverUrl] : [])];
     if (supplementalFields.some((field) => !metadata[field]?.trim())) {
       // Once a book is found, only look for missing details in the remaining catalogs.
       const extraResults = await Promise.allSettled(
@@ -429,8 +432,10 @@ export async function lookupBookByIsbnDetailed(isbnInput: string): Promise<Catal
       for (const extra of extraResults) {
         if (extra.status !== 'fulfilled' || !extra.value.metadata) continue;
         Object.assign(metadata, getMissingBookDetails(metadata, extra.value.metadata));
+        covers.push(extra.value.coverCandidates ?? (extra.value.metadata.coverUrl ? [extra.value.metadata.coverUrl] : []));
       }
     }
+    metadata.coverUrl = findCover ? await resolveBookCover(isbn, covers) : undefined;
     return { metadata, isNetworkError: false };
   }
 
@@ -490,10 +495,21 @@ function secureCoverUrl(value: unknown): string | undefined {
   try {
     const url = new URL(value);
     if (url.protocol === 'http:') url.protocol = 'https:';
-    if (url.protocol === 'https:') return url.href;
+    const placeholder = /(?:^|[\/._-])(?:no[-_]?cover|placeholder|blank|spacer|transparent)(?:[\/._-]|$)/i;
+    if (url.protocol === 'https:' && !placeholder.test(url.pathname)) return url.href;
   } catch {
     // Ignore malformed image links.
   }
+}
+
+interface CoverCatalogResult {
+  metadata: BookMetadata | null;
+  isNetworkError: boolean;
+  coverCandidates?: string[];
+}
+
+function coverLinks(...links: unknown[]): string[] {
+  return [...new Set(links.map(secureCoverUrl).filter((link): link is string => Boolean(link)))];
 }
 
 export async function fetchFromGoogleBooks(isbn: string): Promise<BookMetadata | null> {
@@ -501,7 +517,7 @@ export async function fetchFromGoogleBooks(isbn: string): Promise<BookMetadata |
   return res.metadata;
 }
 
-export async function fetchFromGoogleBooksDetailed(isbn: string, options: FetchOptions = {}): Promise<{ metadata: BookMetadata | null; isNetworkError: boolean }> {
+export async function fetchFromGoogleBooksDetailed(isbn: string, options: FetchOptions = {}): Promise<CoverCatalogResult> {
   const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${encodeURIComponent(isbn)}`;
   const response = await fetchWithRetry(url, { timeoutMs: 4000, retries: 1, baseDelayMs: 400, ...options });
 
@@ -526,7 +542,8 @@ export async function fetchFromGoogleBooksDetailed(isbn: string, options: FetchO
     const publishedYear = info.publishedDate ? info.publishedDate.substring(0, 4) : '';
 
     const categories: string[] = Array.isArray(info.categories) ? info.categories.filter((value: unknown) => typeof value === 'string') : [];
-    const coverUrl = secureCoverUrl(info.imageLinks?.thumbnail) || secureCoverUrl(info.imageLinks?.smallThumbnail);
+    const images = info.imageLinks;
+    const coverCandidates = coverLinks(images?.large, images?.medium, images?.thumbnail, images?.small, images?.smallThumbnail, images?.extraLarge);
 
     return {
       metadata: {
@@ -536,9 +553,10 @@ export async function fetchFromGoogleBooksDetailed(isbn: string, options: FetchO
         publishedYear,
         genre: findGenre(categories),
         keywords: categories.join(', ') || undefined,
-        coverUrl,
+        coverUrl: coverCandidates[0],
         source: 'Google Books',
       },
+      coverCandidates,
       isNetworkError: false,
     };
   }
@@ -551,7 +569,7 @@ export async function fetchFromOpenLibrary(isbn: string): Promise<BookMetadata |
   return res.metadata;
 }
 
-export async function fetchFromOpenLibraryDetailed(isbn: string, options: FetchOptions = {}): Promise<{ metadata: BookMetadata | null; isNetworkError: boolean }> {
+export async function fetchFromOpenLibraryDetailed(isbn: string, options: FetchOptions = {}): Promise<CoverCatalogResult> {
   const url = `https://openlibrary.org/api/books?bibkeys=ISBN:${encodeURIComponent(isbn)}&format=json&jscmd=data`;
   const response = await fetchWithRetry(url, { timeoutMs: 4000, retries: 1, baseDelayMs: 400, ...options });
 
@@ -576,7 +594,7 @@ export async function fetchFromOpenLibraryDetailed(isbn: string, options: FetchO
     const subjects: string[] = Array.isArray(book.subjects)
       ? book.subjects.map((subject: { name?: unknown } | null) => subject?.name).filter((name: unknown) => typeof name === 'string')
       : [];
-    const coverUrl = secureCoverUrl(book.cover?.medium) || secureCoverUrl(book.cover?.large) || secureCoverUrl(book.cover?.small);
+    const coverCandidates = coverLinks(book.cover?.medium, book.cover?.large, book.cover?.small);
 
     return {
       metadata: {
@@ -586,9 +604,10 @@ export async function fetchFromOpenLibraryDetailed(isbn: string, options: FetchO
         publishedYear,
         genre: findGenre(subjects),
         keywords: subjects.join(', ') || undefined,
-        coverUrl,
+        coverUrl: coverCandidates[0],
         source: 'Open Library',
       },
+      coverCandidates,
       isNetworkError: false,
     };
   }

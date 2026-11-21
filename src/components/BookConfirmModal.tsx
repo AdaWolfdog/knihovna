@@ -1,3 +1,4 @@
+import { BookCoverImage } from './BookCoverImage';
 import React, { useState, useRef } from 'react';
 import type { Book } from '../db/db';
 import { X, Check, Camera, Upload, Image as ImageIcon, BookOpen } from 'lucide-react';
@@ -115,18 +116,17 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
           <div className="flex gap-2.5 sm:gap-4 items-start">
             {/* Book Cover Preview */}
             <div className="w-16 h-24 sm:w-24 sm:h-36 bg-slate-100 border border-slate-200 rounded-lg sm:rounded-xl overflow-hidden shrink-0 relative flex flex-col items-center justify-center">
-              {coverUrl ? (
-                <img
-                  src={coverUrl}
-                  alt={title || 'Obálka knihy'}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="text-center p-1 sm:p-2 text-slate-400">
-                  <ImageIcon className="w-5 h-5 sm:w-8 sm:h-8 mx-auto stroke-1 mb-0.5 sm:mb-1" />
-                  <span className="text-[8px] sm:text-[10px] leading-tight">{t('noCover')}</span>
-                </div>
-              )}
+              <BookCoverImage
+                src={coverUrl}
+                alt={title || 'Obálka knihy'}
+                className="w-full h-full object-cover"
+                fallback={
+                  <div className="text-center p-1 sm:p-2 text-slate-400">
+                    <ImageIcon className="w-5 h-5 sm:w-8 sm:h-8 mx-auto stroke-1 mb-0.5 sm:mb-1" />
+                    <span className="text-[8px] sm:text-[10px] leading-tight">{t('noCover')}</span>
+                  </div>
+                }
+              />
             </div>
 
             <div className="flex-1 space-y-1.5 sm:space-y-3 min-w-0">

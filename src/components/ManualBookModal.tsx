@@ -1,3 +1,4 @@
+import { BookCoverImage } from './BookCoverImage';
 import React, { useState, useRef } from 'react';
 import type { Book } from '../db/db';
 import { X, Save, BookPlus, Camera, Upload, Image as ImageIcon } from 'lucide-react';
@@ -236,10 +237,11 @@ export const ManualBookModal: React.FC<ManualBookModalProps> = ({
             <div className="flex items-center gap-2 sm:gap-3">
               {coverUrl ? (
                 <div className="relative group w-10 h-14 sm:w-14 sm:h-20 bg-slate-200 rounded-md overflow-hidden border border-slate-300 shrink-0">
-                  <img
+                  <BookCoverImage
                     src={coverUrl}
                     alt="Přebal"
                     className="w-full h-full object-cover"
+                    fallback={<ImageIcon className="m-auto h-full w-5 text-slate-400 stroke-1" />}
                   />
                   <button
                     type="button"

@@ -26,7 +26,7 @@ export function BookActions({ book, onEdit, onDelete }: BookActionsProps) {
     setLoading(true);
     setFeedback(undefined);
     try {
-      const result = await lookupBookByIsbnDetailed(isbn);
+      const result = await lookupBookByIsbnDetailed(isbn, { findCover: !book.coverUrl?.trim() });
       if (!result.metadata) {
         setFeedback(result.isNetworkError ? 'refreshBookError' : 'refreshBookNoChanges');
         return;

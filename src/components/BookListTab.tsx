@@ -1,3 +1,4 @@
+import { BookCoverImage } from './BookCoverImage';
 import { BookActions } from './BookActions';
 import { DEFAULT_LIBRARY_COLOR } from './libraryColors';
 import { BookQuantityControl } from './BookQuantityControl';
@@ -301,17 +302,16 @@ export const BookListTab: React.FC = () => {
                     return (
                       <tr key={book.id} className="hover:bg-slate-50/80 transition">
                         <td className="p-3 text-center mobile-portrait-hidden">
-                          {book.coverUrl ? (
-                            <img
-                              src={book.coverUrl}
-                              alt={book.title}
-                              className="w-10 h-14 object-cover rounded-md border border-slate-200 shadow-xs mx-auto bg-slate-200"
-                            />
-                          ) : (
-                            <div className="w-10 h-14 bg-slate-100 border border-slate-200 rounded-md flex items-center justify-center text-slate-400 mx-auto">
-                              <ImageIcon className="w-5 h-5 stroke-1" />
-                            </div>
-                          )}
+                          <BookCoverImage
+                            src={book.coverUrl}
+                            alt={book.title}
+                            className="w-10 h-14 object-cover rounded-md border border-slate-200 shadow-xs mx-auto bg-slate-200"
+                            fallback={
+                              <div className="w-10 h-14 bg-slate-100 border border-slate-200 rounded-md flex items-center justify-center text-slate-400 mx-auto">
+                                <ImageIcon className="w-5 h-5 stroke-1" />
+                              </div>
+                            }
+                          />
                         </td>
                         <td className="p-3">
                           <div className="flex items-start gap-1.5 font-bold text-slate-900 text-sm">

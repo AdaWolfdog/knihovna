@@ -1,3 +1,4 @@
+import { BookCoverImage } from './BookCoverImage';
 import React, { useEffect, useRef, useState } from 'react';
 import { BrowserMultiFormatReader, BarcodeFormat, DecodeHintType } from '@zxing/library';
 import { getMissingBookDetails, lookupBookByIsbnDetailed, normalizeIsbn } from '../services/isbnService';
@@ -481,10 +482,11 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       }
 
       // 3. Lookup online catalog metadata with detailed network vs not-found distinction
-      const lookupResult = await lookupBookByIsbnDetailed(cleanIsbn);
-      const metadata = lookupResult.metadata;
-
       const existingRef = existingOnSameShelf || existingInLibrary;
+      const lookupResult = existingRef?.coverUrl?.trim()
+        ? await lookupBookByIsbnDetailed(cleanIsbn, { findCover: false })
+        : await lookupBookByIsbnDetailed(cleanIsbn);
+      const metadata = lookupResult.metadata;
 
       const candidateBook: Partial<Book> = {
         libraryId: currentShelfDetails.libraryId,
@@ -1275,17 +1277,16 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                 className="flex items-center justify-between p-3 bg-slate-50 rounded-xl text-xs border border-slate-100 gap-3"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  {book.coverUrl ? (
-                    <img
-                      src={book.coverUrl}
-                      alt={book.title}
-                      className="w-9 h-12 object-cover rounded-md border border-slate-200 shrink-0 bg-slate-200"
-                    />
-                  ) : (
-                    <div className="w-9 h-12 bg-slate-200 border border-slate-300 rounded-md flex items-center justify-center text-slate-400 shrink-0">
-                      <ImageIcon className="w-5 h-5 stroke-1" />
-                    </div>
-                  )}
+                  <BookCoverImage
+                    src={book.coverUrl}
+                    alt={book.title}
+                    className="w-9 h-12 object-cover rounded-md border border-slate-200 shrink-0 bg-slate-200"
+                    fallback={
+                      <div className="w-9 h-12 bg-slate-200 border border-slate-300 rounded-md flex items-center justify-center text-slate-400 shrink-0">
+                        <ImageIcon className="w-5 h-5 stroke-1" />
+                      </div>
+                    }
+                  />
                   <div className="min-w-0">
                     <div className="font-bold text-slate-900 truncate">{book.title}</div>
                     <div className="text-slate-500 truncate">
