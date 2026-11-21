@@ -15,6 +15,7 @@ interface ManualBookModalProps {
     author: string;
     publishedYear: string;
     translator?: string;
+    illustrator?: string;
     editionNumber?: string;
     quantity: number;
     notes?: string;
@@ -40,6 +41,7 @@ export const ManualBookModal: React.FC<ManualBookModalProps> = ({
   const [author, setAuthor] = useState(initialData?.author || '');
   const [publishedYear, setPublishedYear] = useState(initialData?.publishedYear || '');
   const [translator, setTranslator] = useState(initialData?.translator || '');
+  const [illustrator, setIllustrator] = useState(initialData?.illustrator || '');
   const [editionNumber, setEditionNumber] = useState(initialData?.editionNumber || '');
   const [quantity, setQuantity] = useState(initialData?.quantity || 1);
   const [genre, setGenre] = useState(initialData?.genre || '');
@@ -76,6 +78,7 @@ export const ManualBookModal: React.FC<ManualBookModalProps> = ({
       author: author.trim(),
       publishedYear: publishedYear.trim(),
       translator: translator.trim(),
+      illustrator: illustrator.trim(),
       editionNumber: editionNumber.trim(),
       quantity: Math.max(1, Number(quantity) || 1),
       genre: genre.trim(),
@@ -317,6 +320,19 @@ export const ManualBookModal: React.FC<ManualBookModalProps> = ({
             </div>
 
             <div>
+              <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 mb-0.5 sm:mb-1 truncate">
+                {t('formLabelIllustrator')}
+              </label>
+              <input
+                type="text"
+                aria-label={t('formLabelIllustrator')}
+                value={illustrator}
+                onChange={(e) => setIllustrator(e.target.value)}
+                className="w-full px-2.5 py-1 sm:px-3 sm:py-2 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+              />
+            </div>
+
+            <div className="col-span-2">
               <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 mb-0.5 sm:mb-1 truncate">
                 {t('formLabelNotes')}
               </label>

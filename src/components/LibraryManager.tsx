@@ -203,6 +203,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
     author: string;
     publishedYear: string;
     translator?: string;
+    illustrator?: string;
     editionNumber?: string;
     quantity: number;
     notes?: string;
@@ -838,7 +839,10 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                           </div>
                           <div className="text-slate-500">{book.author || t('unknownAuthor')}</div>
                           {book.translator && (
-                            <div className="text-[11px] text-slate-400">{t('translationPrefix')} {book.translator}</div>
+                            <div className="text-[11px] text-slate-400">{t('translationPrefix')}
+                          {book.illustrator && (
+                            <div className="text-[11px] text-slate-400">{t('illustrationPrefix')} {book.illustrator}</div>
+                          )} {book.translator}</div>
                           )}
                         </td>
                         <td className="p-3 max-w-[180px] mobile-portrait-hidden">

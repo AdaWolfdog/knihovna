@@ -495,6 +495,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         author: metadata?.author || existingRef?.author || '',
         publishedYear: metadata?.publishedYear || existingRef?.publishedYear || '',
         translator: metadata?.translator || existingRef?.translator || '',
+        illustrator: metadata?.illustrator || existingRef?.illustrator || '',
         editionNumber: metadata?.editionNumber || existingRef?.editionNumber || '',
         genre: existingRef?.genre || metadata?.genre || '',
         keywords: existingRef?.keywords || metadata?.keywords || '',
@@ -656,7 +657,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           const changes = {
             quantity,
             scannedAt,
-            ...getMissingBookDetails(existing, bookData),
+            ...getMissingBookDetails(existing, bookData, ['coverUrl', 'genre', 'keywords', 'illustrator']),
           };
           await db.books.update(existing.id, changes);
           return { book: { ...existing, ...changes }, isExisting: true };
@@ -671,6 +672,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           author: bookData.author || t('unknownAuthor'),
           publishedYear: bookData.publishedYear || '',
           translator: bookData.translator || '',
+          illustrator: bookData.illustrator || '',
           editionNumber: bookData.editionNumber || '',
           quantity: bookData.quantity || 1,
           genre: bookData.genre || '',

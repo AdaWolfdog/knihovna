@@ -32,6 +32,7 @@ export interface Book {
   author: string;
   publishedYear: string;
   translator?: string;
+  illustrator?: string;
   editionNumber?: string;
   copyNumber?: number; // Kept for backwards compatibility if needed
   quantity: number; // Number of physical copies on this shelf

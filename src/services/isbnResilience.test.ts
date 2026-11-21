@@ -220,3 +220,20 @@ describe('Cover and genre enrichment', () => {
     expect(result.metadata?.coverUrl).toBeUndefined();
   });
 });
+
+it('fills missing catalog fields without replacing saved values or changing the ISBN', async () => {
+  const { getMissingBookDetails } = await import('./isbnService');
+  const stored = { title: 'My title', author: '', translator: 'My translator', illustrator: ' ' };
+  const catalog = {
+    isbn: '9788025703670', source: 'Knihovny.cz', title: 'Catalog title', author: 'Found author',
+    publishedYear: '2011', translator: 'Catalog translator', illustrator: 'Found illustrator',
+    publisher: 'Argo', placeOfPublication: 'Praha', cnb: 'cnb123', physicalDescription: '218 s.',
+    coverUrl: 'https://example.com/cover.jpg', genre: 'Poezie', keywords: 'Praha', editionNumber: '2',
+  };
+
+  expect(getMissingBookDetails(stored, catalog)).toEqual({
+    author: 'Found author', publishedYear: '2011', illustrator: 'Found illustrator',
+    publisher: 'Argo', placeOfPublication: 'Praha', cnb: 'cnb123', physicalDescription: '218 s.',
+    coverUrl: 'https://example.com/cover.jpg', genre: 'Poezie', keywords: 'Praha', editionNumber: '2',
+  });
+});

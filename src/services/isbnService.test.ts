@@ -73,7 +73,7 @@ describe('mapKnihovnyRecordToBookMetadata', () => {
     title: 'Životy slavných a starých provensálských básníků, kteří žili v dobách hrabat z kraje Provença',
     authors: {
       primary: { 'Jean de Nostredame, asi 1507-1577': [] },
-      secondary: { 'Josef Prokop, 1971-': [], 'Vojtěch Domlátil, 1979-': [] },
+      secondary: { 'Josef Prokop, 1971-': ['trl'], 'Vojtěch Domlátil, 1979-': ['ill'], 'Neurčená role': [] },
       corporate: [],
     },
     publishers: ['Argo,'],
@@ -90,7 +90,8 @@ describe('mapKnihovnyRecordToBookMetadata', () => {
     const meta = mapKnihovnyRecordToBookMetadata(sampleRecord);
     expect(meta.title).toBe('Životy slavných a starých provensálských básníků, kteří žili v dobách hrabat z kraje Provença');
     expect(meta.author).toBe('Jean de Nostredame');
-    expect(meta.translator).toBe('Josef Prokop, Vojtěch Domlátil');
+    expect(meta.translator).toBe('Josef Prokop');
+    expect(meta.illustrator).toBe('Vojtěch Domlátil');
     expect(meta.publisher).toBe('Argo');
     expect(meta.placeOfPublication).toBe('Praha');
     expect(meta.publishedYear).toBe('2011');

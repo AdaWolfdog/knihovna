@@ -4,6 +4,7 @@ export interface BookMetadata {
   author: string;
   publishedYear: string;
   translator?: string;
+  illustrator?: string;
   editionNumber?: string;
   genre?: string;
   keywords?: string;
@@ -16,11 +17,21 @@ export interface BookMetadata {
   physicalDescription?: string;
 }
 
-type BookDetails = Pick<BookMetadata, 'coverUrl' | 'genre' | 'keywords'>;
+type BookDetails = Partial<Omit<BookMetadata, 'isbn' | 'source'>>;
 
-export function getMissingBookDetails(current: BookDetails, found: BookDetails): BookDetails {
+const supplementalFields = ['title', 'author', 'publishedYear', 'coverUrl', 'genre', 'keywords'] as const;
+const catalogFields = [
+  ...supplementalFields, 'translator', 'illustrator', 'editionNumber',
+  'publisher', 'placeOfPublication', 'cnb', 'physicalDescription',
+] as const;
+
+export function getMissingBookDetails(
+  current: BookDetails,
+  found: BookDetails,
+  fields: readonly (keyof BookDetails)[] = catalogFields,
+): BookDetails {
   const changes: BookDetails = {};
-  for (const field of ['coverUrl', 'genre', 'keywords'] as const) {
+  for (const field of fields) {
     if (!current[field]?.trim() && found[field]?.trim()) changes[field] = found[field];
   }
   return changes;
@@ -247,21 +258,25 @@ export function mapKnihovnyRecordToBookMetadata(record: any, fallbackIsbn?: stri
     }
   }
 
-  // Extract secondary authors (translators / illustrators)
-  let secondaryAuthors: string[] = [];
-  if (record.authors?.secondary) {
-    if (typeof record.authors.secondary === 'object') {
-      secondaryAuthors = Object.keys(record.authors.secondary).map(cleanAuthorName).filter(Boolean);
+  const author = primaryAuthors.join(', ');
+  const translators: string[] = [];
+  const illustrators: string[] = [];
+  const secondary = record.authors?.secondary;
+  if (secondary && typeof secondary === 'object' && !Array.isArray(secondary)) {
+    for (const [name, roles] of Object.entries(secondary)) {
+      const cleanedName = cleanAuthorName(name);
+      if (!cleanedName) continue;
+      const roleList = Array.isArray(roles) ? roles : [roles];
+      const labels = roleList
+        .filter((role): role is string => typeof role === 'string')
+        .map((role) => role.trim().toLowerCase().replace(/[.]$/, ''));
+      if (labels.some((role) => ['trl', 'translator', 'překladatel', 'překladatelka', 'přeložil', 'přeložila'].includes(role))) {
+        translators.push(cleanedName);
+      }
+      if (labels.some((role) => ['ill', 'illustrator', 'ilustrátor', 'ilustrátorka', 'ilustroval', 'ilustrovala'].includes(role))) {
+        illustrators.push(cleanedName);
+      }
     }
-  }
-
-  let author = primaryAuthors.join(', ');
-  let translator = secondaryAuthors.join(', ');
-
-  // Fallback if no primary author but secondary exists
-  if (!author && secondaryAuthors.length > 0) {
-    author = secondaryAuthors.join(', ');
-    translator = '';
   }
 
   // Extract year
@@ -292,7 +307,8 @@ export function mapKnihovnyRecordToBookMetadata(record: any, fallbackIsbn?: stri
     title,
     author,
     publishedYear,
-    translator: translator || undefined,
+    translator: [...new Set(translators)].join(', ') || undefined,
+    illustrator: [...new Set(illustrators)].join(', ') || undefined,
     publisher: publisher || undefined,
     placeOfPublication: placeOfPublication || undefined,
     cnb: cnb || undefined,
@@ -405,16 +421,14 @@ export async function lookupBookByIsbnDetailed(isbnInput: string): Promise<Catal
     }
 
     const metadata = result.metadata;
-    if (!metadata.coverUrl || !metadata.genre) {
+    if (supplementalFields.some((field) => !metadata[field]?.trim())) {
       // Once a book is found, only look for missing details in the remaining catalogs.
       const extraResults = await Promise.allSettled(
         catalogs.slice(index + 1).map((lookupExtra) => lookupExtra(isbn, extraOptions)),
       );
       for (const extra of extraResults) {
         if (extra.status !== 'fulfilled' || !extra.value.metadata) continue;
-        metadata.coverUrl ||= extra.value.metadata.coverUrl;
-        metadata.genre ||= extra.value.metadata.genre;
-        metadata.keywords ||= extra.value.metadata.keywords;
+        Object.assign(metadata, getMissingBookDetails(metadata, extra.value.metadata));
       }
     }
     return { metadata, isNetworkError: false };

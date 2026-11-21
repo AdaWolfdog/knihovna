@@ -28,6 +28,7 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
   const [author, setAuthor] = useState(initialData.author || '');
   const [publishedYear, setPublishedYear] = useState(initialData.publishedYear || '');
   const [translator, setTranslator] = useState(initialData.translator || '');
+  const [illustrator, setIllustrator] = useState(initialData.illustrator || '');
   const [editionNumber, setEditionNumber] = useState(initialData.editionNumber || '');
   const [quantity, setQuantity] = useState(initialData.quantity || 1);
   const [genre, setGenre] = useState(initialData.genre || '');
@@ -69,6 +70,7 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
       author: author.trim(),
       publishedYear: publishedYear.trim(),
       translator: translator.trim(),
+      illustrator: illustrator.trim(),
       editionNumber: editionNumber.trim(),
       quantity: Math.max(1, Number(quantity) || 1),
       genre: genre.trim(),
@@ -276,6 +278,22 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
 
             <div>
               <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 mb-0.5 sm:mb-1 truncate">
+                {t('formLabelIllustrator')}
+              </label>
+              <input
+                type="text"
+                aria-label={t('formLabelIllustrator')}
+                value={illustrator}
+                onChange={(e) => setIllustrator(e.target.value)}
+                className="w-full px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+              />
+            </div>
+
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
+            <div>
+              <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 mb-0.5 sm:mb-1 truncate">
                 {t('formLabelCnb')}
               </label>
               <input
@@ -286,19 +304,18 @@ export const BookConfirmModal: React.FC<BookConfirmModalProps> = ({
                 className="w-full px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
               />
             </div>
-          </div>
-
-          <div>
-            <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 mb-0.5 sm:mb-1">
-              {t('formLabelPhysicalDesc')}
-            </label>
-            <input
-              type="text"
-              value={physicalDescription}
-              onChange={(e) => setPhysicalDescription(e.target.value)}
-              placeholder="Např. 320 s. : il. ; 21 cm"
-              className="w-full px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
-            />
+            <div>
+              <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 mb-0.5 sm:mb-1">
+                {t('formLabelPhysicalDesc')}
+              </label>
+              <input
+                type="text"
+                value={physicalDescription}
+                onChange={(e) => setPhysicalDescription(e.target.value)}
+                placeholder="Např. 320 s. : il. ; 21 cm"
+                className="w-full px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+              />
+            </div>
           </div>
 
           {/* Cover Photo Buttons */}

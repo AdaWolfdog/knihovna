@@ -30,6 +30,7 @@ const FORM_LABEL_KEYS: Set<TranslationKey> = new Set([
   'formLabelKeywords',
   'formLabelTranslator',
   'formLabelTranslatorOptional',
+  'formLabelIllustrator',
   'formLabelCnb',
   'formLabelPhysicalDesc',
   'formLabelCoverImage',
