@@ -105,6 +105,7 @@ export const es: Record<TranslationKey, string> = {
   addShelfTitle: 'Añadir estante',
   libraryNamePlaceholder: 'Nombre de la biblioteca (ej. Principal)',
   libraryColorLabel: 'Color de la biblioteca:',
+  changeLibraryColor: 'Cambiar el color de la biblioteca',
   saveBtn: 'Guardar',
   cancelBtn: 'Cancelar',
   noLibrariesYet: 'Aún no ha creado ninguna biblioteca.',

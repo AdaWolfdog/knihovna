@@ -2,7 +2,7 @@ import { DEFAULT_LIBRARY_COLOR, LIBRARY_COLORS } from './libraryColors';
 import { BookQuantityControl } from './BookQuantityControl';
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db/db';
+import { db, type Library } from '../db/db';
 import { Plus, Trash2, Edit3, Check, X, Library as LibraryIcon, Folder, BookmarkCheck, ChevronRight, Eye, BookOpen, Image as ImageIcon, Smartphone } from 'lucide-react';
 import { type Book } from '../db/db';
 import { ManualBookModal } from './ManualBookModal';
@@ -39,7 +39,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
   const [showAddShelf, setShowAddShelf] = useState(false);
 
   // Edit states
-  const [editingLibraryId, setEditingLibraryId] = useState<number | null>(null);
+  const [editingLibrary, setEditingLibrary] = useState<{ id: number; mode: 'color' | 'details' } | null>(null);
   const [editingLibraryName, setEditingLibraryName] = useState('');
   const [editingLibraryColor, setEditingLibraryColor] = useState<string>(DEFAULT_LIBRARY_COLOR);
 
@@ -92,14 +92,24 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
     setSelectedLibraryId(id);
   };
 
-  // Save Library Edit
-  const handleSaveLibraryEdit = async (id: number) => {
-    if (!editingLibraryName.trim()) return;
-    await db.libraries.update(id, {
-      name: editingLibraryName.trim(),
-      color: editingLibraryColor,
-    });
-    setEditingLibraryId(null);
+  const startLibraryEdit = (library: Library, mode: 'color' | 'details') => {
+    if (library.id === undefined) return;
+    setEditingLibrary({ id: library.id, mode });
+    setEditingLibraryName(library.name);
+    setEditingLibraryColor(library.color || DEFAULT_LIBRARY_COLOR);
+  };
+
+  const handleSaveLibraryEdit = async () => {
+    if (!editingLibrary) return;
+
+    const { id, mode } = editingLibrary;
+    const name = editingLibraryName.trim();
+    if (mode === 'details' && !name) return;
+
+    await db.libraries.update(id, mode === 'color'
+      ? { color: editingLibraryColor }
+      : { name, color: editingLibraryColor });
+    setEditingLibrary((current) => current === editingLibrary ? null : current);
   };
 
   // Save Room Edit
@@ -300,27 +310,33 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
               libraries.map((lib) => {
                 const count = books.filter((b) => b.libraryId === lib.id).length;
                 const isSelected = selectedLibraryId === lib.id;
-                const isEditing = editingLibraryId === lib.id;
+                const isEditing = editingLibrary && editingLibrary.id === lib.id;
                 const libColor = lib.color || DEFAULT_LIBRARY_COLOR;
 
                 if (isEditing) {
+                  const colorOnly = editingLibrary.mode === 'color';
                   return (
                     <div key={lib.id} className="p-2 bg-indigo-50 border border-indigo-300 rounded-lg space-y-2">
-                      <input
-                        type="text"
-                        value={editingLibraryName}
-                        onChange={(e) => setEditingLibraryName(e.target.value)}
-                        className="w-full px-2 py-1 text-xs border border-slate-300 rounded outline-none"
-                        autoFocus
-                      />
+                      {colorOnly ? (
+                        <span className="block truncate text-xs font-semibold">{lib.name}</span>
+                      ) : (
+                        <input
+                          type="text"
+                          value={editingLibraryName}
+                          onChange={(e) => setEditingLibraryName(e.target.value)}
+                          className="w-full px-2 py-1 text-xs border border-slate-300 rounded outline-none"
+                          autoFocus
+                        />
+                      )}
                       <div className="flex items-center gap-1 flex-wrap">
-                        {LIBRARY_COLORS.map((c) => (
+                        {LIBRARY_COLORS.map((c, index) => (
                           <button
                             key={c.value}
                             type="button"
                             onClick={() => setEditingLibraryColor(c.value)}
                             aria-pressed={editingLibraryColor === c.value}
                             title={c.name}
+                            autoFocus={colorOnly && index === 0}
                             className={`w-5 h-5 rounded-full border-2 transition cursor-pointer ${
                               editingLibraryColor === c.value ? 'border-slate-800 scale-110' : 'border-transparent'
                             }`}
@@ -330,14 +346,14 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                       </div>
                       <div className="flex justify-end gap-1">
                         <button
-                          onClick={() => handleSaveLibraryEdit(lib.id!)}
+                          onClick={handleSaveLibraryEdit}
                           className="p-1 bg-emerald-600 text-on-accent rounded hover:bg-emerald-700 cursor-pointer"
                           title={t('saveBtn')}
                         >
                           <Check className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => setEditingLibraryId(null)}
+                          onClick={() => setEditingLibrary(null)}
                           className="p-1 bg-slate-200 text-slate-700 rounded hover:bg-slate-300 cursor-pointer"
                           title={t('cancelBtn')}
                         >
@@ -359,10 +375,21 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                     }`}
                   >
                     <div className="flex items-center gap-2 truncate">
-                      <span
-                        className="w-3.5 h-3.5 rounded-full shrink-0 inline-block border border-black/10"
-                        style={{ backgroundColor: libColor }}
-                      />
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          startLibraryEdit(lib, 'color');
+                        }}
+                        title={t('changeLibraryColor')}
+                        aria-label={`${t('changeLibraryColor')} · ${lib.name}`}
+                        className="grid size-6 shrink-0 cursor-pointer place-items-center rounded-full hover:bg-slate-200 focus-visible:ring-2 focus-visible:ring-indigo-500"
+                      >
+                        <span
+                          className="size-3.5 rounded-full border border-black/10"
+                          style={{ backgroundColor: libColor }}
+                        />
+                      </button>
                       <span className="truncate">{lib.name}</span>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
@@ -372,9 +399,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setEditingLibraryId(lib.id!);
-                          setEditingLibraryName(lib.name);
-                          setEditingLibraryColor(libColor);
+                          startLibraryEdit(lib, 'details');
                         }}
                         className="text-slate-400 hover:text-indigo-600 p-1 rounded cursor-pointer"
                         title={t('editLibraryTooltip')}

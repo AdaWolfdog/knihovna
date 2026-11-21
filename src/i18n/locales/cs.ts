@@ -103,6 +103,7 @@ export const cs = {
   addShelfTitle: 'Přidat polici',
   libraryNamePlaceholder: 'Název knihovny (např. Hlavní)',
   libraryColorLabel: 'Barva knihovny:',
+  changeLibraryColor: 'Změnit barvu knihovny',
   saveBtn: 'Uložit',
   cancelBtn: 'Zrušit',
   noLibrariesYet: 'Zatím nemáte vytvořenou žádnou knihovnu.',

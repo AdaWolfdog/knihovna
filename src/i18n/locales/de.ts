@@ -105,6 +105,7 @@ export const de: Record<TranslationKey, string> = {
   addShelfTitle: 'Regal hinzufügen',
   libraryNamePlaceholder: 'Bibliotheksname (z. B. Hauptbibliothek)',
   libraryColorLabel: 'Farbe der Bibliothek:',
+  changeLibraryColor: 'Bibliotheksfarbe ändern',
   saveBtn: 'Speichern',
   cancelBtn: 'Abbrechen',
   noLibrariesYet: 'Sie haben noch keine Bibliothek erstellt.',

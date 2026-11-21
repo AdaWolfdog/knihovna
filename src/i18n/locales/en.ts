@@ -105,6 +105,7 @@ export const en: Record<TranslationKey, string> = {
   addShelfTitle: 'Add shelf',
   libraryNamePlaceholder: 'Library name (e.g. Main)',
   libraryColorLabel: 'Library color:',
+  changeLibraryColor: 'Change library color',
   saveBtn: 'Save',
   cancelBtn: 'Cancel',
   noLibrariesYet: 'You have not created any libraries yet.',
