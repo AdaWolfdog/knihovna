@@ -285,7 +285,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
               <div className="flex gap-2 pt-1">
                 <button
                   type="submit"
-                  className="flex-1 py-1 px-3 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700 cursor-pointer"
+                  className="flex-1 py-1 px-3 bg-indigo-600 text-on-accent text-xs font-medium rounded-lg hover:bg-indigo-700 cursor-pointer"
                 >
                   {t('saveBtn')}
                 </button>
@@ -338,7 +338,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                       <div className="flex justify-end gap-1">
                         <button
                           onClick={() => handleSaveLibraryEdit(lib.id!)}
-                          className="p-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 cursor-pointer"
+                          className="p-1 bg-emerald-600 text-on-accent rounded hover:bg-emerald-700 cursor-pointer"
                           title={t('saveBtn')}
                         >
                           <Check className="w-3.5 h-3.5" />
@@ -437,7 +437,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
               <div className="flex gap-2">
                 <button
                   type="submit"
-                  className="flex-1 py-1 px-3 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700 cursor-pointer"
+                  className="flex-1 py-1 px-3 bg-indigo-600 text-on-accent text-xs font-medium rounded-lg hover:bg-indigo-700 cursor-pointer"
                 >
                   {t('saveBtn')}
                 </button>
@@ -479,7 +479,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                       />
                       <button
                         onClick={() => handleSaveRoomEdit(room.id!)}
-                        className="p-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 cursor-pointer"
+                        className="p-1 bg-emerald-600 text-on-accent rounded hover:bg-emerald-700 cursor-pointer"
                         title={t('saveBtn')}
                       >
                         <Check className="w-3.5 h-3.5" />
@@ -573,7 +573,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
               <div className="flex gap-2">
                 <button
                   type="submit"
-                  className="flex-1 py-1 px-3 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700 cursor-pointer"
+                  className="flex-1 py-1 px-3 bg-indigo-600 text-on-accent text-xs font-medium rounded-lg hover:bg-indigo-700 cursor-pointer"
                 >
                   {t('saveBtn')}
                 </button>
@@ -615,7 +615,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                       />
                       <button
                         onClick={() => handleSaveShelfEdit(shelf.id!)}
-                        className="p-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 cursor-pointer"
+                        className="p-1 bg-emerald-600 text-on-accent rounded hover:bg-emerald-700 cursor-pointer"
                         title={t('saveBtn')}
                       >
                         <Check className="w-3.5 h-3.5" />
@@ -660,7 +660,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                         onClick={() => setActiveShelfId(shelf.id!)}
                         className={`text-xs px-2 py-0.5 rounded-full border transition cursor-pointer flex items-center gap-1 ${
                           isActive
-                            ? 'bg-emerald-600 text-white border-emerald-600'
+                            ? 'bg-emerald-600 text-on-accent border-emerald-600'
                             : 'bg-white text-slate-600 border-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200'
                         }`}
                         title={t('clickToViewBooksTooltip')}
@@ -676,7 +676,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                       ) : (
                         <button
                           onClick={() => onSelectShelfForScanning(shelf.id!)}
-                          className="flex items-center gap-1 text-xs bg-indigo-600 text-white px-2 py-1 rounded hover:bg-indigo-700 font-medium transition cursor-pointer"
+                          className="flex items-center gap-1 text-xs bg-indigo-600 text-on-accent px-2 py-1 rounded hover:bg-indigo-700 font-medium transition cursor-pointer"
                           title={t('setTargetAndScanTooltip')}
                         >
                           {t('selectShelfForScanBtn')} <ChevronRight className="w-3 h-3" />
@@ -746,7 +746,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
             <div className="flex items-center gap-2">
               <button
                 onClick={() => onSelectShelfForScanning(activeShelf.id!)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs transition cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-on-accent rounded-xl text-xs font-semibold shadow-xs transition cursor-pointer"
               >
                 <span>{t('scanToThisShelfBtn')}</span>
                 <ChevronRight className="w-3.5 h-3.5" />

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { QrCode, Library as LibraryIcon, BookOpen, Download, ChevronUp, ChevronDown, Globe } from 'lucide-react';
 import { useLanguage, LANGUAGES, type Language } from '../i18n';
+import { ThemeSelect } from './ThemeSelect';
 
 interface HeaderProps {
   activeTab: 'scan' | 'structure' | 'books';
@@ -17,22 +18,22 @@ export const Header: React.FC<HeaderProps> = ({
   const { language, setLanguage, t } = useLanguage();
 
   return (
-    <header className="bg-slate-900 text-white shadow-md sticky top-0 z-30 transition-all">
+    <header className="bg-chrome text-chrome-text shadow-md sticky top-0 z-30 transition-all">
       <div className="max-w-6xl mx-auto px-4 py-3 relative">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
           {/* Top row: Brand + Language selector + mobile toggle in bottom-right */}
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <div className="p-2 bg-indigo-600 rounded-lg shrink-0">
-                <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-on-accent" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-lg sm:text-xl font-bold tracking-tight text-white my-0 leading-tight truncate">
+                <h1 className="text-lg sm:text-xl font-bold tracking-tight text-chrome-text my-0 leading-tight truncate">
                   {t('appTitle')}
                 </h1>
-                <p className="text-[11px] sm:text-xs text-slate-400 truncate">
+                <p className="text-[11px] sm:text-xs text-chrome-muted truncate">
                   {activeShelfName ? (
-                    <span className="text-indigo-300 font-medium">
+                    <span className="text-chrome-muted font-medium">
                       {t('activeShelf')} {activeShelfName}
                     </span>
                   ) : (
@@ -41,28 +42,31 @@ export const Header: React.FC<HeaderProps> = ({
                 </p>
               </div>
 
-              {/* Language Selector to the right of logo and title */}
-              <div className="relative inline-flex items-center ml-1 sm:ml-2 shrink-0">
-                <div className="flex items-center gap-1 bg-slate-800/90 hover:bg-slate-750 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-200 transition shadow-inner">
-                  <Globe className="w-3.5 h-3.5 text-indigo-400 shrink-0 hidden sm:inline" />
-                  <select
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value as Language)}
-                    aria-label="Výběr jazyka"
-                    className="bg-transparent text-xs text-slate-200 focus:outline-hidden cursor-pointer py-0.5 pr-1 font-medium"
-                    data-testid="language-select"
-                  >
-                    {LANGUAGES.map((lang) => (
-                      <option
-                        key={lang.code}
-                        value={lang.code}
-                        className="bg-slate-900 text-white py-1"
-                      >
-                        {lang.flag ? `${lang.flag} ${lang.label}` : lang.label}
-                      </option>
-                    ))}
-                  </select>
+              {/* Appearance controls stay available while mobile navigation is collapsed. */}
+              <div className="flex items-center gap-1 shrink-0">
+                <div className="relative inline-flex items-center shrink-0">
+                  <div className="flex items-center gap-1 bg-chrome-panel/90 hover:bg-chrome-hover border border-chrome-line rounded-lg px-2 py-1 text-xs text-chrome-text transition shadow-inner">
+                    <Globe className="w-3.5 h-3.5 text-chrome-muted shrink-0 hidden sm:inline" />
+                    <select
+                      value={language}
+                      onChange={(e) => setLanguage(e.target.value as Language)}
+                      aria-label="Výběr jazyka"
+                      className="bg-transparent text-xs text-chrome-text focus:outline-hidden cursor-pointer py-0.5 pr-1 font-medium"
+                      data-testid="language-select"
+                    >
+                      {LANGUAGES.map((lang) => (
+                        <option
+                          key={lang.code}
+                          value={lang.code}
+                          className="bg-chrome text-chrome-text py-1"
+                        >
+                          {lang.flag ? `${lang.flag} ${lang.label}` : lang.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
+                <ThemeSelect />
               </div>
             </div>
 
@@ -72,7 +76,7 @@ export const Header: React.FC<HeaderProps> = ({
                 type="button"
                 onClick={() => setIsMobileMenuOpen(true)}
                 aria-label="Rozbalit menu"
-                className="sm:hidden self-center p-1.5 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer shrink-0"
+                className="sm:hidden self-center p-1.5 text-chrome-muted hover:text-chrome-text bg-chrome-panel hover:bg-chrome-hover rounded-lg transition-colors cursor-pointer shrink-0"
                 title={t('expandMenu')}
               >
                 <ChevronDown className="w-5 h-5" />
@@ -81,9 +85,9 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Navigation tabs: hidden on mobile when collapsed, visible on sm+ or when mobile menu is open */}
-          <div className={`${!isMobileMenuOpen ? 'hidden sm:block' : 'block'} w-full sm:w-auto`}>
+          <div className={`${!isMobileMenuOpen ? 'hidden sm:block' : 'block'} w-full lg:w-auto`}>
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-              <nav className="flex bg-slate-800 p-1 rounded-lg">
+              <nav className="flex bg-chrome-panel p-1 rounded-lg">
                 <button
                   type="button"
                   onClick={() => {
@@ -92,8 +96,8 @@ export const Header: React.FC<HeaderProps> = ({
                   }}
                   className={`flex-1 sm:flex-none flex items-center justify-center space-x-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer ${
                     activeTab === 'scan'
-                      ? 'bg-indigo-600 text-white shadow'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-700'
+                      ? 'bg-indigo-600 text-on-accent shadow'
+                      : 'text-chrome-muted hover:text-chrome-text hover:bg-chrome-hover'
                   }`}
                 >
                   <QrCode className="w-4 h-4" />
@@ -108,8 +112,8 @@ export const Header: React.FC<HeaderProps> = ({
                   }}
                   className={`flex-1 sm:flex-none flex items-center justify-center space-x-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer ${
                     activeTab === 'structure'
-                      ? 'bg-indigo-600 text-white shadow'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-700'
+                      ? 'bg-indigo-600 text-on-accent shadow'
+                      : 'text-chrome-muted hover:text-chrome-text hover:bg-chrome-hover'
                   }`}
                 >
                   <LibraryIcon className="w-4 h-4" />
@@ -124,8 +128,8 @@ export const Header: React.FC<HeaderProps> = ({
                   }}
                   className={`flex-1 sm:flex-none flex items-center justify-center space-x-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer ${
                     activeTab === 'books'
-                      ? 'bg-indigo-600 text-white shadow'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-700'
+                      ? 'bg-indigo-600 text-on-accent shadow'
+                      : 'text-chrome-muted hover:text-chrome-text hover:bg-chrome-hover'
                   }`}
                 >
                   <Download className="w-4 h-4" />
@@ -139,7 +143,7 @@ export const Header: React.FC<HeaderProps> = ({
                   type="button"
                   onClick={() => setIsMobileMenuOpen(false)}
                   aria-label="Sbalit menu"
-                  className="flex items-center gap-1 text-xs text-slate-400 hover:text-white bg-slate-800 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                  className="flex items-center gap-1 text-xs text-chrome-muted hover:text-chrome-text bg-chrome-panel px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
                 >
                   <span>{t('collapseMenu')}</span>
                   <ChevronUp className="w-4 h-4" />

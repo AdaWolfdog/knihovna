@@ -12,6 +12,11 @@ export const es: Record<TranslationKey, string> = {
   collapseMenu: 'Plegar',
   footerText: 'Aplicación para inventario y escaneo de libros',
 
+  themeSelect: 'Elegir tema',
+  themeForest: 'Sala de lectura del bosque (predeterminado)',
+  themeBlueprint: 'Plano azul',
+  themeNight: 'Sala de lectura nocturna',
+
   // ScannerTab
   targetScanLocation: 'Ubicación de escaneo de destino:',
   changeShelf: 'Cambiar',

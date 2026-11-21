@@ -12,6 +12,11 @@ export const de: Record<TranslationKey, string> = {
   collapseMenu: 'Einklappen',
   footerText: 'Anwendung zur Erfassung und zum Scannen von Büchern',
 
+  themeSelect: 'Farbschema wählen',
+  themeForest: 'Waldlesezimmer (Standard)',
+  themeBlueprint: 'Blaudruck',
+  themeNight: 'Nachtlesezimmer',
+
   // ScannerTab
   targetScanLocation: 'Zielort für Scan:',
   changeShelf: 'Ändern',

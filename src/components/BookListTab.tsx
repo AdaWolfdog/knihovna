@@ -126,7 +126,7 @@ export const BookListTab: React.FC = () => {
           <button
             onClick={handleExportXLSX}
             disabled={filteredBooks.length === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs rounded-xl transition shadow-sm disabled:opacity-50 cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-on-accent font-medium text-xs rounded-xl transition shadow-sm disabled:opacity-50 cursor-pointer"
           >
             <FileSpreadsheet className="w-4 h-4" />
             <span>{t('exportXlsxBtn')}</span>
@@ -135,7 +135,7 @@ export const BookListTab: React.FC = () => {
           <button
             onClick={handleExportCSV}
             disabled={filteredBooks.length === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs rounded-xl transition shadow-sm disabled:opacity-50 cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-on-accent font-medium text-xs rounded-xl transition shadow-sm disabled:opacity-50 cursor-pointer"
           >
             <FileText className="w-4 h-4" />
             <span>{t('exportCsvBtn')}</span>
@@ -147,7 +147,7 @@ export const BookListTab: React.FC = () => {
       <div className="bg-gradient-to-r from-indigo-50 via-white to-indigo-50/50 rounded-2xl shadow-md border-2 border-indigo-200 p-5 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-bold text-indigo-900">
-            <div className="p-1.5 bg-indigo-600 text-white rounded-lg">
+            <div className="p-1.5 bg-indigo-600 text-on-accent rounded-lg">
               <Filter className="w-4 h-4" />
             </div>
             <span className="text-base">{t('filterSearchHeading')}</span>

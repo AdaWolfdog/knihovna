@@ -2,6 +2,15 @@
 
 /* Lesní čítárna. Keep the existing utility families mapped to their UI roles. */
 @theme {
+  --color-on-accent: #fcfdf7;
+  --color-on-warning: #202e26;
+  --color-chrome: #202e26;
+  --color-chrome-panel: #2e3c31;
+  --color-chrome-hover: #374438;
+  --color-chrome-line: #4c5b49;
+  --color-chrome-text: #fcfdf7;
+  --color-chrome-muted: #c7d1c0;
+
   --color-white: #fcfdf7;
   --color-slate-50: #f7f8f0;
   --color-slate-100: #f1f3e8;
@@ -62,6 +71,140 @@
   --color-red-700: #8a3644;
   --color-red-800: #722c38;
   --color-red-900: #5b232d;
+}
+
+/* Light and dark palettes share the same utility roles as Lesní čítárna. */
+:root[data-theme="blueprint"] {
+  --color-white: #f8f9fd;
+  --color-on-accent: #ffffff;
+  --color-on-warning: #202b43;
+  --color-chrome: #202b43;
+  --color-chrome-panel: #2b3854;
+  --color-chrome-hover: #394969;
+  --color-chrome-line: #4c5d7e;
+  --color-chrome-text: #f8f9fd;
+  --color-chrome-muted: #c6d3eb;
+  --color-slate-50: #f2f5fc;
+  --color-slate-100: #e9edf8;
+  --color-slate-200: #d9e1f0;
+  --color-slate-300: #c3cde2;
+  --color-slate-400: #5d6b83;
+  --color-slate-500: #526078;
+  --color-slate-600: #45516a;
+  --color-slate-700: #394560;
+  --color-slate-800: #2c3852;
+  --color-slate-900: #202b43;
+
+  --color-indigo-50: #eef1fb;
+  --color-indigo-100: #e0e7f9;
+  --color-indigo-200: #c9d5f1;
+  --color-indigo-300: #a7b9e1;
+  --color-indigo-400: #7b93cb;
+  --color-indigo-500: #465e99;
+  --color-indigo-600: #24396f;
+  --color-indigo-700: #1e305f;
+  --color-indigo-800: #19284e;
+  --color-indigo-900: #15213f;
+
+  --color-emerald-50: #edf4f7;
+  --color-emerald-100: #e0edf3;
+  --color-emerald-200: #cbdfeb;
+  --color-emerald-300: #a4c6d8;
+  --color-emerald-400: #77a7c0;
+  --color-emerald-500: #527e98;
+  --color-emerald-600: #38647e;
+  --color-emerald-700: #2e536a;
+  --color-emerald-800: #254458;
+  --color-emerald-900: #1d3547;
+
+  --color-amber-50: #f1f5fd;
+  --color-amber-100: #e6edf9;
+  --color-amber-200: #d8e3f4;
+  --color-amber-300: #cbdaf0;
+  --color-amber-400: #cbdaf0;
+  --color-amber-500: #bdcee8;
+  --color-amber-600: #486185;
+  --color-amber-700: #354e73;
+  --color-amber-800: #2b405f;
+  --color-amber-900: #23354f;
+
+  --color-red-50: #f8eff6;
+  --color-red-100: #f0e2ed;
+  --color-red-200: #e4cfdf;
+  --color-red-300: #d1b2c8;
+  --color-red-400: #b685a6;
+  --color-red-500: #805272;
+  --color-red-600: #68415f;
+  --color-red-700: #583650;
+  --color-red-800: #492c43;
+  --color-red-900: #3b2436;
+}
+
+:root[data-theme="night"] {
+  color-scheme: dark;
+  --color-white: #2c263a;
+  --color-on-accent: #211d2b;
+  --color-on-warning: #211d2b;
+  --color-chrome: #191522;
+  --color-chrome-panel: #2c263a;
+  --color-chrome-hover: #3a324b;
+  --color-chrome-line: #665878;
+  --color-chrome-text: #f4edf9;
+  --color-chrome-muted: #c9bed6;
+  --color-slate-50: #332c41;
+  --color-slate-100: #211d2b;
+  --color-slate-200: #484055;
+  --color-slate-300: #6b607a;
+  --color-slate-400: #b0a4bf;
+  --color-slate-500: #bdb2cb;
+  --color-slate-600: #c9bed6;
+  --color-slate-700: #d8cde4;
+  --color-slate-800: #e7ddef;
+  --color-slate-900: #f4edf9;
+
+  --color-indigo-50: #362b4d;
+  --color-indigo-100: #40335b;
+  --color-indigo-200: #51416d;
+  --color-indigo-300: #6d5793;
+  --color-indigo-400: #9279bd;
+  --color-indigo-500: #b198db;
+  --color-indigo-600: #c3abf0;
+  --color-indigo-700: #ceb9f3;
+  --color-indigo-800: #dbcbf7;
+  --color-indigo-900: #eadffa;
+
+  --color-emerald-50: #253d41;
+  --color-emerald-100: #2b464b;
+  --color-emerald-200: #36595e;
+  --color-emerald-300: #487579;
+  --color-emerald-400: #63999d;
+  --color-emerald-500: #7bb3b6;
+  --color-emerald-600: #91d1cf;
+  --color-emerald-700: #a7dedb;
+  --color-emerald-800: #bceae6;
+  --color-emerald-900: #d4f4ef;
+
+  --color-amber-50: #3a3126;
+  --color-amber-100: #44392b;
+  --color-amber-200: #594831;
+  --color-amber-300: #786341;
+  --color-amber-400: #e4cca2;
+  --color-amber-500: #d8be8f;
+  --color-amber-600: #d8be8f;
+  --color-amber-700: #e6cda3;
+  --color-amber-800: #eddab7;
+  --color-amber-900: #f7e7cc;
+
+  --color-red-50: #422c3a;
+  --color-red-100: #523244;
+  --color-red-200: #684055;
+  --color-red-300: #8e526f;
+  --color-red-400: #b97590;
+  --color-red-500: #db8eaa;
+  --color-red-600: #f1a1b5;
+  --color-red-700: #f6b2c3;
+  --color-red-800: #f8c5d2;
+  --color-red-900: #fbe1e9;
 }
 
 body {

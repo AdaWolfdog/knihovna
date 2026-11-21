@@ -24,6 +24,7 @@ describe('Header component', () => {
       root.unmount();
     });
     container.remove();
+    delete document.documentElement.dataset.theme;
   });
 
   it('renders branding and active shelf name', async () => {
@@ -80,6 +81,33 @@ describe('Header component', () => {
     expect(select.value).toBe('emoji');
     // Active shelf name "Police B2" is user data and must remain preserved in text
     expect(container.textContent).toContain('Police B2');
+  });
+
+  it('offers exactly the three themes and remembers the choice across a remount', async () => {
+    const header = <Header activeTab="scan" setActiveTab={vi.fn()} />;
+    await act(async () => root.render(header));
+
+    const getThemeSelect = () => container.querySelector<HTMLSelectElement>('select[aria-label="Výběr motivu"]')!;
+    const choose = async (value: string) => {
+      await act(async () => {
+        const select = getThemeSelect();
+        select.value = value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      expect(document.documentElement.dataset.theme).toBe(value);
+    };
+
+    expect(Array.from(getThemeSelect().options, (option) => option.textContent)).toEqual([
+      'Lesní čítárna (výchozí)', 'Modrotisk', 'Noční čítárna',
+    ]);
+    expect(document.documentElement.dataset.theme).toBe('forest');
+    await choose('blueprint');
+    await choose('night');
+
+    await act(async () => root.render(null));
+    await act(async () => root.render(header));
+    expect(getThemeSelect().value).toBe('night');
+    await choose('forest');
   });
 
   it('toggles collapsible menu on mobile and auto-collapses on tab change', async () => {

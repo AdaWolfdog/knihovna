@@ -23,7 +23,7 @@ export const DuplicateModal: React.FC<DuplicateModalProps> = ({
   const { t } = useLanguage();
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-chrome/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center gap-3 text-amber-600 mb-4">
           <div className="p-2 bg-amber-100 rounded-full">
@@ -69,7 +69,7 @@ export const DuplicateModal: React.FC<DuplicateModalProps> = ({
           <button
             disabled={saving}
             onClick={onAddExemplar}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-xl transition shadow-sm cursor-pointer"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-on-accent font-medium text-sm rounded-xl transition shadow-sm cursor-pointer"
           >
             <Copy className="w-4 h-4" />
             <span>{t('addExemplarBtn')}</span>

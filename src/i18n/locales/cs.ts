@@ -10,6 +10,11 @@ export const cs = {
   collapseMenu: 'Sbalit',
   footerText: 'Aplikace pro evidenci a skenování knih',
 
+  themeSelect: 'Výběr motivu',
+  themeForest: 'Lesní čítárna (výchozí)',
+  themeBlueprint: 'Modrotisk',
+  themeNight: 'Noční čítárna',
+
   // ScannerTab
   targetScanLocation: 'Cílové umístění skenování:',
   changeShelf: 'Změnit',

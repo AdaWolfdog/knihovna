@@ -12,6 +12,11 @@ export const en: Record<TranslationKey, string> = {
   collapseMenu: 'Collapse',
   footerText: 'Application for book inventory and scanning',
 
+  themeSelect: 'Choose theme',
+  themeForest: 'Forest Reading Room (default)',
+  themeBlueprint: 'Blueprint',
+  themeNight: 'Night Reading Room',
+
   // ScannerTab
   targetScanLocation: 'Target scanning location:',
   changeShelf: 'Change',

@@ -764,9 +764,9 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
     <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
       {/* Target Shelf Banner */}
       {shelfDetails ? (
-        <div className="bg-emerald-600 text-white p-2.5 sm:p-4 pr-12 sm:pr-4 rounded-xl sm:rounded-2xl shadow-md flex items-center justify-between">
+        <div className="bg-emerald-600 text-on-accent p-2.5 sm:p-4 pr-12 sm:pr-4 rounded-xl sm:rounded-2xl shadow-md flex items-center justify-between">
           <div>
-            <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-emerald-200 block">
+            <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider block">
               {t('targetScanLocation')}
             </span>
             <div className="text-xs sm:text-lg font-bold">
@@ -776,7 +776,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           </div>
           <button
             onClick={onNavigateToStructure}
-            className="text-xs bg-emerald-700 hover:bg-emerald-800 text-white font-medium px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg transition cursor-pointer shrink-0 ml-2"
+            className="text-xs bg-emerald-700 hover:bg-emerald-800 text-on-accent font-medium px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg transition cursor-pointer shrink-0 ml-2"
           >
             {t('changeShelf')}
           </button>
@@ -796,7 +796,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           </div>
           <button
             onClick={onNavigateToStructure}
-            className="bg-amber-500 text-slate-900 text-xs font-bold px-4 py-2 rounded-xl hover:bg-amber-400 transition cursor-pointer"
+            className="bg-amber-500 text-on-warning text-xs font-bold px-4 py-2 rounded-xl hover:bg-amber-400 transition cursor-pointer"
           >
             {t('selectShelfBtn')}
           </button>
@@ -833,7 +833,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                     text: t('fastScanModeActivated'),
                   });
                 }}
-                className="w-full sm:hidden py-2.5 px-4 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold text-xs rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full sm:hidden py-2.5 px-4 bg-amber-500 hover:bg-amber-400 text-on-warning font-bold text-xs rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Zap className="w-4 h-4 fill-current" />
                 <span>{t('fastScanModeTitle')}</span>
@@ -849,7 +849,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                       text: t('fastScanModeActivated'),
                     });
                   }}
-                  className="py-2.5 px-4 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold text-xs rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="py-2.5 px-4 bg-amber-500 hover:bg-amber-400 text-on-warning font-bold text-xs rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Zap className="w-4 h-4 fill-current" />
                   <span>{t('turnOnFastScan')}</span>
@@ -859,7 +859,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           ) : (
             <>
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-2 sm:p-2.5 rounded-xl bg-amber-500 text-slate-900 shrink-0">
+                <div className="p-2 sm:p-2.5 rounded-xl bg-amber-500 text-on-warning shrink-0">
                   <Zap className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <div>
@@ -867,7 +867,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                     <h3 className="font-bold text-xs sm:text-base">
                       {t('fastScanModeTitle')}
                     </h3>
-                    <span className="bg-amber-500 text-slate-900 text-[9px] sm:text-[10px] uppercase font-bold px-1.5 sm:px-2 py-0.5 rounded-full">
+                    <span className="bg-amber-500 text-on-warning text-[9px] sm:text-[10px] uppercase font-bold px-1.5 sm:px-2 py-0.5 rounded-full">
                       {t('fastScanModeActive')}
                     </span>
                   </div>
@@ -877,7 +877,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={handleFinishFastScanning}
-                  className="flex-1 sm:flex-initial py-2 sm:py-2.5 px-3 sm:px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg sm:rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="flex-1 sm:flex-initial py-2 sm:py-2.5 px-3 sm:px-4 bg-emerald-600 hover:bg-emerald-700 text-on-accent font-bold text-xs rounded-lg sm:rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   <span>
@@ -938,7 +938,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
               setOcrErrorState(null);
               startCamera();
             }}
-            className="py-2 px-4 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer shrink-0"
+            className="py-2 px-4 bg-amber-500 hover:bg-amber-400 text-on-warning font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer shrink-0"
           >
             <RefreshCw className="w-4 h-4" />
             <span>{t('retryBtn')}</span>
@@ -966,7 +966,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
               setManualModalIsbn('');
               setShowManualModal(true);
             }}
-            className="py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer shrink-0"
+            className="py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-on-accent font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer shrink-0"
           >
             <Edit3 className="w-4 h-4" />
             <span>{t('manualIsbnEntryBtn')}</span>
@@ -991,7 +991,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={() => handleRetryNetworkIsbn(networkErrorIsbnBanner)}
-              className="py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+              className="py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-on-accent font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
             >
               <RefreshCw className="w-4 h-4" />
               <span>{t('retryBtn')}</span>
@@ -1023,7 +1023,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={() => handleSkipIsbn(unrecognizedIsbnBanner)}
-              className="py-2 px-4 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+              className="py-2 px-4 bg-amber-500 hover:bg-amber-400 text-on-warning font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
             >
               <SkipForward className="w-4 h-4" />
               <span>{t('skipBookBtn')}</span>
@@ -1045,21 +1045,21 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
 
       {/* Recovery / Reset Button Banner (Appears only when an error occurs) */}
       {hasScannerError && (
-        <div className="bg-slate-800 text-white p-3.5 sm:p-4 rounded-xl sm:rounded-2xl shadow-md flex items-center justify-between animate-fade-in">
+        <div className="bg-chrome-panel text-chrome-text p-3.5 sm:p-4 rounded-xl sm:rounded-2xl shadow-md flex items-center justify-between animate-fade-in">
           <div className="flex items-center gap-3">
             <RotateCcw className="w-5 h-5 text-amber-400 shrink-0" />
             <div>
               <div className="font-bold text-xs sm:text-sm">
                 {t('readingTroubleTitle')}
               </div>
-              <p className="text-[11px] sm:text-xs text-slate-300">
+              <p className="text-[11px] sm:text-xs text-chrome-muted">
                 {t('readingTroubleDesc')}
               </p>
             </div>
           </div>
           <button
             onClick={handleResetScanner}
-            className="py-1.5 px-3 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold text-xs rounded-lg transition shrink-0 ml-3 cursor-pointer"
+            className="py-1.5 px-3 bg-amber-500 hover:bg-amber-400 text-on-warning font-bold text-xs rounded-lg transition shrink-0 ml-3 cursor-pointer"
           >
             {t('resetScannerBtn')}
           </button>
@@ -1068,14 +1068,14 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
 
       {/* Re-scan prompt mode for multiple skipped books */}
       {isProcessingSkippedList && (
-        <div className="bg-indigo-600 text-white p-4 rounded-2xl shadow-md flex items-center justify-between">
+        <div className="bg-indigo-600 text-on-accent p-4 rounded-2xl shadow-md flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <RefreshCw className="w-6 h-6 text-indigo-200 animate-spin" />
+            <RefreshCw className="w-6 h-6 opacity-80 animate-spin" />
             <div>
               <div className="font-bold text-sm">
                 {t('rescanSkippedHeading', { count: skippedIsbns.length })}
               </div>
-              <p className="text-xs text-indigo-100">
+              <p className="text-xs">
                 {t('rescanSkippedSubheading')}
               </p>
             </div>
@@ -1087,7 +1087,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                 setShowManualModal(true);
               }
             }}
-            className="py-1.5 px-3 bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-semibold rounded-lg transition"
+            className="py-1.5 px-3 bg-indigo-700 hover:bg-indigo-800 text-on-accent text-xs font-semibold rounded-lg transition"
           >
             {t('selectFromListBtn')}
           </button>
@@ -1103,7 +1103,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             {t('cameraScannerHeading')}
           </h3>
 
-          <div className="w-full relative bg-slate-900 rounded-xl overflow-hidden h-[180px] sm:h-auto min-h-[180px] sm:min-h-[220px] flex items-center justify-center mb-3">
+          <div className="w-full relative bg-chrome rounded-xl overflow-hidden h-[180px] sm:h-auto min-h-[180px] sm:min-h-[220px] flex items-center justify-center mb-3">
             <video
               ref={videoRef}
               className="w-full h-full object-cover max-h-[180px] sm:max-h-[300px]"
@@ -1113,13 +1113,13 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
 
             {/* Thumbs-Up Overlay (Fast mode success cat display) */}
             {showThumbsUpOverlay && (
-              <div className="absolute inset-0 bg-slate-900/85 backdrop-blur-xs flex flex-col items-center justify-center p-2 z-20 animate-fade-in">
+              <div className="absolute inset-0 bg-chrome/85 backdrop-blur-xs flex flex-col items-center justify-center p-2 z-20 animate-fade-in">
                 <img
                   src={catThumbsupImg}
                   alt="Kniha naskenována!"
                   className="w-20 h-20 sm:w-28 sm:h-28 object-contain animate-bounce"
                 />
-                <span className="text-white font-bold text-xs sm:text-sm mt-1 bg-emerald-600 px-3 py-1 rounded-full shadow-md">
+                <span className="text-on-accent font-bold text-xs sm:text-sm mt-1 bg-emerald-600 px-3 py-1 rounded-full shadow-md">
                   {t('bookSavedOverlay')}
                 </span>
               </div>
@@ -1132,8 +1132,8 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             )}
 
             {!isScanning && !showThumbsUpOverlay && (
-              <div className="absolute inset-0 flex flex-col sm:flex-col items-center justify-center p-2 sm:p-4 bg-slate-900/90 text-slate-300 space-y-1 sm:space-y-3">
-                <Camera className="w-8 h-8 sm:w-12 sm:h-12 text-slate-500 stroke-1" />
+              <div className="absolute inset-0 flex flex-col sm:flex-col items-center justify-center p-2 sm:p-4 bg-chrome/90 text-chrome-muted space-y-1 sm:space-y-3">
+                <Camera className="w-8 h-8 sm:w-12 sm:h-12 text-chrome-muted stroke-1" />
               </div>
             )}
           </div>
@@ -1163,7 +1163,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                   startCamera();
                 }}
                 disabled={!activeShelfId}
-                className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-on-accent font-semibold text-sm rounded-xl transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Camera className="w-4 h-4" />
                 <span>{t('startScanningBtn')}</span>
@@ -1171,7 +1171,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             ) : (
               <button
                 onClick={stopCamera}
-                className="w-full py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-2.5 px-4 bg-red-600 hover:bg-red-700 text-on-accent font-semibold text-sm rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer"
               >
                 <RefreshCw className="w-4 h-4" />
                 <span>{t('stopCameraBtn')}</span>
@@ -1204,7 +1204,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                   <button
                     type="submit"
                     disabled={!activeShelfId || !manualIsbn.trim() || loading}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition disabled:opacity-50 cursor-pointer"
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-on-accent text-sm font-semibold rounded-xl transition disabled:opacity-50 cursor-pointer"
                   >
                     {t('searchBtn')}
                   </button>
