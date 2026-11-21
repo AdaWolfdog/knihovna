@@ -41,6 +41,8 @@ export function getMissingBookDetails(
 
 export interface CatalogLookupResult {
   metadata: BookMetadata | null;
+  // An ISBN match can have an image even when no catalog returns a book record.
+  coverUrl?: string;
   /**
    * True if metadata was not found and at least one contacted catalog had a transient network error,
    * timeouts, or 5xx/429 status codes, rather than a definitive "not found" response.
@@ -438,6 +440,9 @@ export async function lookupBookByIsbnDetailed(isbnInput: string, { findCover = 
     metadata.coverUrl = findCover ? await resolveBookCover(isbn, covers) : undefined;
     return { metadata, isNetworkError: false };
   }
+
+  const coverUrl = findCover ? await resolveBookCover(isbn, []) : undefined;
+  if (coverUrl) return { metadata: null, coverUrl, isNetworkError };
 
   return isNetworkError
     ? {

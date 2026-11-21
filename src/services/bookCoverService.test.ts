@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resolveBookCover } from './bookCoverService';
+import { lookupBookByIsbnDetailed } from './isbnService';
 
 function mockImages(results: Record<string, [number, number] | 'error' | 'slow'>) {
   const requests = vi.fn();
@@ -84,4 +85,23 @@ describe('ISBN cover resolution', () => {
     await expect(resolveBookCover('9780000000000', [[broken, broken], [broken]])).resolves.toBeUndefined();
     expect(requests.mock.calls).toEqual([[broken]]);
   });
+});
+
+it('returns a verified ISBN cover independently of failed or empty metadata sources', async () => {
+  const isbn = '9780553382563';
+  const cover = directCover(isbn);
+  const requests = mockImages({ [cover]: [180, 280] });
+  vi.stubGlobal('fetch', vi.fn(async (url: string) => ({
+    ok: !url.includes('googleapis.com'),
+    status: url.includes('googleapis.com') ? 503 : 200,
+    json: async () => ({}),
+  })));
+
+  await expect(lookupBookByIsbnDetailed(isbn)).resolves.toEqual({
+    metadata: null, coverUrl: cover, isNetworkError: true,
+  });
+  expect(requests.mock.calls).toEqual([[cover]]);
+  const withoutCover = await lookupBookByIsbnDetailed(isbn, { findCover: false });
+  expect(withoutCover.coverUrl).toBeUndefined();
+  expect(requests.mock.calls).toEqual([[cover]]);
 });

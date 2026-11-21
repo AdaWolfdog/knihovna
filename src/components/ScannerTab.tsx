@@ -63,6 +63,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   // Manual modal state
   const [showManualModal, setShowManualModal] = useState(false);
   const [manualModalIsbn, setManualModalIsbn] = useState('');
+  const [foundCovers, setFoundCovers] = useState<Record<string, string>>({});
 
   const [saving, setSaving] = useState(false);
   const [modalSaveError, setModalSaveError] = useState<string>();
@@ -501,7 +502,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         editionNumber: metadata?.editionNumber || existingRef?.editionNumber || '',
         genre: existingRef?.genre || metadata?.genre || '',
         keywords: existingRef?.keywords || metadata?.keywords || '',
-        coverUrl: existingRef?.coverUrl || metadata?.coverUrl || '',
+        coverUrl: existingRef?.coverUrl || metadata?.coverUrl || lookupResult.coverUrl || '',
         publisher: metadata?.publisher || existingRef?.publisher || '',
         placeOfPublication: metadata?.placeOfPublication || existingRef?.placeOfPublication || '',
         cnb: metadata?.cnb || existingRef?.cnb || '',
@@ -519,7 +520,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       }
 
       // Case B: Network/catalog temporary failure (and not found in local library)
-      if (!metadata && !existingInLibrary && lookupResult.isNetworkError) {
+      if (!metadata && !existingInLibrary && lookupResult.isNetworkError && !lookupResult.coverUrl) {
         setLoading(false);
         isProcessingRef.current = false;
         if (isFastScanModeRef.current) {
@@ -538,19 +539,21 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         return;
       }
 
-      // Case C: Genuinely not found in catalogs or existing DB
+      // Case C: No book record, with or without an ISBN cover
       if (!metadata && !existingInLibrary) {
+        const coverUrl = lookupResult.coverUrl;
+        if (coverUrl) setFoundCovers((previous) => ({ ...previous, [cleanIsbn]: coverUrl }));
         if (isFastScanModeRef.current) {
           setUnrecognizedIsbnBanner(cleanIsbn);
           setStatusMessage({
             type: 'info',
-            text: t('bookNotFoundFastMode', { isbn: cleanIsbn }),
+            text: t(lookupResult.coverUrl ? 'coverOnlyFastMode' : 'bookNotFoundFastMode', { isbn: cleanIsbn }),
           });
           isProcessingRef.current = false;
         } else {
           setStatusMessage({
             type: 'info',
-            text: t('bookNotFoundStandardMode', { isbn: cleanIsbn }),
+            text: t(lookupResult.coverUrl ? 'coverOnlyStandardMode' : 'bookNotFoundStandardMode', { isbn: cleanIsbn }),
           });
           setManualModalIsbn(cleanIsbn);
           setShowManualModal(true);
@@ -1022,7 +1025,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             <AlertCircle className="w-6 h-6 text-amber-700 shrink-0" />
             <div>
               <div className="font-bold text-amber-900 text-sm">
-                {t('unrecognizedBannerTitle', { isbn: unrecognizedIsbnBanner })}
+                {t(foundCovers[unrecognizedIsbnBanner] ? 'coverOnlyBannerTitle' : 'unrecognizedBannerTitle', { isbn: unrecognizedIsbnBanner })}
               </div>
               <p className="text-xs text-amber-800">
                 {t('unrecognizedBannerDesc')}
@@ -1372,6 +1375,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       {showManualModal && shelfDetails && (
         <ManualBookModal
           initialIsbn={manualModalIsbn}
+          initialCoverUrl={foundCovers[manualModalIsbn]}
           shelfName={shelfDetails.shelfName}
           saving={saving}
           saveError={modalSaveError}

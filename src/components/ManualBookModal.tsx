@@ -1,11 +1,13 @@
 import { BookCoverImage } from './BookCoverImage';
 import React, { useState, useRef } from 'react';
 import type { Book } from '../db/db';
+import { toIsbn13 } from '../services/isbnService';
 import { X, Save, BookPlus, Camera, Upload, Image as ImageIcon } from 'lucide-react';
 import { useLanguage } from '../i18n';
 
 interface ManualBookModalProps {
   initialIsbn?: string;
+  initialCoverUrl?: string;
   initialData?: Partial<Book>;
   shelfName: string;
   saving?: boolean;
@@ -29,6 +31,7 @@ interface ManualBookModalProps {
 
 export const ManualBookModal: React.FC<ManualBookModalProps> = ({
   initialIsbn = '',
+  initialCoverUrl = '',
   initialData,
   shelfName,
   saving = false,
@@ -47,7 +50,7 @@ export const ManualBookModal: React.FC<ManualBookModalProps> = ({
   const [quantity, setQuantity] = useState(initialData?.quantity || 1);
   const [genre, setGenre] = useState(initialData?.genre || '');
   const [keywords, setKeywords] = useState(initialData?.keywords || '');
-  const [coverUrl, setCoverUrl] = useState(initialData?.coverUrl || '');
+  const [coverUrl, setCoverUrl] = useState(initialData?.coverUrl || initialCoverUrl);
   const [notes, setNotes] = useState(initialData?.notes || '');
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -151,7 +154,13 @@ export const ManualBookModal: React.FC<ManualBookModalProps> = ({
               <input
                 type="text"
                 value={isbn}
-                onChange={(e) => setIsbn(e.target.value)}
+                onChange={(e) => {
+                  const nextIsbn = e.target.value;
+                  if (initialCoverUrl && coverUrl === initialCoverUrl && toIsbn13(nextIsbn) !== toIsbn13(initialIsbn)) {
+                    setCoverUrl('');
+                  }
+                  setIsbn(nextIsbn);
+                }}
                 placeholder="Např. 978-80-204-1234-5"
                 className="w-full px-2.5 py-1 sm:px-3 sm:py-2 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-mono"
               />

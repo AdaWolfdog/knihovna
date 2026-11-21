@@ -27,12 +27,12 @@ export function BookActions({ book, onEdit, onDelete }: BookActionsProps) {
     setFeedback(undefined);
     try {
       const result = await lookupBookByIsbnDetailed(isbn, { findCover: !book.coverUrl?.trim() });
-      if (!result.metadata) {
+      if (!result.metadata && !result.coverUrl) {
         setFeedback(result.isNetworkError ? 'refreshBookError' : 'refreshBookNoChanges');
         return;
       }
 
-      const metadata = result.metadata;
+      const metadata = result.metadata ?? { coverUrl: result.coverUrl };
       const updated = await db.transaction('rw', db.books, async () => {
         const current = await db.books.get(id);
         // The book may have been edited or deleted while the catalogs were loading.
