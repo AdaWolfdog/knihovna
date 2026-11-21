@@ -19,7 +19,7 @@ export interface BookMetadata {
 export interface CatalogLookupResult {
   metadata: BookMetadata | null;
   /**
-   * True if metadata was not found solely because all contacted catalogs had transient network errors,
+   * True if metadata was not found and at least one contacted catalog had a transient network error,
    * timeouts, or 5xx/429 status codes, rather than a definitive "not found" response.
    */
   isNetworkError: boolean;
@@ -136,14 +136,13 @@ export type KnihovnyCzSearchType = 'ISN' | 'Title' | 'Author' | 'AllFields' | 'a
 /**
  * Performs a fetch with timeout and automatic retry on network errors or 5xx/429 status codes.
  */
-export async function fetchWithRetry(
-  url: string,
-  options: {
-    timeoutMs?: number;
-    retries?: number;
-    baseDelayMs?: number;
-  } = {}
-): Promise<{ ok: boolean; status: number; data?: any; error?: any }> {
+interface FetchOptions {
+  timeoutMs?: number;
+  retries?: number;
+  baseDelayMs?: number;
+}
+
+export async function fetchWithRetry(url: string, options: FetchOptions = {}): Promise<{ ok: boolean; status: number; data?: any; error?: any }> {
   const timeoutMs = options.timeoutMs ?? 4500;
   const maxRetries = options.retries ?? 1;
   const baseDelayMs = options.baseDelayMs ?? 400;
@@ -155,7 +154,6 @@ export async function fetchWithRetry(
 
     try {
       const response = await fetch(url, { signal });
-      cleanup();
 
       // Check for transient server-side error or rate-limiting
       if (response.status === 429 || (response.status >= 500 && response.status <= 599)) {
@@ -173,12 +171,13 @@ export async function fetchWithRetry(
       const data = await response.json();
       return { ok: true, status: response.status, data };
     } catch (err: any) {
-      cleanup();
       lastError = err;
       if (attempt < maxRetries) {
         await delay(baseDelayMs * (attempt + 1));
         continue;
       }
+    } finally {
+      cleanup();
     }
   }
 
@@ -324,7 +323,7 @@ export async function fetchFromKnihovnyCzDetailed(isbnInput: string): Promise<{ 
     return { metadata: null, isNetworkError: false };
   }
 
-  return { metadata: mapKnihovnyRecordToBookMetadata(matchingRecord, target13), isNetworkError: false };
+  return { metadata: { ...mapKnihovnyRecordToBookMetadata(matchingRecord, target13), isbn: target13 }, isNetworkError: false };
 }
 
 /**
@@ -380,70 +379,97 @@ export async function lookupBookByIsbnDetailed(isbnInput: string): Promise<Catal
     return { metadata: null, isNetworkError: false };
   }
 
-  let anyCatalogHadNetworkError = false;
-  let allCatalogsCompletedSuccessfully = true;
+  const catalogs = [
+    fetchFromKnihovnyCzDetailed,
+    fetchFromGoogleBooksDetailed,
+    fetchFromOpenLibraryDetailed,
+  ];
+  const extraOptions = { timeoutMs: 1800, retries: 0 };
+  let isNetworkError = false;
 
-  // 1. Try Knihovny.cz API
+  for (const [index, lookup] of catalogs.entries()) {
+    const result = await lookup(isbn).catch(() => ({ metadata: null, isNetworkError: true }));
+    if (!result.metadata) {
+      isNetworkError ||= result.isNetworkError;
+      continue;
+    }
+
+    const metadata = result.metadata;
+    if (!metadata.coverUrl || !metadata.genre) {
+      // Once a book is found, only look for missing details in the remaining catalogs.
+      const extraResults = await Promise.allSettled(
+        catalogs.slice(index + 1).map((lookupExtra) => lookupExtra(isbn, extraOptions)),
+      );
+      for (const extra of extraResults) {
+        if (extra.status !== 'fulfilled' || !extra.value.metadata) continue;
+        metadata.coverUrl ||= extra.value.metadata.coverUrl;
+        metadata.genre ||= extra.value.metadata.genre;
+        metadata.keywords ||= extra.value.metadata.keywords;
+      }
+    }
+    return { metadata, isNetworkError: false };
+  }
+
+  return isNetworkError
+    ? {
+        metadata: null,
+        isNetworkError: true,
+        errorMessage: 'Katalogy jsou dočasně nedostupné (chyba sítě nebo vypršení limitu).',
+      }
+    : { metadata: null, isNetworkError: false };
+}
+
+// Match explicit genre labels. Broad subjects and place names stay in keywords.
+const genreLabels = new Map<string, string>([
+  ['detective fiction', 'Detektivka'],
+  ['mystery fiction', 'Detektivka'],
+  ['mystery & detective', 'Detektivka'],
+  ['detektivní romány', 'Detektivka'],
+  ['detektivky', 'Detektivka'],
+  ['fantasy', 'Fantasy'],
+  ['fantasy fiction', 'Fantasy'],
+  ['science fiction', 'Sci-fi'],
+  ['sci-fi', 'Sci-fi'],
+  ['horror', 'Horor'],
+  ['horror fiction', 'Horor'],
+  ['thriller', 'Thriller'],
+  ['thrillers', 'Thriller'],
+  ['historical fiction', 'Historická beletrie'],
+  ['historické romány', 'Historická beletrie'],
+  ['romance', 'Romance'],
+  ['romance fiction', 'Romance'],
+  ['adventure fiction', 'Dobrodružná literatura'],
+  ['action & adventure', 'Dobrodružná literatura'],
+  ['biography', 'Životopis'],
+  ['biographies', 'Životopis'],
+  ['biography & autobiography', 'Životopis'],
+  ['poetry', 'Poezie'],
+  ['poezie', 'Poezie'],
+  ['short stories', 'Povídky'],
+  ['povídky', 'Povídky'],
+  ['comics & graphic novels', 'Komiks'],
+  ['graphic novels', 'Komiks'],
+  ['komiksy', 'Komiks'],
+]);
+
+function findGenre(labels: string[]): string | undefined {
+  for (const label of labels) {
+    for (const part of label.split('/').reverse()) {
+      const match = genreLabels.get(part.trim().toLowerCase());
+      if (match) return match;
+    }
+  }
+}
+
+function secureCoverUrl(value: unknown): string | undefined {
+  if (typeof value !== 'string') return;
   try {
-    const cpkResult = await fetchFromKnihovnyCzDetailed(isbn);
-    if (cpkResult.metadata) {
-      return { metadata: cpkResult.metadata, isNetworkError: false };
-    }
-    if (cpkResult.isNetworkError) {
-      anyCatalogHadNetworkError = true;
-      allCatalogsCompletedSuccessfully = false;
-    }
-  } catch (err) {
-    console.warn('Knihovny.cz lookup failed or offline:', err);
-    anyCatalogHadNetworkError = true;
-    allCatalogsCompletedSuccessfully = false;
+    const url = new URL(value);
+    if (url.protocol === 'http:') url.protocol = 'https:';
+    if (url.protocol === 'https:') return url.href;
+  } catch {
+    // Ignore malformed image links.
   }
-
-  // 2. Try Google Books API
-  try {
-    const googleResult = await fetchFromGoogleBooksDetailed(isbn);
-    if (googleResult.metadata) {
-      return { metadata: googleResult.metadata, isNetworkError: false };
-    }
-    if (googleResult.isNetworkError) {
-      anyCatalogHadNetworkError = true;
-      allCatalogsCompletedSuccessfully = false;
-    }
-  } catch (err) {
-    console.warn('Google Books lookup failed or offline:', err);
-    anyCatalogHadNetworkError = true;
-    allCatalogsCompletedSuccessfully = false;
-  }
-
-  // 3. Try Open Library API
-  try {
-    const openLibraryResult = await fetchFromOpenLibraryDetailed(isbn);
-    if (openLibraryResult.metadata) {
-      return { metadata: openLibraryResult.metadata, isNetworkError: false };
-    }
-    if (openLibraryResult.isNetworkError) {
-      anyCatalogHadNetworkError = true;
-      allCatalogsCompletedSuccessfully = false;
-    }
-  } catch (err) {
-    console.warn('Open Library lookup failed or offline:', err);
-    anyCatalogHadNetworkError = true;
-    allCatalogsCompletedSuccessfully = false;
-  }
-
-  // Only consider the book genuinely unknown if all contacted catalogs answered definitively (e.g. 200 OK with no records)
-  // without any network errors, timeouts, or 5xx/429 failures.
-  // If any catalog failed due to network problems and no metadata was found elsewhere,
-  // classify as an incomplete result due to temporary catalog failure.
-  if (allCatalogsCompletedSuccessfully && !anyCatalogHadNetworkError) {
-    return { metadata: null, isNetworkError: false };
-  }
-
-  return {
-    metadata: null,
-    isNetworkError: true,
-    errorMessage: 'Katalogy jsou dočasně nedostupné (chyba sítě nebo vypršení limitu).',
-  };
 }
 
 export async function fetchFromGoogleBooks(isbn: string): Promise<BookMetadata | null> {
@@ -451,24 +477,32 @@ export async function fetchFromGoogleBooks(isbn: string): Promise<BookMetadata |
   return res.metadata;
 }
 
-export async function fetchFromGoogleBooksDetailed(isbn: string): Promise<{ metadata: BookMetadata | null; isNetworkError: boolean }> {
+export async function fetchFromGoogleBooksDetailed(isbn: string, options: FetchOptions = {}): Promise<{ metadata: BookMetadata | null; isNetworkError: boolean }> {
   const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${encodeURIComponent(isbn)}`;
-  const response = await fetchWithRetry(url, { timeoutMs: 4000, retries: 1, baseDelayMs: 400 });
+  const response = await fetchWithRetry(url, { timeoutMs: 4000, retries: 1, baseDelayMs: 400, ...options });
 
   if (!response.ok) {
     const isNetwork = !response.status || response.status === 429 || response.status >= 500;
     return { metadata: null, isNetworkError: isNetwork };
   }
 
-  const data = response.data;
-  if (data?.totalItems > 0 && data.items && data.items.length > 0) {
-    const info = data.items[0].volumeInfo;
+  const target = toIsbn13(isbn);
+  const items = response.data?.items;
+  const info = Array.isArray(items) ? items.find((item) =>
+    Array.isArray(item?.volumeInfo?.industryIdentifiers) &&
+    item.volumeInfo.industryIdentifiers.some((entry: { type?: string; identifier?: string } | null) =>
+      (entry?.type === 'ISBN_10' || entry?.type === 'ISBN_13') &&
+      typeof entry.identifier === 'string' && toIsbn13(entry.identifier) === target
+    )
+  )?.volumeInfo : undefined;
+
+  if (info?.title) {
     const title = info.title + (info.subtitle ? `: ${info.subtitle}` : '');
     const author = info.authors ? info.authors.join(', ') : '';
     const publishedYear = info.publishedDate ? info.publishedDate.substring(0, 4) : '';
 
-    const categories = info.categories ? info.categories.join(', ') : '';
-    const coverUrl = info.imageLinks?.thumbnail || info.imageLinks?.smallThumbnail || undefined;
+    const categories: string[] = Array.isArray(info.categories) ? info.categories.filter((value: unknown) => typeof value === 'string') : [];
+    const coverUrl = secureCoverUrl(info.imageLinks?.thumbnail) || secureCoverUrl(info.imageLinks?.smallThumbnail);
 
     return {
       metadata: {
@@ -476,9 +510,9 @@ export async function fetchFromGoogleBooksDetailed(isbn: string): Promise<{ meta
         title,
         author,
         publishedYear,
-        genre: categories || undefined,
-        keywords: categories || undefined,
-        coverUrl: coverUrl ? coverUrl.replace('http://', 'https://') : undefined,
+        genre: findGenre(categories),
+        keywords: categories.join(', ') || undefined,
+        coverUrl,
         source: 'Google Books',
       },
       isNetworkError: false,
@@ -493,9 +527,9 @@ export async function fetchFromOpenLibrary(isbn: string): Promise<BookMetadata |
   return res.metadata;
 }
 
-export async function fetchFromOpenLibraryDetailed(isbn: string): Promise<{ metadata: BookMetadata | null; isNetworkError: boolean }> {
+export async function fetchFromOpenLibraryDetailed(isbn: string, options: FetchOptions = {}): Promise<{ metadata: BookMetadata | null; isNetworkError: boolean }> {
   const url = `https://openlibrary.org/api/books?bibkeys=ISBN:${encodeURIComponent(isbn)}&format=json&jscmd=data`;
-  const response = await fetchWithRetry(url, { timeoutMs: 4000, retries: 1, baseDelayMs: 400 });
+  const response = await fetchWithRetry(url, { timeoutMs: 4000, retries: 1, baseDelayMs: 400, ...options });
 
   if (!response.ok) {
     const isNetwork = !response.status || response.status === 429 || response.status >= 500;
@@ -506,12 +540,19 @@ export async function fetchFromOpenLibraryDetailed(isbn: string): Promise<{ meta
   const key = `ISBN:${isbn}`;
   if (data && data[key]) {
     const book = data[key];
+    const identifiers = [book.identifiers?.isbn_13, book.identifiers?.isbn_10].flatMap((values) => Array.isArray(values) ? values : []);
+    const target = toIsbn13(isbn);
+    if (identifiers.length && !identifiers.some((value: unknown) => typeof value === 'string' && toIsbn13(value) === target)) {
+      return { metadata: null, isNetworkError: false };
+    }
     const title = book.title || '';
     const author = book.authors ? book.authors.map((a: { name: string }) => a.name).join(', ') : '';
     const publishedYear = book.publish_date ? book.publish_date.match(/\d{4}/)?.[0] || book.publish_date : '';
 
-    const subjects = book.subjects ? book.subjects.map((s: { name: string }) => s.name).join(', ') : '';
-    const coverUrl = book.cover?.medium || book.cover?.small || undefined;
+    const subjects: string[] = Array.isArray(book.subjects)
+      ? book.subjects.map((subject: { name?: unknown } | null) => subject?.name).filter((name: unknown) => typeof name === 'string')
+      : [];
+    const coverUrl = secureCoverUrl(book.cover?.medium) || secureCoverUrl(book.cover?.large) || secureCoverUrl(book.cover?.small);
 
     return {
       metadata: {
@@ -519,8 +560,8 @@ export async function fetchFromOpenLibraryDetailed(isbn: string): Promise<{ meta
         title,
         author,
         publishedYear,
-        genre: subjects ? subjects.split(',')[0] : undefined,
-        keywords: subjects || undefined,
+        genre: findGenre(subjects),
+        keywords: subjects.join(', ') || undefined,
         coverUrl,
         source: 'Open Library',
       },

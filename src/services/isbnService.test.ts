@@ -259,6 +259,7 @@ describe('fetchBookByIsbn with fallbacks', () => {
               {
                 volumeInfo: {
                   title: 'Google Book Title',
+                  industryIdentifiers: [{ type: 'ISBN_13', identifier: '9788025703670' }],
                   authors: ['Google Author'],
                   publishedDate: '2020-05-01',
                 },

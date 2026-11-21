@@ -496,9 +496,9 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         publishedYear: metadata?.publishedYear || existingRef?.publishedYear || '',
         translator: metadata?.translator || existingRef?.translator || '',
         editionNumber: metadata?.editionNumber || existingRef?.editionNumber || '',
-        genre: metadata?.genre || existingRef?.genre || '',
-        keywords: metadata?.keywords || existingRef?.keywords || '',
-        coverUrl: metadata?.coverUrl || existingRef?.coverUrl || '',
+        genre: existingRef?.genre || metadata?.genre || '',
+        keywords: existingRef?.keywords || metadata?.keywords || '',
+        coverUrl: existingRef?.coverUrl || metadata?.coverUrl || '',
         publisher: metadata?.publisher || existingRef?.publisher || '',
         placeOfPublication: metadata?.placeOfPublication || existingRef?.placeOfPublication || '',
         cnb: metadata?.cnb || existingRef?.cnb || '',
@@ -653,8 +653,15 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         const scannedAt = new Date();
         if (existing?.id !== undefined) {
           const quantity = (existing.quantity || 1) + (bookData.quantity || 1);
-          await db.books.update(existing.id, { quantity, scannedAt });
-          return { book: { ...existing, quantity, scannedAt }, isExisting: true };
+          const changes = {
+            quantity,
+            scannedAt,
+            ...(!existing.genre && bookData.genre ? { genre: bookData.genre } : {}),
+            ...(!existing.keywords && bookData.keywords ? { keywords: bookData.keywords } : {}),
+            ...(!existing.coverUrl && bookData.coverUrl ? { coverUrl: bookData.coverUrl } : {}),
+          };
+          await db.books.update(existing.id, changes);
+          return { book: { ...existing, ...changes }, isExisting: true };
         }
 
         const newBook: Book = {
