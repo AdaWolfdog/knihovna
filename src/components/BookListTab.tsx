@@ -278,7 +278,7 @@ export const BookListTab: React.FC = () => {
               <span>{t('orientationHint')}</span>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="relative overflow-x-auto">
               <table className="w-full text-left text-xs text-slate-700">
                 <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase font-semibold">
                   <tr>
