@@ -1,5 +1,6 @@
 import { BookCoverImage } from './BookCoverImage';
 import { BookActions } from './BookActions';
+import { useMobileLandscapeTable } from './useMobileLandscapeTable';
 import { DEFAULT_LIBRARY_COLOR, LIBRARY_COLORS } from './libraryColors';
 import { BookQuantityControl } from './BookQuantityControl';
 import React, { useState } from 'react';
@@ -22,6 +23,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
   onSelectShelfForScanning,
 }) => {
   const { t, translateDynamic } = useLanguage();
+  const isMobileLandscapeTable = useMobileLandscapeTable();
   const libraries = useLiveQuery(() => db.libraries.toArray(), []) || [];
   const rooms = useLiveQuery(() => db.rooms.toArray(), []) || [];
   const shelves = useLiveQuery(() => db.shelves.toArray(), []) || [];
@@ -225,6 +227,8 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
     : [];
   const activeShelfRoom = activeShelf ? rooms.find((r) => r.id === activeShelf.roomId) : null;
   const activeShelfLibrary = activeShelf ? libraries.find((l) => l.id === activeShelf.libraryId) : null;
+
+  const actionsHeader = <th key="actions" className="p-3 text-right">{t('thActions')}</th>;
 
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
@@ -816,17 +820,33 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                         {translateDynamic(t('formLabelKeywords'))}
                       </span>
                     </th>
+                    {isMobileLandscapeTable && actionsHeader}
                     <th className="p-3 mobile-portrait-hidden mobile-landscape-hidden">{t('thIsbn')}</th>
                     <th className="p-3 text-center mobile-portrait-hidden mobile-landscape-hidden">{t('thQuantity')}</th>
                     <th className="p-3 mobile-portrait-hidden">
                       <span className="mobile-landscape-hidden">{t('thYearEdition')}</span>
                       <span className="hidden mobile-landscape-only">{t('thEditionIsbnLandscape')}</span>
                     </th>
-                    <th className="p-3 text-right">{t('thActions')}</th>
+                    {!isMobileLandscapeTable && actionsHeader}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {activeShelfBooks.map((book) => {
+                    const actionsCell = (
+                      <td key="actions" className="p-3 text-right">
+                        <div className="flex flex-col items-end gap-1.5">
+                          <BookQuantityControl book={book} compact="portrait" />
+
+                          <BookActions
+                            book={book}
+                            onEdit={() => setEditingBook(book)}
+                            onDelete={() => handleDeleteBook(book.id!)}
+                          />
+                          <BookQuantityControl book={book} compact="landscape" />
+                        </div>
+                      </td>
+                    );
+
                     return (
                       <tr key={book.id} className="hover:bg-slate-50/80 transition">
                         <td className="p-3 text-center mobile-portrait-hidden">
@@ -870,6 +890,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                             </div>
                           )}
                         </td>
+                        {isMobileLandscapeTable && actionsCell}
                         <td className="p-3 font-mono text-slate-600 mobile-portrait-hidden mobile-landscape-hidden">
                           {book.isbn || <span className="text-slate-400 italic">{t('noIsbnText')}</span>}
                         </td>
@@ -885,18 +906,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                             {book.isbn || <span className="text-slate-400 italic">{t('noIsbnText')}</span>}
                           </div>
                         </td>
-                        <td className="p-3 text-right">
-                          <div className="flex flex-col items-end gap-1.5">
-                            <BookQuantityControl book={book} compact="portrait" />
-
-                            <BookActions
-                              book={book}
-                              onEdit={() => setEditingBook(book)}
-                              onDelete={() => handleDeleteBook(book.id!)}
-                            />
-                            <BookQuantityControl book={book} compact="landscape" />
-                          </div>
-                        </td>
+                        {!isMobileLandscapeTable && actionsCell}
                       </tr>
                     );
                   })}

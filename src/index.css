@@ -462,7 +462,7 @@ body {
   }
 }
 
-/* A short landscape viewport with a touch pointer is the phone table layout. */
+/* Keep the phone table breakpoint in sync with useMobileLandscapeTable.ts. */
 @media (orientation: landscape) and (pointer: coarse) and (max-height: 500px) and (max-width: 1000px) {
   .mobile-landscape-hidden {
     display: none;
