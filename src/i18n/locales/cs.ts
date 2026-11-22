@@ -164,6 +164,16 @@ export const cs = {
   confirmDeleteBookCompletely: 'Chcete tuto knihu zcela odstranit ze seznamu?',
 
   // BookListTab
+  bookSortLabel: 'Řazení',
+  bookSortBy: 'Řadit podle',
+  bookSortTitle: 'Název',
+  bookSortAuthor: 'Autor',
+  bookSortPublished: 'Datum vydání',
+  bookSortAdded: 'Datum přidání',
+  bookSortQuantity: 'Počet kusů',
+  bookSortDirection: 'Směr',
+  bookSortAscending: 'Vzestupně',
+  bookSortDescending: 'Sestupně',
   bookViewLabel: 'Zobrazení knih',
   bookViewList: 'Seznam',
   bookViewGallery: 'Dlaždice',

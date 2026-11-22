@@ -1,5 +1,7 @@
 import { BookCoverImage } from './BookCoverImage';
 import { BookActions } from './BookActions';
+import { BookSortMenu } from './BookSortMenu';
+import { sortBooks, type BookSortCriterion, type BookSortDirection } from '../services/bookSort';
 import { useMobileLandscapeTable } from './useMobileLandscapeTable';
 import { DEFAULT_LIBRARY_COLOR } from './libraryColors';
 import { BookQuantityControl } from './BookQuantityControl';
@@ -12,7 +14,7 @@ import { ManualBookModal } from './ManualBookModal';
 import { useLanguage } from '../i18n';
 
 export const BookListTab: React.FC = () => {
-  const { t, translateDynamic } = useLanguage();
+  const { language, t, translateDynamic } = useLanguage();
   const isMobileLandscapeTable = useMobileLandscapeTable();
   const books = useLiveQuery(() => db.books.toArray(), []) || [];
   const libraries = useLiveQuery(() => db.libraries.toArray(), []) || [];
@@ -20,6 +22,8 @@ export const BookListTab: React.FC = () => {
   const shelves = useLiveQuery(() => db.shelves.toArray(), []) || [];
 
   const [view, setView] = useState<'list' | 'gallery'>('list');
+  const [sortCriterion, setSortCriterion] = useState<BookSortCriterion>('title');
+  const [sortDirection, setSortDirection] = useState<BookSortDirection>('asc');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLibraryFilter, setSelectedLibraryFilter] = useState<number | 'all'>('all');
   const [selectedRoomFilter, setSelectedRoomFilter] = useState<number | 'all'>('all');
@@ -58,6 +62,12 @@ export const BookListTab: React.FC = () => {
       return true;
     });
   }, [books, selectedLibraryFilter, selectedRoomFilter, selectedShelfFilter, searchQuery]);
+
+  const collator = useMemo(() => new Intl.Collator(language === 'emoji' ? 'cs' : language, { numeric: true }), [language]);
+  const sortedBooks = useMemo(
+    () => sortBooks(filteredBooks, sortCriterion, sortDirection, collator),
+    [filteredBooks, sortCriterion, sortDirection, collator],
+  );
 
   // Export handlers
   const handleExportXLSX = () => {
@@ -277,25 +287,33 @@ export const BookListTab: React.FC = () => {
         </div>
       </div>
 
-      <div role="group" aria-label={t('bookViewLabel')} className="mb-3! flex justify-end gap-1.5">
-        {([
-          ['list', List, t('bookViewList')],
-          ['gallery', Grid2X2, t('bookViewGallery')],
-        ] as const).map(([mode, Icon, label]) => (
-          <button
-            key={mode}
-            type="button"
-            aria-label={label}
-            title={label}
-            aria-pressed={view === mode}
-            onClick={() => setView(mode)}
-            className={`inline-flex size-11 items-center justify-center rounded-xl border transition cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-500 sm:size-10 ${view === mode
-              ? 'bg-indigo-600 border-indigo-600 text-on-accent'
-              : 'bg-white border-slate-200 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
-          >
-            <Icon className="size-5" aria-hidden="true" />
-          </button>
-        ))}
+      <div className="mb-3! flex items-center justify-between gap-2">
+        <BookSortMenu
+          criterion={sortCriterion}
+          direction={sortDirection}
+          onCriterionChange={setSortCriterion}
+          onDirectionChange={setSortDirection}
+        />
+        <div role="group" aria-label={t('bookViewLabel')} className="flex shrink-0 gap-1.5">
+          {([
+            ['list', List, t('bookViewList')],
+            ['gallery', Grid2X2, t('bookViewGallery')],
+          ] as const).map(([mode, Icon, label]) => (
+            <button
+              key={mode}
+              type="button"
+              aria-label={label}
+              title={label}
+              aria-pressed={view === mode}
+              onClick={() => setView(mode)}
+              className={`inline-flex size-11 items-center justify-center rounded-xl border transition cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-500 sm:size-10 ${view === mode
+                ? 'bg-indigo-600 border-indigo-600 text-on-accent'
+                : 'bg-white border-slate-200 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
+            >
+              <Icon className="size-5" aria-hidden="true" />
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className={view === 'gallery' && filteredBooks.length > 0 ? '' : 'bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden'}>
@@ -305,7 +323,7 @@ export const BookListTab: React.FC = () => {
           </div>
         ) : view === 'gallery' ? (
           <ul className={`grid gap-3 sm:gap-4 ${isMobileLandscapeTable ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-3'}`}>
-            {filteredBooks.map((book) => {
+            {sortedBooks.map((book) => {
               const title = book.title || t('unknownTitle');
               const color = librariesMap.get(book.libraryId)?.color || DEFAULT_LIBRARY_COLOR;
 
@@ -377,7 +395,7 @@ export const BookListTab: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredBooks.map((book) => {
+                  {sortedBooks.map((book) => {
                     const lib = librariesMap.get(book.libraryId);
                     const room = roomsMap.get(book.roomId);
                     const shelf = shelvesMap.get(book.shelfId);

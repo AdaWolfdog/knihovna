@@ -166,6 +166,16 @@ export const en: Record<TranslationKey, string> = {
   confirmDeleteBookCompletely: 'Do you want to completely remove this book from the list?',
 
   // BookListTab
+  bookSortLabel: 'Sort',
+  bookSortBy: 'Sort by',
+  bookSortTitle: 'Title',
+  bookSortAuthor: 'Author',
+  bookSortPublished: 'Publication date',
+  bookSortAdded: 'Date added',
+  bookSortQuantity: 'Number of copies',
+  bookSortDirection: 'Direction',
+  bookSortAscending: 'Ascending',
+  bookSortDescending: 'Descending',
   bookViewLabel: 'Book view',
   bookViewList: 'List',
   bookViewGallery: 'Grid',

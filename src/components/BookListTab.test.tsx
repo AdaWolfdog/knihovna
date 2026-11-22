@@ -69,3 +69,68 @@ it('switches between the table and the gallery while preserving the active filte
     vi.restoreAllMocks();
   }
 });
+
+it('sorts the list and gallery using both groups in the sort menu', async () => {
+  const fixture = (id: number, title: string, author: string, publishedYear: string, scannedAt: string, quantity: number): Book => ({
+    id, title, author, publishedYear, scannedAt: new Date(scannedAt), quantity,
+    isbn: '', libraryId: 1, roomId: 1, shelfId: 1,
+  });
+  const books = [
+    fixture(1, 'Kosení', 'Shusterman, Neal', '2023', '2026-11-16', 4),
+    fixture(2, 'Bílá Voda', 'Kateřina Tučková', '[2022]', '2026-11-20', 1),
+    fixture(3, 'Čaj s kapkou jedu', 'Robin Stevensová', '2018', '2026-11-22', 2),
+    fixture(4, 'Tajemná zahrada', 'Burnettová, Frances Hodgson', '', '2026-11-18', 3),
+  ];
+  vi.spyOn(db.books, 'toArray').mockReturnValue(books as unknown as ReturnType<typeof db.books.toArray>);
+  vi.spyOn(db.libraries, 'toArray').mockReturnValue([] as unknown as ReturnType<typeof db.libraries.toArray>);
+  vi.spyOn(db.rooms, 'toArray').mockReturnValue([] as unknown as ReturnType<typeof db.rooms.toArray>);
+  vi.spyOn(db.shelves, 'toArray').mockReturnValue([] as unknown as ReturnType<typeof db.shelves.toArray>);
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+
+  const container = document.createElement('div');
+  const root = createRoot(container);
+  try {
+    await act(async () => root.render(<BookListTab />));
+    const sort = [...container.querySelectorAll('button')].find((button) => button.textContent === 'Řazení')!;
+    const menu = container.querySelector('fieldset')!.parentElement!;
+    const choose = async (label: string) => {
+      const option = [...menu.querySelectorAll('label')].find((item) => item.textContent === label)!;
+      await act(async () => option.querySelector('input')!.click());
+    };
+    const firstTitle = () => container.querySelector('tbody tr td:nth-child(2) .font-bold, ul li h3')?.textContent;
+
+    expect(menu.hidden).toBe(true);
+    expect(firstTitle()).toBe('Bílá Voda');
+    await act(async () => sort.click());
+    expect(sort.getAttribute('aria-expanded')).toBe('true');
+    expect(menu.hidden).toBe(false);
+
+    for (const [criterion, firstAsc, firstDesc] of [
+      ['Název', 'Bílá Voda', 'Tajemná zahrada'],
+      ['Autor', 'Tajemná zahrada', 'Bílá Voda'],
+      ['Datum vydání', 'Čaj s kapkou jedu', 'Kosení'],
+      ['Datum přidání', 'Kosení', 'Čaj s kapkou jedu'],
+      ['Počet kusů', 'Bílá Voda', 'Kosení'],
+    ]) {
+      await choose(criterion);
+      await choose('Vzestupně');
+      expect(firstTitle()).toBe(firstAsc);
+      await choose('Sestupně');
+      expect(firstTitle()).toBe(firstDesc);
+    }
+
+    await choose('Datum vydání');
+    const gallery = container.querySelector<HTMLButtonElement>('[aria-label="Dlaždice"]')!;
+    await act(async () => gallery.click());
+    expect(firstTitle()).toBe('Kosení');
+    expect(container.querySelector('ul li:last-child h3')?.textContent).toBe('Tajemná zahrada');
+
+    await act(async () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
+    expect(sort.getAttribute('aria-expanded')).toBe('false');
+    expect(menu.hidden).toBe(true);
+  } finally {
+    await act(async () => root.unmount());
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  }
+});
