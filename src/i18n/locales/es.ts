@@ -166,6 +166,9 @@ export const es: Record<TranslationKey, string> = {
   confirmDeleteBookCompletely: '¿Desea eliminar completamente este libro de la lista?',
 
   // BookListTab
+  bookViewLabel: 'Vista de libros',
+  bookViewList: 'Lista',
+  bookViewGallery: 'Cuadrícula',
   bookListTitle: 'Lista de libros escaneados',
   bookListSubtitle: 'Explore, busque y exporte la colección completa a hojas de cálculo de Excel o CSV.',
   exportXlsxBtn: 'Exportar a Excel (.xlsx)',

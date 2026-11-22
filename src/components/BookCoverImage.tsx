@@ -9,10 +9,11 @@ interface BookCoverImageProps {
   bookId?: number;
   alt: string;
   className: string;
+  loading?: 'eager' | 'lazy';
   fallback: ReactNode;
 }
 
-export function BookCoverImage({ src, isbn, bookId, alt, className, fallback }: BookCoverImageProps) {
+export function BookCoverImage({ src, isbn, bookId, alt, className, loading, fallback }: BookCoverImageProps) {
   const [failedSrc, setFailedSrc] = useState<string>();
   const [found, setFound] = useState<{ key: string; url?: string }>();
   const savedUrl = src?.trim() || undefined;
@@ -53,6 +54,7 @@ export function BookCoverImage({ src, isbn, bookId, alt, className, fallback }: 
       key={displayUrl}
       src={displayUrl}
       alt={alt}
+      loading={loading}
       className={className}
       onError={markFailed}
       onLoad={({ currentTarget }) => {

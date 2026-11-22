@@ -164,6 +164,9 @@ export const cs = {
   confirmDeleteBookCompletely: 'Chcete tuto knihu zcela odstranit ze seznamu?',
 
   // BookListTab
+  bookViewLabel: 'Zobrazení knih',
+  bookViewList: 'Seznam',
+  bookViewGallery: 'Dlaždice',
   bookListTitle: 'Seznam naskenovaných knih',
   bookListSubtitle: 'Prohlížejte, vyhledávejte a exportujte kompletní fond do tabulek Excel nebo CSV.',
   exportXlsxBtn: 'Exportovat do Excel (.xlsx)',

@@ -7,7 +7,7 @@ import React, { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Book } from '../db/db';
 import { exportToXLSX, exportToCSV, prepareExportData } from '../services/exportService';
-import { Search, BookOpen, FileSpreadsheet, FileText, Filter, Image as ImageIcon, Smartphone } from 'lucide-react';
+import { Search, BookOpen, FileSpreadsheet, FileText, Filter, Grid2X2, Image as ImageIcon, List, Smartphone } from 'lucide-react';
 import { ManualBookModal } from './ManualBookModal';
 import { useLanguage } from '../i18n';
 
@@ -19,6 +19,7 @@ export const BookListTab: React.FC = () => {
   const rooms = useLiveQuery(() => db.rooms.toArray(), []) || [];
   const shelves = useLiveQuery(() => db.shelves.toArray(), []) || [];
 
+  const [view, setView] = useState<'list' | 'gallery'>('list');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLibraryFilter, setSelectedLibraryFilter] = useState<number | 'all'>('all');
   const [selectedRoomFilter, setSelectedRoomFilter] = useState<number | 'all'>('all');
@@ -113,6 +114,14 @@ export const BookListTab: React.FC = () => {
     }
     return shelves;
   }, [shelves, selectedLibraryFilter, selectedRoomFilter]);
+
+  const renderBookActions = (book: Book) => (
+    <BookActions
+      book={book}
+      onEdit={() => setEditingBook(book)}
+      onDelete={() => handleDeleteBook(book.id!)}
+    />
+  );
 
   const actionsHeader = <th key="actions" className="p-3 text-right">{t('thActions')}</th>;
 
@@ -268,12 +277,70 @@ export const BookListTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Books Table View */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div role="group" aria-label={t('bookViewLabel')} className="mb-3! flex justify-end gap-1.5">
+        {([
+          ['list', List, t('bookViewList')],
+          ['gallery', Grid2X2, t('bookViewGallery')],
+        ] as const).map(([mode, Icon, label]) => (
+          <button
+            key={mode}
+            type="button"
+            aria-label={label}
+            title={label}
+            aria-pressed={view === mode}
+            onClick={() => setView(mode)}
+            className={`inline-flex size-11 items-center justify-center rounded-xl border transition cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-500 sm:size-10 ${view === mode
+              ? 'bg-indigo-600 border-indigo-600 text-on-accent'
+              : 'bg-white border-slate-200 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
+          >
+            <Icon className="size-5" aria-hidden="true" />
+          </button>
+        ))}
+      </div>
+
+      <div className={view === 'gallery' && filteredBooks.length > 0 ? '' : 'bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden'}>
         {filteredBooks.length === 0 ? (
           <div className="p-12 text-center text-slate-400 text-sm">
             {t('noBooksFound')}
           </div>
+        ) : view === 'gallery' ? (
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+            {filteredBooks.map((book) => {
+              const title = book.title || t('unknownTitle');
+              const color = librariesMap.get(book.libraryId)?.color || DEFAULT_LIBRARY_COLOR;
+
+              return (
+                <li key={book.id} className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                  <div className="flex items-center justify-center bg-indigo-50 px-2 py-3 sm:py-4">
+                    <BookCoverImage
+                      src={book.coverUrl}
+                      alt={title}
+                      loading="lazy"
+                      className="h-32 w-auto max-w-full rounded-sm object-contain shadow-sm sm:h-48"
+                      fallback={
+                        <div className="flex h-32 aspect-[2/3] max-w-full items-center justify-center rounded-md border border-slate-200 bg-slate-100 text-slate-400 sm:h-48">
+                          <ImageIcon className="size-7" aria-hidden="true" />
+                        </div>
+                      }
+                    />
+                  </div>
+                  <div className="flex grow flex-col gap-2 p-2.5 sm:p-3">
+                    <div>
+                      <h3 className="flex items-start gap-1.5 text-sm font-bold text-slate-900">
+                        <BookOpen className="mt-0.5 size-4 shrink-0" style={{ color }} aria-hidden="true" />
+                        <span className="min-w-0 [overflow-wrap:anywhere]">{title}</span>
+                      </h3>
+                      <p className="text-xs text-slate-500 [overflow-wrap:anywhere]">{book.author || t('unknownAuthor')}</p>
+                    </div>
+                    <div className="mt-auto flex flex-wrap items-start justify-between gap-x-1 gap-y-1.5 border-t border-slate-100 pt-2">
+                      <BookQuantityControl book={book} />
+                      {renderBookActions(book)}
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         ) : (
           <div>
             {/* Decent mobile orientation banner */}
@@ -321,11 +388,7 @@ export const BookListTab: React.FC = () => {
                         <div className="flex flex-col items-end gap-1.5">
                           <BookQuantityControl book={book} compact="portrait" />
 
-                          <BookActions
-                            book={book}
-                            onEdit={() => setEditingBook(book)}
-                            onDelete={() => handleDeleteBook(book.id!)}
-                          />
+                          {renderBookActions(book)}
                           <BookQuantityControl book={book} compact="landscape" />
                         </div>
                       </td>
