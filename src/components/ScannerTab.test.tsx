@@ -551,6 +551,43 @@ describe('ScannerTab component real workflow', () => {
     expect(isbnOcrService.recognizeIsbnFromSource).toHaveBeenCalledTimes(1);
   });
 
+  it('tries printed ISBN after four seconds but warns after thirty seconds in fast mode', async () => {
+    vi.useFakeTimers();
+    let now = 1000;
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
+    const recognize = vi.spyOn(isbnOcrService, 'recognizeIsbnFromSource').mockResolvedValue(null);
+
+    await act(async () => root.render(<ScannerTab activeShelfId={10} onNavigateToStructure={() => {}} />));
+    const fastMode = Array.from(container.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Zapnout rychlé skenování'),
+    );
+    const start = Array.from(container.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Spustit skenování'),
+    );
+    await act(async () => fastMode?.click());
+    await act(async () => start?.click());
+
+    now += 35000;
+    await act(async () => vi.advanceTimersByTimeAsync(1200));
+    expect(recognize).not.toHaveBeenCalled();
+    expect(container.textContent).toContain('Zastavit fotoaparát');
+
+    await act(async () => markCameraReady(container));
+    now += 4000;
+    await act(async () => vi.advanceTimersByTimeAsync(1200));
+    expect(recognize).toHaveBeenCalledTimes(1);
+
+    now += 25999;
+    await act(async () => vi.advanceTimersByTimeAsync(1200));
+    expect(container.textContent).not.toContain('Skener nenalezl kód');
+    expect(container.textContent).toContain('Zastavit fotoaparát');
+
+    now += 1;
+    await act(async () => vi.advanceTimersByTimeAsync(1200));
+    expect(container.textContent).toContain('Skener nenalezl kód');
+    expect(container.textContent).toContain('Spustit skenování');
+  });
+
   it('shows lighting warning, stops camera and offers retry on first OCR failure', async () => {
     vi.useFakeTimers();
     let now = 1000;

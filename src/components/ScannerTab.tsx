@@ -14,6 +14,7 @@ import { useLanguage } from '../i18n';
 
 const BARCODE_GRACE_MS = 4000;
 const OCR_WARNING_MS = 4500;
+const FAST_SCAN_WARNING_MS = 30_000;
 
 function hasCameraFrame(video: HTMLVideoElement | null): video is HTMLVideoElement {
   return Boolean(video && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
@@ -280,7 +281,9 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       return;
     }
 
-    if (now - since > OCR_WARNING_MS) {
+    const elapsed = now - since;
+    const shouldWarn = isFastScanModeRef.current ? elapsed >= FAST_SCAN_WARNING_MS : elapsed > OCR_WARNING_MS;
+    if (shouldWarn) {
       ocrAttemptCountRef.current += 1;
       stopCamera();
 
