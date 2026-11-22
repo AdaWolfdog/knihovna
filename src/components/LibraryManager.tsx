@@ -816,11 +816,11 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                         {translateDynamic(t('formLabelKeywords'))}
                       </span>
                     </th>
-                    <th className="p-3 mobile-portrait-hidden">{t('thIsbn')}</th>
+                    <th className="p-3 mobile-portrait-hidden mobile-landscape-hidden">{t('thIsbn')}</th>
                     <th className="p-3 text-center mobile-portrait-hidden mobile-landscape-hidden">{t('thQuantity')}</th>
                     <th className="p-3 mobile-portrait-hidden">
                       <span className="mobile-landscape-hidden">{t('thYearEdition')}</span>
-                      <span className="hidden mobile-landscape-only whitespace-pre-line">{t('thYearEditionLandscape')}</span>
+                      <span className="hidden mobile-landscape-only">{t('thEditionIsbnLandscape')}</span>
                     </th>
                     <th className="p-3 text-right">{t('thActions')}</th>
                   </tr>
@@ -870,7 +870,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                             </div>
                           )}
                         </td>
-                        <td className="p-3 font-mono text-slate-600 mobile-portrait-hidden">
+                        <td className="p-3 font-mono text-slate-600 mobile-portrait-hidden mobile-landscape-hidden">
                           {book.isbn || <span className="text-slate-400 italic">{t('noIsbnText')}</span>}
                         </td>
                         <td className="p-3 text-center mobile-portrait-hidden mobile-landscape-hidden">
@@ -881,6 +881,9 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                           {book.editionNumber && (
                             <div className="text-[10px] text-slate-400">{book.editionNumber}</div>
                           )}
+                          <div className="hidden mobile-landscape-only font-mono text-slate-600">
+                            {book.isbn || <span className="text-slate-400 italic">{t('noIsbnText')}</span>}
+                          </div>
                         </td>
                         <td className="p-3 text-right">
                           <div className="flex flex-col items-end gap-1.5">

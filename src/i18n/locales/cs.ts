@@ -132,7 +132,7 @@ export const cs = {
   thIsbn: 'ISBN',
   thQuantity: 'Počet kusů',
   thYearEdition: 'Rok / Vydání',
-  thYearEditionLandscape: 'Rok a\nčíslo vydání',
+  thEditionIsbnLandscape: 'Vydání a ISBN',
   thActions: 'Akce',
   thLocation: 'Umístění (Knihovna / Místnost / Police)',
   thLocationLandscape: 'Umístění',

@@ -134,7 +134,7 @@ export const es: Record<TranslationKey, string> = {
   thIsbn: 'ISBN',
   thQuantity: 'Cantidad',
   thYearEdition: 'Año / Edición',
-  thYearEditionLandscape: 'Año y\nnúmero de edición',
+  thEditionIsbnLandscape: 'Edición e ISBN',
   thActions: 'Acciones',
   thLocation: 'Ubicación (Biblioteca / Sala / Estante)',
   thLocationLandscape: 'Ubicación',
