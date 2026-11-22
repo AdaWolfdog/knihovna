@@ -22,7 +22,7 @@ const isbn = '9788025338742';
 const replacement = 'https://www.obalkyknih.cz/api/cover?isbn=9788025338742';
 const original = 'https://books.example/old.jpg';
 
-describe('automatic covers for saved books', () => {
+describe('automatic covers for recent scans', () => {
   let container: HTMLDivElement;
   let root: Root;
 
@@ -40,6 +40,19 @@ describe('automatic covers for saved books', () => {
 
   const renderCover = (root: Root, src?: string) => act(async () => {
     root.render(<BookCoverImage src={src} isbn={isbn} bookId={1} alt="Cover" className="" fallback="No cover" />);
+  });
+
+  it('shows the placeholder without a search in a book list', async () => {
+    await act(async () => {
+      root.render(<BookCoverImage src={original} alt="Cover" className="" fallback="No cover" />);
+    });
+    await act(async () => {
+      container.querySelector('img')?.dispatchEvent(new Event('error'));
+    });
+
+    expect(container.textContent).toBe('No cover');
+    expect(resolveBackgroundBookCover).not.toHaveBeenCalled();
+    expect(db.books.update).not.toHaveBeenCalled();
   });
 
   it('loads and persists an exact-ISBN cover without any user action', async () => {

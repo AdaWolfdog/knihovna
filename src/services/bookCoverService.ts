@@ -56,14 +56,6 @@ function loadCover(url: string, timeout: number): Promise<CoverLoadResult> {
   });
 }
 
-export async function canReplaceBookCover(current: string, replacement: string): Promise<boolean> {
-  if (current === replacement || typeof Image === 'undefined') return false;
-
-  // A slow connection alone is insufficient evidence that a saved cover is broken.
-  if (await loadCover(current, LOOKUP_TIMEOUT_MS) !== 'broken') return false;
-  return await loadCover(replacement, LOOKUP_TIMEOUT_MS) === 'valid';
-}
-
 // The Covers API limits ISBN-based requests. Leave headroom for other clients on the same IP.
 function allowIsbnRequest(now: number): boolean {
   while (isbnRequests.length && isbnRequests[0] <= now - 5 * 60_000) isbnRequests.shift();
@@ -179,4 +171,21 @@ export function resolveBackgroundBookCover(isbn: string, failedUrl?: string): Pr
   backgroundCache.set(key, { result, expires: Infinity });
   startBackgroundLookup();
   return result;
+}
+
+
+export async function resolveBookCoverForRefresh(
+  isbn: string,
+  savedCover?: string,
+  catalogCover?: string,
+): Promise<string | undefined> {
+  if (!savedCover) return catalogCover ?? resolveBackgroundBookCover(isbn);
+  if (typeof Image === 'undefined') return undefined;
+
+  // A slow connection alone is insufficient evidence that a saved cover is broken.
+  if (await loadCover(savedCover, LOOKUP_TIMEOUT_MS) !== 'broken') return undefined;
+  if (catalogCover && catalogCover !== savedCover && await loadCover(catalogCover, LOOKUP_TIMEOUT_MS) === 'valid') {
+    return catalogCover;
+  }
+  return resolveBackgroundBookCover(isbn, savedCover);
 }

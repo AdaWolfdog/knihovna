@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { canReplaceBookCover, getCoverSourcePage, resolveBackgroundBookCover, resolveBookCover } from './bookCoverService';
+import { getCoverSourcePage, resolveBackgroundBookCover, resolveBookCover, resolveBookCoverForRefresh } from './bookCoverService';
 import { lookupBookByIsbnDetailed } from './isbnService';
 
 function mockImages(results: Record<string, [number, number] | 'error' | 'slow'>) {
@@ -143,7 +143,7 @@ describe('replacement of a saved cover', () => {
     'accepts a verified replacement when the saved image is $oldImage', async ({ oldImage }) => {
       const requests = mockImages({ [saved]: oldImage, [replacement]: [170, 240] });
 
-      await expect(canReplaceBookCover(saved, replacement)).resolves.toBe(true);
+      await expect(resolveBookCoverForRefresh('invalid', saved, replacement)).resolves.toBe(replacement);
       expect(requests.mock.calls).toEqual([[saved], [replacement]]);
     },
   );
@@ -151,23 +151,41 @@ describe('replacement of a saved cover', () => {
   it('preserves a working saved image without checking a replacement', async () => {
     const requests = mockImages({ [saved]: [170, 240] });
 
-    await expect(canReplaceBookCover(saved, replacement)).resolves.toBe(false);
+    await expect(resolveBookCoverForRefresh('invalid', saved, replacement)).resolves.toBeUndefined();
     expect(requests.mock.calls).toEqual([[saved]]);
   });
 
   it('preserves the saved link when the replacement is also broken', async () => {
     mockImages({ [saved]: 'error', [replacement]: 'error' });
 
-    await expect(canReplaceBookCover(saved, replacement)).resolves.toBe(false);
+    await expect(resolveBookCoverForRefresh('invalid', saved, replacement)).resolves.toBeUndefined();
+  });
+
+  it('uses a direct ISBN source when refreshing a book with no catalog cover', async () => {
+    const isbn = '9780140328721';
+    const cover = directCover(isbn);
+    const requests = mockImages({ [cover]: [170, 240] });
+
+    await expect(resolveBookCoverForRefresh(isbn)).resolves.toBe(cover);
+    expect(requests.mock.calls).toEqual([[cover]]);
+  });
+
+  it('falls through to a direct ISBN source after a broken saved link and catalog cover', async () => {
+    const isbn = '9780553382563';
+    const cover = directCover(isbn);
+    const requests = mockImages({ [saved]: 'error', [replacement]: 'error', [cover]: [170, 240] });
+
+    await expect(resolveBookCoverForRefresh(isbn, saved, replacement)).resolves.toBe(cover);
+    expect(requests.mock.calls).toEqual([[saved], [replacement], [cover]]);
   });
 
   it('preserves the saved link if checking it times out', async () => {
     vi.useFakeTimers();
     const requests = mockImages({ [saved]: 'slow' });
-    const check = canReplaceBookCover(saved, replacement);
+    const check = resolveBookCoverForRefresh('invalid', saved, replacement);
 
     await vi.advanceTimersByTimeAsync(2400);
-    await expect(check).resolves.toBe(false);
+    await expect(check).resolves.toBeUndefined();
     expect(requests.mock.calls).toEqual([[saved]]);
   });
 });

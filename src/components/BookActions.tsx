@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Edit3, RefreshCw, Trash2 } from 'lucide-react';
 import { db, type Book } from '../db/db';
 import { useLanguage } from '../i18n';
-import { canReplaceBookCover } from '../services/bookCoverService';
+import { resolveBookCoverForRefresh } from '../services/bookCoverService';
 import { getMissingBookDetails, lookupBookByIsbnDetailed, normalizeIsbn, toIsbn13 } from '../services/isbnService';
 
 interface BookActionsProps {
@@ -28,22 +28,22 @@ export function BookActions({ book, onEdit, onDelete }: BookActionsProps) {
     setFeedback(undefined);
     try {
       const result = await lookupBookByIsbnDetailed(isbn);
-      if (!result.metadata && !result.coverUrl) {
+      const savedCover = book.coverUrl?.trim() || undefined;
+      const catalogCover = result.metadata?.coverUrl ?? result.coverUrl;
+      const foundCover = await resolveBookCoverForRefresh(isbn, savedCover, catalogCover);
+      if (!result.metadata && !foundCover) {
         setFeedback(result.isNetworkError ? 'refreshBookError' : 'refreshBookNoChanges');
         return;
       }
 
-      const metadata = result.metadata ?? { coverUrl: result.coverUrl };
-      const savedCover = book.coverUrl?.trim();
-      const foundCover = metadata.coverUrl?.trim();
-      // Check images before opening the database transaction.
-      const replaceCover = savedCover && foundCover && await canReplaceBookCover(savedCover, foundCover);
+      // Apply the cover separately so a concurrent edit can keep its own image.
+      const metadata = { ...result.metadata, coverUrl: undefined };
       const updated = await db.transaction('rw', db.books, async () => {
         const current = await db.books.get(id);
         // The book may have been edited or deleted while the catalogs were loading.
         if (!current || toIsbn13(current.isbn) !== toIsbn13(isbn)) return false;
         const changes = getMissingBookDetails(current, metadata);
-        if (replaceCover && current.coverUrl?.trim() === savedCover) changes.coverUrl = foundCover;
+        if (foundCover && (current.coverUrl?.trim() || undefined) === savedCover) changes.coverUrl = foundCover;
         if (Object.keys(changes).length === 0) return false;
         return (await db.books.update(id, changes)) > 0;
       });
