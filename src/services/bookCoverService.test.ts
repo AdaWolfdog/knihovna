@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resolveBookCover } from './bookCoverService';
+import { getCoverSourcePage, resolveBookCover } from './bookCoverService';
 import { lookupBookByIsbnDetailed } from './isbnService';
 
 function mockImages(results: Record<string, [number, number] | 'error' | 'slow'>) {
@@ -26,6 +26,9 @@ function mockImages(results: Record<string, [number, number] | 'error' | 'slow'>
   });
   return requests;
 }
+
+const obalkyCover = (isbn: string) =>
+  `https://cache.obalkyknih.cz/api/cover?isbn=${isbn}&type=medium&keywords=`;
 
 const directCover = (isbn: string) => `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg?default=false`;
 
@@ -101,4 +104,32 @@ it('returns a verified ISBN cover independently of failed or empty metadata sour
     metadata: null, coverUrl: cover, isNetworkError: true,
   });
   expect(requests.mock.calls).toEqual([[cover]]);
+});
+
+
+it.each(['9788025338742', '9788024292519'])(
+  'tries Obálky knih for exact ISBN %s even when all catalogs return no metadata',
+  async (isbn) => {
+    const cover = obalkyCover(isbn);
+    const requests = mockImages({ [cover]: [170, 240] });
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, json: async () => ({}) })));
+
+    await expect(lookupBookByIsbnDetailed(isbn)).resolves.toEqual({
+      metadata: null, coverUrl: cover, isNetworkError: false,
+    });
+    expect(requests).toHaveBeenLastCalledWith(cover);
+    expect(getCoverSourcePage(cover)).toBe(`https://www.obalkyknih.cz/view?isbn=${isbn}`);
+  },
+);
+
+it('rejects a transparent fallback image after a timed-out direct Open Library lookup', async () => {
+  vi.useFakeTimers();
+  const isbn = '9788055600024';
+  const cover = obalkyCover(isbn);
+  const requests = mockImages({ [directCover(isbn)]: 'slow', [cover]: [1, 1] });
+
+  const lookup = resolveBookCover(isbn, []);
+  await vi.advanceTimersByTimeAsync(850);
+  await expect(lookup).resolves.toBeUndefined();
+  expect(requests).toHaveBeenLastCalledWith(cover);
 });

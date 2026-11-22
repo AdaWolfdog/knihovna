@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { hasCoverDimensions } from '../services/bookCoverService';
+import { getCoverSourcePage, hasCoverDimensions } from '../services/bookCoverService';
 
 interface BookCoverImageProps {
   src?: string;
@@ -12,7 +12,8 @@ export function BookCoverImage({ src, alt, className, fallback }: BookCoverImage
   const [failedSrc, setFailedSrc] = useState<string>();
 
   if (!src?.trim() || failedSrc === src) return fallback;
-  return (
+  const sourcePage = getCoverSourcePage(src);
+  const image = (
     <img
       key={src}
       src={src}
@@ -24,4 +25,9 @@ export function BookCoverImage({ src, alt, className, fallback }: BookCoverImage
       }}
     />
   );
+  return sourcePage ? (
+    <a href={sourcePage} target="_blank" rel="noreferrer" className="contents">
+      {image}
+    </a>
+  ) : image;
 }

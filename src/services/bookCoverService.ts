@@ -1,5 +1,6 @@
 // Image probes are bounded independently of the bibliographic lookup.
 const IMAGE_TIMEOUT_MS = 850;
+const OBALKY_IMAGE_TIMEOUT_MS = 1400;
 const LOOKUP_TIMEOUT_MS = 2400;
 const COVER_TTL_MS = 15 * 60_000;
 const MISS_TTL_MS = 30_000;
@@ -56,6 +57,16 @@ function allowIsbnRequest(now: number): boolean {
   return true;
 }
 
+function obalkyKnihCoverUrl(isbn: string | undefined): string | undefined {
+  if (!isbn?.startsWith('97880')) return undefined;
+  return `https://cache.obalkyknih.cz/api/cover?isbn=${isbn}&type=medium&keywords=`;
+}
+
+export function getCoverSourcePage(url: string): string | undefined {
+  const isbn = /^https:\/\/cache\.obalkyknih\.cz\/api\/cover\?isbn=(97880\d{8})&/.exec(url)?.[1];
+  return isbn ? `https://www.obalkyknih.cz/view?isbn=${isbn}` : undefined;
+}
+
 async function findCover(groups: readonly (readonly string[])[], isbns: string[]): Promise<string | undefined> {
   const deadline = Date.now() + LOOKUP_TIMEOUT_MS;
   const direct = isbns.map((isbn) => `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg?default=false`);
@@ -70,6 +81,11 @@ async function findCover(groups: readonly (readonly string[])[], isbns: string[]
     if (timeLeft <= 0) break;
     if (/^https:\/\/covers\.openlibrary\.org\/b\/isbn\//.test(url) && !allowIsbnRequest(now)) continue;
     if (await loadCover(url, Math.min(timeLeft, IMAGE_TIMEOUT_MS))) return url;
+  }
+
+  const fallback = obalkyKnihCoverUrl(isbns[0]);
+  if (fallback && !queue.has(fallback) && await loadCover(fallback, OBALKY_IMAGE_TIMEOUT_MS)) {
+    return fallback;
   }
 }
 
