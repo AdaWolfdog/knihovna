@@ -818,7 +818,10 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                     </th>
                     <th className="p-3 mobile-portrait-hidden">{t('thIsbn')}</th>
                     <th className="p-3 text-center mobile-portrait-hidden mobile-landscape-hidden">{t('thQuantity')}</th>
-                    <th className="p-3 mobile-portrait-hidden">{t('thYearEdition')}</th>
+                    <th className="p-3 mobile-portrait-hidden">
+                      <span className="mobile-landscape-hidden">{t('thYearEdition')}</span>
+                      <span className="hidden mobile-landscape-only whitespace-pre-line">{t('thYearEditionLandscape')}</span>
+                    </th>
                     <th className="p-3 text-right">{t('thActions')}</th>
                   </tr>
                 </thead>
@@ -845,10 +848,12 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                           </div>
                           <div className="text-slate-500">{book.author || t('unknownAuthor')}</div>
                           {book.translator && (
-                            <div className="text-[11px] text-slate-400">{t('translationPrefix')}
-                          {book.illustrator && (
-                            <div className="text-[11px] text-slate-400">{t('illustrationPrefix')} {book.illustrator}</div>
-                          )} {book.translator}</div>
+                            <div className="text-[11px] text-slate-400 mobile-landscape-hidden">
+                              {t('translationPrefix')}
+                              {book.illustrator && (
+                                <div>{t('illustrationPrefix')} {book.illustrator}</div>
+                              )}{' '}{book.translator}
+                            </div>
                           )}
                         </td>
                         <td className="p-3 max-w-[180px] mobile-portrait-hidden">
