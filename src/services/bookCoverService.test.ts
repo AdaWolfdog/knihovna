@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getCoverSourcePage, resolveBookCover } from './bookCoverService';
+import { canReplaceBookCover, getCoverSourcePage, resolveBookCover } from './bookCoverService';
 import { lookupBookByIsbnDetailed } from './isbnService';
 
 function mockImages(results: Record<string, [number, number] | 'error' | 'slow'>) {
@@ -132,4 +132,42 @@ it('rejects a transparent fallback image after a timed-out direct Open Library l
   await vi.advanceTimersByTimeAsync(850);
   await expect(lookup).resolves.toBeUndefined();
   expect(requests).toHaveBeenLastCalledWith(cover);
+});
+
+
+describe('replacement of a saved cover', () => {
+  const saved = 'https://books.example/saved.jpg';
+  const replacement = 'https://books.example/replacement.jpg';
+
+  it.each<{ oldImage: 'error' | [number, number] }>([{ oldImage: 'error' }, { oldImage: [1, 1] }])(
+    'accepts a verified replacement when the saved image is $oldImage', async ({ oldImage }) => {
+      const requests = mockImages({ [saved]: oldImage, [replacement]: [170, 240] });
+
+      await expect(canReplaceBookCover(saved, replacement)).resolves.toBe(true);
+      expect(requests.mock.calls).toEqual([[saved], [replacement]]);
+    },
+  );
+
+  it('preserves a working saved image without checking a replacement', async () => {
+    const requests = mockImages({ [saved]: [170, 240] });
+
+    await expect(canReplaceBookCover(saved, replacement)).resolves.toBe(false);
+    expect(requests.mock.calls).toEqual([[saved]]);
+  });
+
+  it('preserves the saved link when the replacement is also broken', async () => {
+    mockImages({ [saved]: 'error', [replacement]: 'error' });
+
+    await expect(canReplaceBookCover(saved, replacement)).resolves.toBe(false);
+  });
+
+  it('preserves the saved link if checking it times out', async () => {
+    vi.useFakeTimers();
+    const requests = mockImages({ [saved]: 'slow' });
+    const check = canReplaceBookCover(saved, replacement);
+
+    await vi.advanceTimersByTimeAsync(2400);
+    await expect(check).resolves.toBe(false);
+    expect(requests.mock.calls).toEqual([[saved]]);
+  });
 });

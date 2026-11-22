@@ -33,20 +33,30 @@ export function hasCoverDimensions(image: Pick<HTMLImageElement, 'naturalWidth' 
   return image.naturalWidth >= 32 && image.naturalHeight >= 32;
 }
 
-function loadCover(url: string, timeout: number): Promise<boolean> {
+type CoverLoadResult = 'valid' | 'broken' | 'timeout';
+
+function loadCover(url: string, timeout: number): Promise<CoverLoadResult> {
   return new Promise((resolve) => {
     const image = new Image();
-    const finish = (valid: boolean) => {
+    const finish = (result: CoverLoadResult) => {
       clearTimeout(timer);
       image.onload = image.onerror = null;
-      if (!valid) image.removeAttribute('src');
-      resolve(valid);
+      if (result !== 'valid') image.removeAttribute('src');
+      resolve(result);
     };
-    const timer = setTimeout(() => finish(false), timeout);
-    image.onload = () => finish(hasCoverDimensions(image));
-    image.onerror = () => finish(false);
+    const timer = setTimeout(() => finish('timeout'), timeout);
+    image.onload = () => finish(hasCoverDimensions(image) ? 'valid' : 'broken');
+    image.onerror = () => finish('broken');
     image.src = url;
   });
+}
+
+export async function canReplaceBookCover(current: string, replacement: string): Promise<boolean> {
+  if (current === replacement || typeof Image === 'undefined') return false;
+
+  // A slow connection alone is insufficient evidence that a saved cover is broken.
+  if (await loadCover(current, LOOKUP_TIMEOUT_MS) !== 'broken') return false;
+  return await loadCover(replacement, LOOKUP_TIMEOUT_MS) === 'valid';
 }
 
 // The Covers API limits ISBN-based requests. Leave headroom for other clients on the same IP.
@@ -80,11 +90,11 @@ async function findCover(groups: readonly (readonly string[])[], isbns: string[]
     const timeLeft = deadline - now;
     if (timeLeft <= 0) break;
     if (/^https:\/\/covers\.openlibrary\.org\/b\/isbn\//.test(url) && !allowIsbnRequest(now)) continue;
-    if (await loadCover(url, Math.min(timeLeft, IMAGE_TIMEOUT_MS))) return url;
+    if (await loadCover(url, Math.min(timeLeft, IMAGE_TIMEOUT_MS)) === 'valid') return url;
   }
 
   const fallback = obalkyKnihCoverUrl(isbns[0]);
-  if (fallback && !queue.has(fallback) && await loadCover(fallback, OBALKY_IMAGE_TIMEOUT_MS)) {
+  if (fallback && !queue.has(fallback) && await loadCover(fallback, OBALKY_IMAGE_TIMEOUT_MS) === 'valid') {
     return fallback;
   }
 }
