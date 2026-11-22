@@ -6,6 +6,11 @@ const COVER_TTL_MS = 15 * 60_000;
 const MISS_TTL_MS = 30_000;
 const coverCache = new Map<string, { result: Promise<string | undefined>; expires: number }>();
 const isbnRequests: number[] = [];
+const BACKGROUND_IMAGE_TIMEOUT_MS = 6000;
+const MAX_BACKGROUND_LOOKUPS = 3;
+const backgroundCache = new Map<string, { result: Promise<string | undefined>; expires: number }>();
+const backgroundQueue: Array<() => Promise<void>> = [];
+let activeBackgroundLookups = 0;
 
 function equivalentIsbns(isbn: string): string[] {
   const isbn13CheckDigit = (prefix: string) =>
@@ -73,16 +78,19 @@ function obalkyKnihCoverUrl(isbn: string | undefined): string | undefined {
 }
 
 export function getCoverSourcePage(url: string): string | undefined {
-  const isbn = /^https:\/\/cache\.obalkyknih\.cz\/api\/cover\?isbn=(97880\d{8})&/.exec(url)?.[1];
+  const isbn = /^https:\/\/(?:www|cache)\.obalkyknih\.cz\/api\/cover\?isbn=(97880\d{8})(?:&|$)/.exec(url)?.[1];
   return isbn ? `https://www.obalkyknih.cz/view?isbn=${isbn}` : undefined;
+}
+
+function openLibraryCoverUrls(isbns: string[]) {
+  return isbns.map((isbn) => `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg?default=false`);
 }
 
 async function findCover(groups: readonly (readonly string[])[], isbns: string[]): Promise<string | undefined> {
   const deadline = Date.now() + LOOKUP_TIMEOUT_MS;
-  const direct = isbns.map((isbn) => `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg?default=false`);
   const queue = new Set([
     ...groups.map((group) => group[0]).filter(Boolean),
-    ...direct,
+    ...openLibraryCoverUrls(isbns),
     ...groups.flatMap((group) => group.slice(1)),
   ]);
   for (const url of queue) {
@@ -114,4 +122,61 @@ export async function resolveBookCover(isbn: string, groups: readonly (readonly 
   const cover = await entry.result;
   entry.expires = Date.now() + (cover ? COVER_TTL_MS : MISS_TTL_MS);
   return cover;
+}
+
+
+function startBackgroundLookup() {
+  if (activeBackgroundLookups >= MAX_BACKGROUND_LOOKUPS) return;
+  const next = backgroundQueue.shift();
+  if (!next) return;
+
+  activeBackgroundLookups++;
+  void next().finally(() => {
+    activeBackgroundLookups--;
+    startBackgroundLookup();
+  });
+}
+
+async function findBackgroundCover(isbns: string[], failedUrl?: string): Promise<string | undefined> {
+  const czechCover = obalkyKnihCoverUrl(isbns[0]);
+  const candidates = [
+    czechCover && `https://www.obalkyknih.cz/api/cover?isbn=${isbns[0]}`,
+    czechCover,
+    ...openLibraryCoverUrls(isbns),
+  ];
+
+  for (const url of candidates) {
+    if (!url || url === failedUrl) continue;
+    if (url.startsWith('https://covers.openlibrary.org/b/isbn/') && !allowIsbnRequest(Date.now())) continue;
+    if (await loadCover(url, BACKGROUND_IMAGE_TIMEOUT_MS) === 'valid') return url;
+  }
+}
+
+export function resolveBackgroundBookCover(isbn: string, failedUrl?: string): Promise<string | undefined> {
+  const isbns = equivalentIsbns(isbn.replace(/[\s-]/g, ''));
+  if (!isbns.length || typeof Image === 'undefined') return Promise.resolve(undefined);
+
+  // A short scan-time miss must not prevent a longer background attempt.
+  const key = JSON.stringify([isbns[0], failedUrl]);
+  const cached = backgroundCache.get(key);
+  if (cached && cached.expires > Date.now()) return cached.result;
+
+  if (backgroundCache.size >= 256) {
+    for (const [cacheKey, entry] of backgroundCache) {
+      if (entry.expires === Infinity) continue;
+      backgroundCache.delete(cacheKey);
+      break;
+    }
+  }
+
+  const result = new Promise<string | undefined>((resolve) => {
+    backgroundQueue.push(async () => {
+      const cover = await findBackgroundCover(isbns, failedUrl).catch(() => undefined);
+      backgroundCache.set(key, { result, expires: Date.now() + (cover ? COVER_TTL_MS : MISS_TTL_MS) });
+      resolve(cover);
+    });
+  });
+  backgroundCache.set(key, { result, expires: Infinity });
+  startBackgroundLookup();
+  return result;
 }

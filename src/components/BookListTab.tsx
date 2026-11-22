@@ -304,6 +304,8 @@ export const BookListTab: React.FC = () => {
                         <td className="p-3 text-center mobile-portrait-hidden">
                           <BookCoverImage
                             src={book.coverUrl}
+                            isbn={book.isbn}
+                            bookId={book.id}
                             alt={book.title}
                             className="w-10 h-14 object-cover rounded-md border border-slate-200 shadow-xs mx-auto bg-slate-200"
                             fallback={

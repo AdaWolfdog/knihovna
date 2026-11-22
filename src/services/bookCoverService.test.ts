@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { canReplaceBookCover, getCoverSourcePage, resolveBookCover } from './bookCoverService';
+import { canReplaceBookCover, getCoverSourcePage, resolveBackgroundBookCover, resolveBookCover } from './bookCoverService';
 import { lookupBookByIsbnDetailed } from './isbnService';
 
 function mockImages(results: Record<string, [number, number] | 'error' | 'slow'>) {
@@ -169,5 +169,56 @@ describe('replacement of a saved cover', () => {
     await vi.advanceTimersByTimeAsync(2400);
     await expect(check).resolves.toBe(false);
     expect(requests.mock.calls).toEqual([[saved]]);
+  });
+});
+
+
+describe('background ISBN cover resolution', () => {
+  const directObalkyCover = (isbn: string) => `https://www.obalkyknih.cz/api/cover?isbn=${isbn}`;
+
+  it.each(['9788025338742', '9788024292519'])(
+    'tries the direct Czech source for %s after a short lookup missed',
+    async (isbn) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(Date.now() + 16 * 60_000);
+      const cover = directObalkyCover(isbn);
+      const requests = mockImages({});
+      await expect(resolveBookCover(isbn, [])).resolves.toBeUndefined();
+
+      vi.stubGlobal('Image', class {
+        naturalWidth = 180;
+        naturalHeight = 280;
+        onload: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        removeAttribute() {}
+        set src(url: string) {
+          requests(url);
+          setTimeout(() => this.onload?.(), 2000);
+        }
+      });
+
+      const lookup = resolveBackgroundBookCover(isbn);
+      expect(resolveBackgroundBookCover(isbn)).toBe(lookup);
+      await vi.advanceTimersByTimeAsync(2000);
+      await expect(lookup).resolves.toBe(cover);
+      expect(requests).toHaveBeenLastCalledWith(cover);
+      expect(getCoverSourcePage(cover)).toBe(`https://www.obalkyknih.cz/view?isbn=${isbn}`);
+    },
+  );
+
+  it('skips a failed saved link and rejects a blank image before trying the equivalent ISBN', async () => {
+    const isbn = '9788025338742';
+    const equivalentCover = directCover('8025338746');
+    const requests = mockImages({ [obalkyCover(isbn)]: [1, 1], [equivalentCover]: [180, 280] });
+
+    await expect(resolveBackgroundBookCover('978-80-253-3874-2', directObalkyCover(isbn)))
+      .resolves.toBe(equivalentCover);
+    expect(requests.mock.calls).toEqual([[obalkyCover(isbn)], [directCover(isbn)], [equivalentCover]]);
+  });
+
+  it('makes no requests for an invalid ISBN', async () => {
+    const requests = mockImages({});
+    await expect(resolveBackgroundBookCover('978-80-253-3874-1')).resolves.toBeUndefined();
+    expect(requests).not.toHaveBeenCalled();
   });
 });

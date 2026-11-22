@@ -1328,6 +1328,8 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
                 <div className="flex items-center gap-3 min-w-0">
                   <BookCoverImage
                     src={book.coverUrl}
+                    isbn={book.isbn}
+                    bookId={book.id}
                     alt={book.title}
                     className="w-9 h-12 object-cover rounded-md border border-slate-200 shrink-0 bg-slate-200"
                     fallback={
