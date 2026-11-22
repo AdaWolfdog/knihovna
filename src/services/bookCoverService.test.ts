@@ -101,7 +101,4 @@ it('returns a verified ISBN cover independently of failed or empty metadata sour
     metadata: null, coverUrl: cover, isNetworkError: true,
   });
   expect(requests.mock.calls).toEqual([[cover]]);
-  const withoutCover = await lookupBookByIsbnDetailed(isbn, { findCover: false });
-  expect(withoutCover.coverUrl).toBeUndefined();
-  expect(requests.mock.calls).toEqual([[cover]]);
 });

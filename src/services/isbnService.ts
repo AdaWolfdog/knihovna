@@ -403,7 +403,7 @@ export async function fetchBookByIsbn(isbnInput: string): Promise<BookMetadata |
  * - Genuinely not found in any catalog
  * - Network/catalog failure (where all tried catalogs had transient network errors)
  */
-export async function lookupBookByIsbnDetailed(isbnInput: string, { findCover = true } = {}): Promise<CatalogLookupResult> {
+export async function lookupBookByIsbnDetailed(isbnInput: string): Promise<CatalogLookupResult> {
   const isbn = normalizeIsbn(isbnInput);
   if (!isbn) {
     return { metadata: null, isNetworkError: false };
@@ -437,11 +437,11 @@ export async function lookupBookByIsbnDetailed(isbnInput: string, { findCover = 
         covers.push(extra.value.coverCandidates ?? (extra.value.metadata.coverUrl ? [extra.value.metadata.coverUrl] : []));
       }
     }
-    metadata.coverUrl = findCover ? await resolveBookCover(isbn, covers) : undefined;
+    metadata.coverUrl = await resolveBookCover(isbn, covers);
     return { metadata, isNetworkError: false };
   }
 
-  const coverUrl = findCover ? await resolveBookCover(isbn, []) : undefined;
+  const coverUrl = await resolveBookCover(isbn, []);
   if (coverUrl) return { metadata: null, coverUrl, isNetworkError };
 
   return isNetworkError

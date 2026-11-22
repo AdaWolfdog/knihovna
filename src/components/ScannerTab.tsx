@@ -484,9 +484,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
 
       // 3. Lookup online catalog metadata with detailed network vs not-found distinction
       const existingRef = existingOnSameShelf || existingInLibrary;
-      const lookupResult = existingRef?.coverUrl?.trim()
-        ? await lookupBookByIsbnDetailed(cleanIsbn, { findCover: false })
-        : await lookupBookByIsbnDetailed(cleanIsbn);
+      const lookupResult = await lookupBookByIsbnDetailed(cleanIsbn);
       const metadata = lookupResult.metadata;
 
       const candidateBook: Partial<Book> = {
