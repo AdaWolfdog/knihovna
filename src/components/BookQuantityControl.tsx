@@ -3,14 +3,16 @@ import { useLanguage } from '../i18n';
 
 interface BookQuantityControlProps {
   book: Book;
-  compact?: boolean;
+  compact?: 'portrait' | 'landscape';
 }
 
 const buttonClassName = 'w-5 h-5 flex items-center justify-center bg-white hover:bg-indigo-100 text-indigo-700 font-bold rounded text-xs shadow-xs transition cursor-pointer';
 
-export function BookQuantityControl({ book, compact = false }: BookQuantityControlProps) {
+export function BookQuantityControl({ book, compact }: BookQuantityControlProps) {
   const { t } = useLanguage();
-  const layout = compact ? 'mobile-portrait-only hidden gap-1 p-0.5' : 'inline-flex gap-1.5 p-1';
+  const layout = compact
+    ? `hidden gap-1 p-0.5 ${compact === 'portrait' ? 'mobile-portrait-only' : 'mobile-landscape-quantity'}`
+    : 'inline-flex gap-1.5 p-1';
 
   const changeQuantity = async (delta: -1 | 1) => {
     if (book.id === undefined) return;

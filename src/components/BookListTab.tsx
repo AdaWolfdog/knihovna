@@ -11,7 +11,7 @@ import { ManualBookModal } from './ManualBookModal';
 import { useLanguage } from '../i18n';
 
 export const BookListTab: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, translateDynamic } = useLanguage();
   const books = useLiveQuery(() => db.books.toArray(), []) || [];
   const libraries = useLiveQuery(() => db.libraries.toArray(), []) || [];
   const rooms = useLiveQuery(() => db.rooms.toArray(), []) || [];
@@ -284,10 +284,16 @@ export const BookListTab: React.FC = () => {
                   <tr>
                     <th className="p-3 w-14 text-center mobile-portrait-hidden">{t('thCover')}</th>
                     <th className="p-3">{t('thTitleAuthor')}</th>
-                    <th className="p-3 mobile-portrait-hidden">{t('thGenreKeywords')}</th>
+                    <th className="p-3 mobile-portrait-hidden">
+                      <span className="mobile-landscape-hidden">{t('thGenreKeywords')}</span>
+                      <span className="hidden mobile-landscape-only">
+                        {translateDynamic(t('formLabelGenre'))}<br />
+                        {translateDynamic(t('formLabelKeywords'))}
+                      </span>
+                    </th>
                     <th className="p-3 mobile-portrait-hidden">{t('thIsbn')}</th>
                     <th className="p-3 mobile-portrait-hidden">{t('thLocation')}</th>
-                    <th className="p-3 text-center mobile-portrait-hidden">{t('thQuantity')}</th>
+                    <th className="p-3 text-center mobile-portrait-hidden mobile-landscape-hidden">{t('thQuantity')}</th>
                     <th className="p-3 mobile-portrait-hidden">{t('thYearEdition')}</th>
                     <th className="p-3 text-right">{t('thActions')}</th>
                   </tr>
@@ -344,20 +350,21 @@ export const BookListTab: React.FC = () => {
                           {book.isbn || <span className="text-slate-400 italic">{t('noIsbnText')}</span>}
                         </td>
                         <td className="p-3 mobile-portrait-hidden">
-                          <div className="flex items-center gap-1.5">
-                            <span
-                              className="w-2.5 h-2.5 rounded-full shrink-0 inline-block"
-                              style={{ backgroundColor: libColor }}
-                            />
-                            <span className="font-medium text-slate-800">
-                              {lib?.name || '?'}
-                            </span>{' '}
-                            &rarr; {room?.name || '?'} &rarr;{' '}
-                            <span className="font-semibold text-indigo-600">{shelf?.name || '?'}</span>
+                          <div className="flex items-center gap-1.5 mobile-landscape-location">
+                            <span className="contents mobile-landscape-location-line">
+                              <span
+                                className="w-2.5 h-2.5 rounded-full shrink-0 inline-block"
+                                style={{ backgroundColor: libColor }}
+                              />
+                              <span className="font-medium text-slate-800">{lib?.name || '?'}</span>
+                            </span>
+                            <span className="contents mobile-landscape-location-line">
+                              <span><span className="mobile-landscape-hidden">&rarr; </span>{room?.name || '?'} &rarr;</span>
+                              <span className="font-semibold text-indigo-600">{shelf?.name || '?'}</span>
+                            </span>
                           </div>
                         </td>
-                        {/* Separate quantity column on desktop / landscape */}
-                        <td className="p-3 text-center mobile-portrait-hidden">
+                        <td className="p-3 text-center mobile-portrait-hidden mobile-landscape-hidden">
                           <BookQuantityControl book={book} />
                         </td>
                         <td className="p-3 mobile-portrait-hidden">
@@ -368,14 +375,14 @@ export const BookListTab: React.FC = () => {
                         </td>
                         <td className="p-3 text-right">
                           <div className="flex flex-col items-end gap-1.5">
-                            {/* In mobile portrait mode, quantity adjuster appears inside the Actions cell */}
-                            <BookQuantityControl book={book} compact />
+                            <BookQuantityControl book={book} compact="portrait" />
 
                             <BookActions
                               book={book}
                               onEdit={() => setEditingBook(book)}
                               onDelete={() => handleDeleteBook(book.id!)}
                             />
+                            <BookQuantityControl book={book} compact="landscape" />
                           </div>
                         </td>
                       </tr>

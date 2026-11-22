@@ -21,7 +21,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
   setActiveShelfId,
   onSelectShelfForScanning,
 }) => {
-  const { t } = useLanguage();
+  const { t, translateDynamic } = useLanguage();
   const libraries = useLiveQuery(() => db.libraries.toArray(), []) || [];
   const rooms = useLiveQuery(() => db.rooms.toArray(), []) || [];
   const shelves = useLiveQuery(() => db.shelves.toArray(), []) || [];
@@ -809,9 +809,15 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                   <tr>
                     <th className="p-3 w-14 text-center mobile-portrait-hidden">{t('thCover')}</th>
                     <th className="p-3">{t('thTitleAuthor')}</th>
-                    <th className="p-3 mobile-portrait-hidden">{t('thGenreKeywords')}</th>
+                    <th className="p-3 mobile-portrait-hidden">
+                      <span className="mobile-landscape-hidden">{t('thGenreKeywords')}</span>
+                      <span className="hidden mobile-landscape-only">
+                        {translateDynamic(t('formLabelGenre'))}<br />
+                        {translateDynamic(t('formLabelKeywords'))}
+                      </span>
+                    </th>
                     <th className="p-3 mobile-portrait-hidden">{t('thIsbn')}</th>
-                    <th className="p-3 text-center mobile-portrait-hidden">{t('thQuantity')}</th>
+                    <th className="p-3 text-center mobile-portrait-hidden mobile-landscape-hidden">{t('thQuantity')}</th>
                     <th className="p-3 mobile-portrait-hidden">{t('thYearEdition')}</th>
                     <th className="p-3 text-right">{t('thActions')}</th>
                   </tr>
@@ -862,8 +868,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                         <td className="p-3 font-mono text-slate-600 mobile-portrait-hidden">
                           {book.isbn || <span className="text-slate-400 italic">{t('noIsbnText')}</span>}
                         </td>
-                        {/* Separate quantity column on desktop / landscape */}
-                        <td className="p-3 text-center mobile-portrait-hidden">
+                        <td className="p-3 text-center mobile-portrait-hidden mobile-landscape-hidden">
                           <BookQuantityControl book={book} />
                         </td>
                         <td className="p-3 mobile-portrait-hidden">
@@ -874,14 +879,14 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                         </td>
                         <td className="p-3 text-right">
                           <div className="flex flex-col items-end gap-1.5">
-                            {/* In mobile portrait mode, quantity adjuster appears inside the Actions cell */}
-                            <BookQuantityControl book={book} compact />
+                            <BookQuantityControl book={book} compact="portrait" />
 
                             <BookActions
                               book={book}
                               onEdit={() => setEditingBook(book)}
                               onDelete={() => handleDeleteBook(book.id!)}
                             />
+                            <BookQuantityControl book={book} compact="landscape" />
                           </div>
                         </td>
                       </tr>
