@@ -304,7 +304,7 @@ export const BookListTab: React.FC = () => {
             {t('noBooksFound')}
           </div>
         ) : view === 'gallery' ? (
-          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+          <ul className={`grid gap-3 sm:gap-4 ${isMobileLandscapeTable ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-3'}`}>
             {filteredBooks.map((book) => {
               const title = book.title || t('unknownTitle');
               const color = librariesMap.get(book.libraryId)?.color || DEFAULT_LIBRARY_COLOR;
