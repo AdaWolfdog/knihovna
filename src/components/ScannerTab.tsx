@@ -2,7 +2,7 @@ import { BookCoverImage } from './BookCoverImage';
 import React, { useEffect, useRef, useState } from 'react';
 import { BrowserMultiFormatReader, BarcodeFormat, DecodeHintType } from '@zxing/library';
 import { getMissingBookDetails, lookupBookByIsbnDetailed, normalizeIsbn } from '../services/isbnService';
-import { recognizeIsbnFromSource } from '../services/isbnOcrService';
+import { isValidIsbnChecksum, recognizeIsbnFromSource } from '../services/isbnOcrService';
 import { db, type Book } from '../db/db';
 import { Camera, Search, CheckCircle, AlertCircle, RefreshCw, BookPlus, Zap, SkipForward, ArrowRight, Image as ImageIcon, RotateCcw, Edit3 } from 'lucide-react';
 import { DuplicateModal } from './DuplicateModal';
@@ -11,6 +11,14 @@ import { BookConfirmModal } from './BookConfirmModal';
 import catLoadingImg from '../assets/cat-loading.png';
 import catThumbsupImg from '../assets/cat-thumbsup.png';
 import { useLanguage } from '../i18n';
+
+const BARCODE_GRACE_MS = 4000;
+const OCR_WARNING_MS = 4500;
+
+function hasCameraFrame(video: HTMLVideoElement | null): video is HTMLVideoElement {
+  return Boolean(video && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
+    && video.videoWidth > 0 && video.videoHeight > 0);
+}
 
 interface ScannerTabProps {
   activeShelfId: number | null;
@@ -88,9 +96,11 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   const skippedIsbnsRef = useRef<string[]>(skippedIsbns);
 
   // OCR fallback timers and attempt tracking
-  const lastBarcodeDetectedTimeRef = useRef<number>(Date.now());
+  const readingSinceRef = useRef<number | null>(null);
+  const cameraSessionRef = useRef(0);
+  const pendingOcrSessionRef = useRef<number | null>(null);
   const ocrAttemptCountRef = useRef<number>(0);
-  const ocrIntervalRef = useRef<any>(null);
+  const ocrIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isScanningRef = useRef<boolean>(isScanning);
 
   // Keep refs up-to-date with states to avoid stale closures in camera callbacks
@@ -170,6 +180,8 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   }, [activeShelfId]);
 
   const stopCamera = () => {
+    cameraSessionRef.current += 1;
+    readingSinceRef.current = null;
     if (ocrIntervalRef.current) {
       clearInterval(ocrIntervalRef.current);
       ocrIntervalRef.current = null;
@@ -222,46 +234,53 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
     });
   };
 
-  // Automated OCR fallback loop checking for written ISBN when no barcode is seen
-  const runOcrCheck = async () => {
-    if (!isScanningRef.current || isProcessingRef.current || isModalOpenRef.current) {
+  // Give the barcode reader time before attempting to read the printed ISBN.
+  const runOcrCheck = async (session: number) => {
+    if (session !== cameraSessionRef.current || !isScanningRef.current) return;
+    const video = videoRef.current;
+    if (!hasCameraFrame(video) || isProcessingRef.current || isModalOpenRef.current) {
+      readingSinceRef.current = null;
       return;
     }
 
     const now = Date.now();
-    // Only attempt OCR if camera has been running for >= 2.5s without finding a barcode
-    if (now - lastBarcodeDetectedTimeRef.current < 2500) {
+    const since = readingSinceRef.current ?? now;
+    readingSinceRef.current = since;
+    if (now - since < BARCODE_GRACE_MS || pendingOcrSessionRef.current === session) return;
+
+    pendingOcrSessionRef.current = session;
+    let recognizedIsbn: string | null = null;
+    try {
+      recognizedIsbn = await recognizeIsbnFromSource(video);
+    } catch (error) {
+      console.warn('OCR scan attempt warning:', error);
+    } finally {
+      if (pendingOcrSessionRef.current === session) pendingOcrSessionRef.current = null;
+    }
+
+    if (session !== cameraSessionRef.current || readingSinceRef.current !== since
+      || !hasCameraFrame(video) || isProcessingRef.current || isModalOpenRef.current) return;
+
+    if (recognizedIsbn) {
+      const clean = normalizeIsbn(recognizedIsbn);
+      const readAt = Date.now();
+      readingSinceRef.current = readAt;
+      if (clean === lastScannedIsbnRef.current && readAt - lastScanTimeRef.current < 2500) return;
+
+      isProcessingRef.current = true;
+      lastScanTimeRef.current = readAt;
+      lastScannedIsbnRef.current = clean;
+      ocrAttemptCountRef.current = 0;
+      setOcrErrorState(null);
+      try {
+        await handleProcessIsbn(clean);
+      } catch (error) {
+        console.warn('OCR scan attempt warning:', error);
+      }
       return;
     }
 
-    // Try recognizing text from video frame
-    try {
-      const recognizedIsbn = videoRef.current ? await recognizeIsbnFromSource(videoRef.current) : null;
-      if (recognizedIsbn) {
-        const clean = normalizeIsbn(recognizedIsbn);
-        if (
-          clean === lastScannedIsbnRef.current &&
-          now - lastScanTimeRef.current < 2500
-        ) {
-          return;
-        }
-
-        // Successfully found text ISBN!
-        isProcessingRef.current = true;
-        lastScanTimeRef.current = now;
-        lastScannedIsbnRef.current = clean;
-        ocrAttemptCountRef.current = 0;
-        setOcrErrorState(null);
-
-        await handleProcessIsbn(clean);
-        return;
-      }
-    } catch (ocrErr) {
-      console.warn('OCR scan attempt warning:', ocrErr);
-    }
-
-    // If 4.5s elapsed without finding barcode or valid text digits
-    if (now - lastBarcodeDetectedTimeRef.current > 4500) {
+    if (now - since > OCR_WARNING_MS) {
       ocrAttemptCountRef.current += 1;
       stopCamera();
 
@@ -284,6 +303,8 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   // Toggle Camera Scanning using high-performance ZXing
   const startCamera = async () => {
     if (!activeShelfIdRef.current) return;
+    const session = ++cameraSessionRef.current;
+    readingSinceRef.current = null;
 
     try {
       if (!zxingReaderRef.current) {
@@ -302,14 +323,13 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
 
       setIsScanning(true);
       setHasScannerError(false);
-      lastBarcodeDetectedTimeRef.current = Date.now();
       setStatusMessage({ type: 'info', text: t('cameraStarting') });
 
       if (ocrIntervalRef.current) {
         clearInterval(ocrIntervalRef.current);
       }
       ocrIntervalRef.current = setInterval(() => {
-        runOcrCheck();
+        void runOcrCheck(session);
       }, 1200);
 
       const constraints: MediaStreamConstraints = {
@@ -336,12 +356,13 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
         selectedDeviceId = null;
       }
 
+      if (session !== cameraSessionRef.current) return;
       const onResultCallback = async (result: any) => {
-        if (result) {
-          lastBarcodeDetectedTimeRef.current = Date.now();
+        if (result && session === cameraSessionRef.current) {
           const decodedText = result.getText();
           const now = Date.now();
           const cleanIsbn = normalizeIsbn(decodedText);
+          if (isValidIsbnChecksum(cleanIsbn)) readingSinceRef.current = now;
 
           if (isProcessingRef.current || isModalOpenRef.current) return;
           if (
@@ -382,8 +403,9 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
 
         if (decodePromise && typeof decodePromise.catch === 'function') {
           decodePromise.catch((err: any) => {
+            if (session !== cameraSessionRef.current) return;
             console.error('Async camera startup failure:', err);
-            setIsScanning(false);
+            stopCamera();
             setHasScannerError(true);
             const errorMessage = typeof err === 'string' ? err : err?.message || '';
             if (errorMessage.toLowerCase().includes('notallowed') || errorMessage.toLowerCase().includes('permission')) {
@@ -403,8 +425,9 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
 
       setStatusMessage({ type: 'info', text: t('cameraActiveTip') });
     } catch (err: any) {
+      if (session !== cameraSessionRef.current) return;
       console.error('Error starting camera:', err);
-      setIsScanning(false);
+      stopCamera();
       setHasScannerError(true);
       const errorMessage = typeof err === 'string' ? err : err?.message || '';
       if (errorMessage.toLowerCase().includes('notallowed') || errorMessage.toLowerCase().includes('permission')) {
@@ -1116,6 +1139,11 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           <div className="w-full relative bg-overlay rounded-xl overflow-hidden h-[180px] sm:h-auto min-h-[180px] sm:min-h-[220px] flex items-center justify-center mb-3">
             <video
               ref={videoRef}
+              onPlaying={({ currentTarget }) => {
+                if (isScanningRef.current && hasCameraFrame(currentTarget)) {
+                  readingSinceRef.current ??= Date.now();
+                }
+              }}
               className="w-full h-full object-cover max-h-[180px] sm:max-h-[300px]"
               playsInline
               muted

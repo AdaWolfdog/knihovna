@@ -50,6 +50,16 @@ vi.mock('@zxing/library', () => {
   };
 });
 
+function markCameraReady(container: HTMLElement) {
+  const video = container.querySelector('video')!;
+  Object.defineProperties(video, {
+    readyState: { value: HTMLMediaElement.HAVE_CURRENT_DATA },
+    videoWidth: { value: 1280 },
+    videoHeight: { value: 720 },
+  });
+  video.dispatchEvent(new Event('playing'));
+}
+
 describe('ScannerTab component real workflow', () => {
   let container: HTMLDivElement;
   let root: any;
@@ -124,6 +134,7 @@ describe('ScannerTab component real workflow', () => {
       root.unmount();
     });
     container.remove();
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -450,7 +461,8 @@ describe('ScannerTab component real workflow', () => {
     expect(container.textContent).toContain('Kniha uložena!');
   });
 
-  it('automatically recognizes digits when no barcode is present', async () => {
+  it('waits for a camera frame and four seconds before recognizing printed digits', async () => {
+    vi.useFakeTimers();
     let now = 1000;
     vi.spyOn(Date, 'now').mockImplementation(() => now);
 
@@ -485,22 +497,62 @@ describe('ScannerTab component real workflow', () => {
       startBtn?.click();
     });
 
-    // Advance mock time past 2500ms
-    now += 3000;
+    now += 6000;
+    await act(async () => vi.advanceTimersByTimeAsync(1200));
+    expect(isbnOcrService.recognizeIsbnFromSource).not.toHaveBeenCalled();
+    expect(container.textContent).not.toContain('Skener nenalezl kód');
 
-    // Wait for OCR interval to tick
-    await act(async () => {
-      await new Promise((res) => setTimeout(res, 1300));
-    });
+    await act(async () => markCameraReady(container));
+    now += 3999;
+    await act(async () => vi.advanceTimersByTimeAsync(1200));
+    expect(isbnOcrService.recognizeIsbnFromSource).not.toHaveBeenCalled();
+
+    now += 1;
+    await act(async () => vi.advanceTimersByTimeAsync(1200));
 
     // OCR should have been called and the book automatically saved
     expect(isbnOcrService.recognizeIsbnFromSource).toHaveBeenCalled();
     expect(booksStore.length).toBe(1);
     expect(booksStore[0].isbn).toBe('9788073352677');
     expect(booksStore[0].title).toBe('Kniha z číslic bez čárového kódu');
+
+    // After the fast scan finishes, OCR must get a new four-second window.
+    vi.mocked(isbnOcrService.recognizeIsbnFromSource).mockResolvedValue(null);
+    now += 5000;
+    await act(async () => vi.advanceTimersByTimeAsync(3600));
+    now += 3999;
+    await act(async () => vi.advanceTimersByTimeAsync(1200));
+    expect(isbnOcrService.recognizeIsbnFromSource).toHaveBeenCalledTimes(1);
+    expect(container.textContent).not.toContain('Skener nenalezl kód');
+  });
+
+  it('restarts the wait after reading a barcode on an already running camera', async () => {
+    vi.useFakeTimers();
+    let now = 1000;
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
+    vi.spyOn(isbnOcrService, 'recognizeIsbnFromSource').mockResolvedValue(null);
+    vi.spyOn(isbnService, 'lookupBookByIsbnDetailed').mockResolvedValue({ metadata: null, isNetworkError: true });
+    await act(async () => root.render(<ScannerTab activeShelfId={10} onNavigateToStructure={() => {}} />));
+
+    const start = Array.from(container.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Spustit skenování'),
+    );
+    await act(async () => start?.click());
+    await act(async () => markCameraReady(container));
+
+    now += 5000;
+    await act(async () => scanCallback!({ getText: () => '9788025703670' }));
+    now += 3999;
+    await act(async () => vi.advanceTimersByTimeAsync(1200));
+    expect(isbnOcrService.recognizeIsbnFromSource).not.toHaveBeenCalled();
+
+    now += 1;
+    await act(async () => vi.advanceTimersByTimeAsync(1200));
+    expect(isbnOcrService.recognizeIsbnFromSource).toHaveBeenCalledTimes(1);
   });
 
   it('shows lighting warning, stops camera and offers retry on first OCR failure', async () => {
+    vi.useFakeTimers();
     let now = 1000;
     vi.spyOn(Date, 'now').mockImplementation(() => now);
 
@@ -517,13 +569,13 @@ describe('ScannerTab component real workflow', () => {
       startBtn?.click();
     });
 
+    await act(async () => markCameraReady(container));
+
     // Advance time beyond 4500ms threshold
     now += 5000;
 
     // Wait for OCR interval to fire
-    await act(async () => {
-      await new Promise((res) => setTimeout(res, 1300));
-    });
+    await act(async () => vi.advanceTimersByTimeAsync(1200));
 
     // Warning banner must be displayed
     expect(container.textContent).toContain('Skener nenalezl kód. Zkuste zlepšit osvětlení nebo lépe zaostřit na text.');
@@ -544,12 +596,12 @@ describe('ScannerTab component real workflow', () => {
 
     expect(container.textContent).toContain('Zastavit fotoaparát');
 
+    await act(async () => markCameraReady(container));
+
     // Advance time again past 4500ms -> persistent failure!
     now += 5000;
 
-    await act(async () => {
-      await new Promise((res) => setTimeout(res, 1300));
-    });
+    await act(async () => vi.advanceTimersByTimeAsync(1200));
 
     // Now persistent failure banner appears
     expect(container.textContent).toContain('ISBN kód nebyl naskenován');
