@@ -588,6 +588,49 @@ describe('ScannerTab component real workflow', () => {
     expect(container.textContent).toContain('Spustit skenování');
   });
 
+  it('gives the next book a full thirty seconds after the fast-scan confirmation', async () => {
+    vi.useFakeTimers();
+    let now = 1000;
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
+    vi.spyOn(isbnOcrService, 'recognizeIsbnFromSource').mockResolvedValue(null);
+    vi.spyOn(isbnService, 'lookupBookByIsbnDetailed').mockResolvedValue({
+      metadata: { isbn: '9788025703670', title: 'První kniha', author: '', publishedYear: '' },
+      isNetworkError: false,
+    });
+
+    await act(async () => root.render(<ScannerTab activeShelfId={10} onNavigateToStructure={() => {}} />));
+    const button = (label: string) => Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes(label),
+    );
+    await act(async () => button('Zapnout rychlé skenování')?.click());
+    await act(async () => button('Spustit skenování')?.click());
+    await act(async () => markCameraReady(container));
+
+    const barcode = { getText: () => '9788025703670' };
+    await act(async () => scanCallback!(barcode));
+    const cat = () => container.querySelector('img[alt="Kniha naskenována!"]');
+    expect(cat()).not.toBeNull();
+
+    // A barcode still in view during the confirmation must not start the next window.
+    now += 2999;
+    await act(async () => vi.advanceTimersByTimeAsync(2999));
+    await act(async () => scanCallback!(barcode));
+    expect(cat()).not.toBeNull();
+    now += 1;
+    await act(async () => vi.advanceTimersByTimeAsync(1));
+    expect(cat()).toBeNull();
+    expect(booksStore).toHaveLength(1);
+
+    now += 29999;
+    await act(async () => vi.advanceTimersByTimeAsync(600));
+    expect(container.textContent).not.toContain('Skener nenalezl kód');
+    expect(button('Zastavit fotoaparát')).toBeDefined();
+
+    now += 1;
+    await act(async () => vi.advanceTimersByTimeAsync(1200));
+    expect(container.textContent).toContain('Skener nenalezl kód');
+  });
+
   it('shows lighting warning, stops camera and offers retry on first OCR failure', async () => {
     vi.useFakeTimers();
     let now = 1000;

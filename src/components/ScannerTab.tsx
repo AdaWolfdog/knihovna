@@ -100,6 +100,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   const readingSinceRef = useRef<number | null>(null);
   const cameraSessionRef = useRef(0);
   const pendingOcrSessionRef = useRef<number | null>(null);
+  const fastSuccessTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ocrAttemptCountRef = useRef<number>(0);
   const ocrIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isScanningRef = useRef<boolean>(isScanning);
@@ -183,6 +184,12 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   const stopCamera = () => {
     cameraSessionRef.current += 1;
     readingSinceRef.current = null;
+    if (fastSuccessTimeoutRef.current !== null) {
+      clearTimeout(fastSuccessTimeoutRef.current);
+      fastSuccessTimeoutRef.current = null;
+      setShowThumbsUpOverlay(false);
+      isProcessingRef.current = false;
+    }
     if (ocrIntervalRef.current) {
       clearInterval(ocrIntervalRef.current);
       ocrIntervalRef.current = null;
@@ -200,6 +207,20 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       videoRef.current.srcObject = null;
     }
     setIsScanning(false);
+  };
+
+  const showFastScanSuccess = () => {
+    readingSinceRef.current = null;
+    isModalOpenRef.current = false;
+    setModalSaveError(undefined);
+    setShowThumbsUpOverlay(true);
+    fastSuccessTimeoutRef.current = setTimeout(() => {
+      fastSuccessTimeoutRef.current = null;
+      setShowThumbsUpOverlay(false);
+      // A full waiting window begins when the scanner accepts the next book.
+      readingSinceRef.current = hasCameraFrame(videoRef.current) ? Date.now() : null;
+      isProcessingRef.current = false;
+    }, 3000);
   };
 
   // Clean up ZXing on unmount
@@ -362,12 +383,12 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
       if (session !== cameraSessionRef.current) return;
       const onResultCallback = async (result: any) => {
         if (result && session === cameraSessionRef.current) {
+          if (isProcessingRef.current || isModalOpenRef.current) return;
           const decodedText = result.getText();
           const now = Date.now();
           const cleanIsbn = normalizeIsbn(decodedText);
           if (isValidIsbnChecksum(cleanIsbn)) readingSinceRef.current = now;
 
-          if (isProcessingRef.current || isModalOpenRef.current) return;
           if (
             cleanIsbn === lastScannedIsbnRef.current &&
             now - lastScanTimeRef.current < 2500
@@ -593,11 +614,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           metadata?.source || (existingInLibrary ? 'Import' : undefined)
         );
         if (saved) {
-          setShowThumbsUpOverlay(true);
-          setTimeout(() => {
-            setShowThumbsUpOverlay(false);
-            isProcessingRef.current = false;
-          }, 3000);
+          showFastScanSuccess();
         } else {
           isProcessingRef.current = false;
         }
@@ -1382,11 +1399,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             setDuplicateBook(null);
             setPendingBookData(null);
             if (inFastMode) {
-              setShowThumbsUpOverlay(true);
-              setTimeout(() => {
-                setShowThumbsUpOverlay(false);
-                releaseModalLock();
-              }, 3000);
+              showFastScanSuccess();
             } else {
               releaseModalLock();
             }
