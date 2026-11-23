@@ -167,6 +167,9 @@ export const de: Record<TranslationKey, string> = {
 
   // BookListTab
   locationSortQuantity: 'Anzahl der Bücher',
+  moveBookTooltip: 'Buch verschieben',
+  moveTargetShelf: 'Zielregal',
+  moveNoShelves: 'Zum Verschieben des Buchs wird ein anderes Regal benötigt.',
   moveRoomTooltip: 'Raum verschieben',
   moveShelfTooltip: 'Regal verschieben',
   moveTargetLibrary: 'Zielbibliothek',

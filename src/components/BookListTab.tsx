@@ -1,5 +1,6 @@
 import { BookCoverImage } from './BookCoverImage';
 import { BookActions } from './BookActions';
+import { MoveBookDialog } from './MoveBookDialog';
 import { BookGallery } from './BookGallery';
 import { BookViewToolbar } from './BookViewToolbar';
 import { useBookView } from './useBookView';
@@ -29,6 +30,7 @@ export const BookListTab: React.FC = () => {
 
   // Edit modal state
   const [editingBook, setEditingBook] = useState<Book | null>(null);
+  const [movingBook, setMovingBook] = useState<Book | null>(null);
 
   // Maps for fast lookups
   const librariesMap = useMemo(() => new Map(libraries.map((l) => [l.id!, l])), [libraries]);
@@ -123,6 +125,7 @@ export const BookListTab: React.FC = () => {
   const renderBookActions = (book: Book) => (
     <BookActions
       book={book}
+      onMove={book.id === undefined ? undefined : () => setMovingBook(book)}
       onEdit={() => setEditingBook(book)}
       onDelete={() => handleDeleteBook(book.id!)}
     />
@@ -435,6 +438,16 @@ export const BookListTab: React.FC = () => {
           </div>
         )}
       </div>
+
+      {movingBook && (
+        <MoveBookDialog
+          book={movingBook}
+          libraries={libraries}
+          rooms={rooms}
+          shelves={shelves}
+          onClose={() => setMovingBook(null)}
+        />
+      )}
 
       {/* EDIT BOOK MODAL */}
       {editingBook && (

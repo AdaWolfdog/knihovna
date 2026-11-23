@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Edit3, RefreshCw, Trash2 } from 'lucide-react';
+import { Edit3, FolderInput, RefreshCw, Trash2 } from 'lucide-react';
 import { db, type Book } from '../db/db';
 import { useLanguage } from '../i18n';
 import { resolveBookCoverForRefresh } from '../services/bookCoverService';
@@ -7,13 +7,14 @@ import { getMissingBookDetails, lookupBookByIsbnDetailed, normalizeIsbn, toIsbn1
 
 interface BookActionsProps {
   book: Book;
+  onMove?: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }
 
 const editClassName = 'rounded-lg p-1.5 text-slate-500 transition hover:bg-indigo-50 hover:text-indigo-600 cursor-pointer';
 
-export function BookActions({ book, onEdit, onDelete }: BookActionsProps) {
+export function BookActions({ book, onMove, onEdit, onDelete }: BookActionsProps) {
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<'refreshBookSuccess' | 'refreshBookNoChanges' | 'refreshBookError'>();
@@ -56,8 +57,8 @@ export function BookActions({ book, onEdit, onDelete }: BookActionsProps) {
   };
 
   return (
-    <div className="flex flex-col items-end gap-1">
-      <div className="flex items-center justify-end gap-1">
+    <div className="flex min-w-0 flex-col items-end gap-1">
+      <div className="flex flex-wrap items-center justify-end gap-1">
         {canRefresh && (
           <button
             type="button"
@@ -68,6 +69,11 @@ export function BookActions({ book, onEdit, onDelete }: BookActionsProps) {
             className={`${editClassName} disabled:cursor-wait disabled:opacity-60`}
           >
             <RefreshCw className={`size-4 ${loading ? 'motion-safe:animate-spin' : ''}`} aria-hidden="true" />
+          </button>
+        )}
+        {onMove && (
+          <button type="button" onClick={onMove} className={editClassName} title={t('moveBookTooltip')} aria-label={t('moveBookTooltip')}>
+            <FolderInput className="size-4" aria-hidden="true" />
           </button>
         )}
         <button type="button" onClick={onEdit} className={editClassName} title={t('editBookTooltip')}>

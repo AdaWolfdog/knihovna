@@ -155,7 +155,7 @@ describe('LibraryManager shelf books section', () => {
     const firstTile = section.querySelector('li')!;
     expect(firstTile.querySelector('img')?.getAttribute('loading')).toBe('lazy');
     expect([...firstTile.querySelectorAll('button')].map((button) => button.title)).toEqual([
-      'Odebrat 1 kus', 'Přidat 1 kus', 'Načíst údaje znovu podle ISBN', 'Upravit knihu', 'Smazat knihu',
+      'Odebrat 1 kus', 'Přidat 1 kus', 'Načíst údaje znovu podle ISBN', 'Přesunout knihu', 'Upravit knihu', 'Smazat knihu',
     ]);
 
     await renderShelf(101);

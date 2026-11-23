@@ -1,5 +1,6 @@
 import { BookCoverImage } from './BookCoverImage';
 import { BookActions } from './BookActions';
+import { MoveBookDialog } from './MoveBookDialog';
 import { SortMenu } from './BookSortMenu';
 import { MoveLocationDialog, type MoveDestinationLibrary } from './MoveLocationDialog';
 import type { BookSortDirection } from '../services/bookSort';
@@ -70,6 +71,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
 
   // Book edit state
   const [editingBook, setEditingBook] = useState<Book | null>(null);
+  const [movingBook, setMovingBook] = useState<Book | null>(null);
   const [movingLocation, setMovingLocation] = useState<MoveLocation | null>(null);
   const [locationSort, setLocationSort] = useState<Partial<Record<LocationGroup, LocationSort>>>({});
   const locationCollator = useMemo(() => new Intl.Collator(language === 'emoji' ? 'cs' : language, { numeric: true }), [language]);
@@ -335,6 +337,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
   const renderBookActions = (book: Book) => (
     <BookActions
       book={book}
+      onMove={book.id === undefined ? undefined : () => setMovingBook(book)}
       onEdit={() => setEditingBook(book)}
       onDelete={() => handleDeleteBook(book.id!)}
     />
@@ -1080,6 +1083,16 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
           destinations={getMoveDestinations(movingLocation)}
           onMove={(libraryId, roomId) => moveLocation(movingLocation, libraryId, roomId)}
           onClose={() => setMovingLocation(null)}
+        />
+      )}
+
+      {movingBook && (
+        <MoveBookDialog
+          book={movingBook}
+          libraries={libraries}
+          rooms={rooms}
+          shelves={shelves}
+          onClose={() => setMovingBook(null)}
         />
       )}
 

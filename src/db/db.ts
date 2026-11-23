@@ -118,3 +118,23 @@ export async function moveShelfToRoom(shelfId: number, roomId: number, libraryId
     }
   });
 }
+
+export async function moveBookToShelf(
+  bookId: number,
+  sourceShelfId: number,
+  destination: Pick<Book, 'libraryId' | 'roomId' | 'shelfId'>,
+) {
+  const { libraryId, roomId, shelfId } = destination;
+  await db.transaction('rw', [db.libraries, db.rooms, db.shelves, db.books], async () => {
+    const book = await db.books.get(bookId);
+    const shelf = await db.shelves.get(shelfId);
+    const room = await db.rooms.get(roomId);
+    if (!book || book.shelfId !== sourceShelfId || shelfId === sourceShelfId
+      || shelf?.roomId !== roomId || shelf.libraryId !== libraryId
+      || room?.libraryId !== libraryId || !await db.libraries.get(libraryId)) {
+      throw new Error('The book location or destination shelf changed');
+    }
+
+    await db.books.update(bookId, { libraryId, roomId, shelfId });
+  });
+}

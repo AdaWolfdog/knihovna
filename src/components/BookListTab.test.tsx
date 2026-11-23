@@ -58,7 +58,7 @@ it('switches between the table and the gallery while preserving the active filte
     expect(tile.textContent).toContain('Robin Stevensová');
     expect(tile.textContent).toContain('2 ks');
     const actions = [...tile.querySelectorAll('button')].map(button => button.title);
-    expect(actions).toEqual(['Odebrat 1 kus', 'Přidat 1 kus', 'Načíst údaje znovu podle ISBN', 'Upravit knihu', 'Smazat knihu']);
+    expect(actions).toEqual(['Odebrat 1 kus', 'Přidat 1 kus', 'Načíst údaje znovu podle ISBN', 'Přesunout knihu', 'Upravit knihu', 'Smazat knihu']);
 
     await act(async () => list.click());
     expect(container.querySelectorAll('tbody tr')).toHaveLength(1);
