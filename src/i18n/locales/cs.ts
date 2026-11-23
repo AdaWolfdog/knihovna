@@ -169,8 +169,6 @@ export const cs = {
   moveShelfTooltip: 'Přesunout polici',
   moveTargetLibrary: 'Cílová knihovna',
   moveTargetRoom: 'Cílová místnost',
-  moveSearchTarget: 'Hledat cíl',
-  moveNoMatchingTargets: 'Žádný cíl neodpovídá hledání.',
   moveChooseTarget: 'Vyberte cíl',
   moveLocationBtn: 'Přesunout',
   moveNoLibraries: 'Pro přesun místnosti je potřeba další knihovna.',

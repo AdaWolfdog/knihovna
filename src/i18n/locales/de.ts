@@ -171,8 +171,6 @@ export const de: Record<TranslationKey, string> = {
   moveShelfTooltip: 'Regal verschieben',
   moveTargetLibrary: 'Zielbibliothek',
   moveTargetRoom: 'Zielraum',
-  moveSearchTarget: 'Ziel suchen',
-  moveNoMatchingTargets: 'Keine Ziele entsprechen der Suche.',
   moveChooseTarget: 'Ziel auswählen',
   moveLocationBtn: 'Verschieben',
   moveNoLibraries: 'Zum Verschieben wird eine weitere Bibliothek benötigt.',

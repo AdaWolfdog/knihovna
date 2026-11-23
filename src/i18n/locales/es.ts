@@ -171,8 +171,6 @@ export const es: Record<TranslationKey, string> = {
   moveShelfTooltip: 'Mover estante',
   moveTargetLibrary: 'Biblioteca de destino',
   moveTargetRoom: 'Habitación de destino',
-  moveSearchTarget: 'Buscar un destino',
-  moveNoMatchingTargets: 'Ningún destino coincide con la búsqueda.',
   moveChooseTarget: 'Selecciona un destino',
   moveLocationBtn: 'Mover',
   moveNoLibraries: 'Se necesita otra biblioteca para mover la habitación.',

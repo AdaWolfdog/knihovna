@@ -104,18 +104,17 @@ export async function moveRoomToLibrary(roomId: number, libraryId: number) {
   });
 }
 
-export async function moveShelfToRoom(shelfId: number, roomId: number) {
+export async function moveShelfToRoom(shelfId: number, roomId: number, libraryId: number) {
   return db.transaction('rw', [db.libraries, db.rooms, db.shelves, db.books], async () => {
     const shelf = await db.shelves.get(shelfId);
     const room = await db.rooms.get(roomId);
-    if (!shelf || !room || !await db.libraries.get(room.libraryId)) {
+    if (!shelf || room?.libraryId !== libraryId || !await db.libraries.get(libraryId)) {
       throw new Error('The shelf or target room no longer exists');
     }
-    const location = { roomId, libraryId: room.libraryId };
-    if (shelf.roomId !== roomId || shelf.libraryId !== room.libraryId) {
+    const location = { roomId, libraryId };
+    if (shelf.roomId !== roomId || shelf.libraryId !== libraryId) {
       await db.shelves.update(shelfId, location);
       await db.books.where('shelfId').equals(shelfId).modify(location);
     }
-    return location;
   });
 }

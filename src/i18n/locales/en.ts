@@ -171,8 +171,6 @@ export const en: Record<TranslationKey, string> = {
   moveShelfTooltip: 'Move shelf',
   moveTargetLibrary: 'Destination library',
   moveTargetRoom: 'Destination room',
-  moveSearchTarget: 'Search destinations',
-  moveNoMatchingTargets: 'No destinations match your search.',
   moveChooseTarget: 'Choose a destination',
   moveLocationBtn: 'Move',
   moveNoLibraries: 'Create another library to move this room.',

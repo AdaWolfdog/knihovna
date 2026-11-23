@@ -1,7 +1,7 @@
 import { BookCoverImage } from './BookCoverImage';
 import { BookActions } from './BookActions';
 import { SortMenu } from './BookSortMenu';
-import { MoveLocationDialog } from './MoveLocationDialog';
+import { MoveLocationDialog, type MoveDestinationLibrary } from './MoveLocationDialog';
 import type { BookSortDirection } from '../services/bookSort';
 import { BookGallery } from './BookGallery';
 import { BookViewToolbar } from './BookViewToolbar';
@@ -227,30 +227,36 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
     setActiveShelfId(shelfId);
   };
 
-  const getMoveDestinations = (location: MoveLocation) => {
-    if (location.kind === 'room') {
-      return libraries.flatMap((library) =>
-        library.id !== undefined && library.id !== location.item.libraryId ? [{ id: library.id, name: library.name }] : [],
-      ).sort((left, right) => locationCollator.compare(left.name, right.name));
+  const getMoveDestinations = (location: MoveLocation): MoveDestinationLibrary[] => {
+    const roomsByLibrary = new Map<number, { id: number; name: string }[]>();
+    if (location.kind === 'shelf') {
+      for (const room of rooms) {
+        if (room.id === undefined || room.id === location.item.roomId) continue;
+        const option = { id: room.id, name: room.name };
+        const options = roomsByLibrary.get(room.libraryId);
+        if (options) options.push(option);
+        else roomsByLibrary.set(room.libraryId, [option]);
+      }
     }
 
-    return rooms.flatMap((room) => {
-      const library = libraries.find((item) => item.id === room.libraryId);
-      return library && room.id !== undefined && room.id !== location.item.roomId
-        ? [{ id: room.id, name: `${library.name} → ${room.name}` }]
-        : [];
-    }).sort((left, right) => locationCollator.compare(left.name, right.name));
+    const byName = (left: { name: string }, right: { name: string }) => locationCollator.compare(left.name, right.name);
+    return libraries.flatMap((library) => {
+      if (library.id === undefined) return [];
+      const roomOptions = roomsByLibrary.get(library.id) ?? [];
+      const canMoveHere = location.kind === 'room' ? library.id !== location.item.libraryId : roomOptions.length > 0;
+      return canMoveHere ? [{ id: library.id, name: library.name, rooms: roomOptions.sort(byName) }] : [];
+    }).sort(byName);
   };
 
-  const moveLocation = async (location: MoveLocation, destination: number) => {
+  const moveLocation = async (location: MoveLocation, libraryId: number, roomId?: number) => {
     const id = location.item.id;
     if (id === undefined) return;
     if (location.kind === 'room') {
-      await moveRoomToLibrary(id, destination);
-      setSelectedLibraryId(destination);
+      await moveRoomToLibrary(id, libraryId);
+      setSelectedLibraryId(libraryId);
       setSelectedRoomId(id);
-    } else {
-      const { libraryId, roomId } = await moveShelfToRoom(id, destination);
+    } else if (roomId !== undefined) {
+      await moveShelfToRoom(id, roomId, libraryId);
       setSelectedLibraryId(libraryId);
       setSelectedRoomId(roomId);
       setActiveShelfId(id);
@@ -1072,7 +1078,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
           kind={movingLocation.kind}
           name={movingLocation.item.name}
           destinations={getMoveDestinations(movingLocation)}
-          onMove={(destination) => moveLocation(movingLocation, destination)}
+          onMove={(libraryId, roomId) => moveLocation(movingLocation, libraryId, roomId)}
           onClose={() => setMovingLocation(null)}
         />
       )}

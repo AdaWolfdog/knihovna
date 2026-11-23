@@ -1,35 +1,33 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import { FolderInput, Search } from 'lucide-react';
+import { FolderInput } from 'lucide-react';
 import { useLanguage } from '../i18n';
+
+export interface MoveDestinationLibrary {
+  id: number;
+  name: string;
+  rooms: readonly { id: number; name: string }[];
+}
 
 interface MoveLocationDialogProps {
   kind: 'room' | 'shelf';
   name: string;
-  destinations: readonly { id: number; name: string }[];
-  onMove: (destination: number) => Promise<void>;
+  destinations: readonly MoveDestinationLibrary[];
+  onMove: (libraryId: number, roomId?: number) => Promise<void>;
   onClose: () => void;
-}
-
-function normalizeSearch(value: string) {
-  return value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 }
 
 export function MoveLocationDialog({ kind, name, destinations, onMove, onClose }: MoveLocationDialogProps) {
   const { t } = useLanguage();
   const id = useId();
   const dialog = useRef<HTMLDialogElement>(null);
-  const [query, setQuery] = useState('');
-  const [destination, setDestination] = useState('');
+  const [libraryId, setLibraryId] = useState('');
+  const [roomId, setRoomId] = useState('');
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
-  const searchTerms = normalizeSearch(query).trim().split(/\s+/).filter(Boolean);
-  const visibleDestinations = searchTerms.length
-    ? destinations.filter(({ name }) => {
-        const normalized = normalizeSearch(name);
-        return searchTerms.every((term) => normalized.includes(term));
-      })
-    : destinations;
-  const validDestination = visibleDestinations.some((item) => String(item.id) === destination);
+  const selectedLibrary = destinations.find((library) => String(library.id) === libraryId);
+  const selectedRoom = selectedLibrary?.rooms.find((room) => String(room.id) === roomId);
+  const canMove = selectedLibrary !== undefined && (kind === 'room' || selectedRoom !== undefined);
+  const selectClass = 'w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base sm:text-sm';
 
   useEffect(() => {
     dialog.current?.showModal();
@@ -37,12 +35,12 @@ export function MoveLocationDialog({ kind, name, destinations, onMove, onClose }
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!validDestination || saving) return;
+    if (!canMove || saving) return;
 
     setSaving(true);
     setFailed(false);
     try {
-      await onMove(Number(destination));
+      await onMove(selectedLibrary.id, selectedRoom?.id);
       onClose();
     } catch (error) {
       console.error('Failed to move library location:', error);
@@ -69,37 +67,36 @@ export function MoveLocationDialog({ kind, name, destinations, onMove, onClose }
         {destinations.length ? (
           <div className="space-y-3">
             <label className="grid gap-1.5 text-sm font-medium">
-              {t('moveSearchTarget')}
-              <span className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" aria-hidden="true" />
-                <input
-                  type="search"
-                  value={query}
-                  onChange={(event) => {
-                    setQuery(event.target.value);
-                    setDestination('');
-                  }}
-                  disabled={saving}
-                  className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3 text-base sm:text-sm"
-                />
-              </span>
-            </label>
-            <label className="grid gap-1.5 text-sm font-medium">
-              {t(kind === 'room' ? 'moveTargetLibrary' : 'moveTargetRoom')}
+              {t('moveTargetLibrary')}
               <select
                 required
-                value={validDestination ? destination : ''}
-                onChange={(event) => setDestination(event.target.value)}
-                disabled={saving || visibleDestinations.length === 0}
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm disabled:opacity-50"
+                value={selectedLibrary ? libraryId : ''}
+                onChange={(event) => {
+                  setLibraryId(event.target.value);
+                  setRoomId('');
+                }}
+                disabled={saving}
+                className={selectClass}
               >
                 <option value="" disabled>{t('moveChooseTarget')}</option>
-                {visibleDestinations.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                {destinations.map((library) => <option key={library.id} value={library.id}>{library.name}</option>)}
               </select>
             </label>
-            <p role="status" className="empty:hidden text-sm text-slate-600">
-              {visibleDestinations.length === 0 ? t('moveNoMatchingTargets') : ''}
-            </p>
+            {kind === 'shelf' && selectedLibrary && (
+              <label className="grid gap-1.5 text-sm font-medium">
+                {t('moveTargetRoom')}
+                <select
+                  required
+                  value={selectedRoom ? roomId : ''}
+                  onChange={(event) => setRoomId(event.target.value)}
+                  disabled={saving}
+                  className={selectClass}
+                >
+                  <option value="" disabled>{t('moveChooseTarget')}</option>
+                  {selectedLibrary.rooms.map((room) => <option key={room.id} value={room.id}>{room.name}</option>)}
+                </select>
+              </label>
+            )}
           </div>
         ) : (
           <p className="text-sm text-slate-600">{t(kind === 'room' ? 'moveNoLibraries' : 'moveNoRooms')}</p>
@@ -109,7 +106,7 @@ export function MoveLocationDialog({ kind, name, destinations, onMove, onClose }
           <button type="button" onClick={onClose} disabled={saving} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium">
             {t('cancelBtn')}
           </button>
-          <button type="submit" disabled={!validDestination || saving} className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-on-accent disabled:opacity-50">
+          <button type="submit" disabled={!canMove || saving} className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-on-accent disabled:opacity-50">
             {t('moveLocationBtn')}
           </button>
         </div>
