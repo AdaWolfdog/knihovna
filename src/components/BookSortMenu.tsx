@@ -1,9 +1,9 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { ArrowDownUp, ChevronDown } from 'lucide-react';
-import { useLanguage } from '../i18n';
+import { useLanguage, type TranslationKey } from '../i18n';
 import type { BookSortCriterion, BookSortDirection } from '../services/bookSort';
 
-const criteria = [
+const bookCriteria = [
   ['title', 'bookSortTitle'],
   ['author', 'bookSortAuthor'],
   ['published', 'bookSortPublished'],
@@ -16,14 +16,20 @@ const directions = [
   ['desc', 'bookSortDescending'],
 ] as const;
 
-interface BookSortMenuProps {
-  criterion: BookSortCriterion;
+interface SortMenuProps<Criterion extends string> {
+  criterion: Criterion;
   direction: BookSortDirection;
-  onCriterionChange: (criterion: BookSortCriterion) => void;
+  onCriterionChange: (criterion: Criterion) => void;
   onDirectionChange: (direction: BookSortDirection) => void;
 }
 
-export function BookSortMenu({ criterion, direction, onCriterionChange, onDirectionChange }: BookSortMenuProps) {
+export function BookSortMenu(props: SortMenuProps<BookSortCriterion>) {
+  return <SortMenu {...props} criteria={bookCriteria} />;
+}
+
+export function SortMenu<Criterion extends string>({
+  criteria, criterion, direction, onCriterionChange, onDirectionChange,
+}: SortMenuProps<Criterion> & { criteria: readonly (readonly [Criterion, TranslationKey])[] }) {
   const { t } = useLanguage();
   const id = useId();
   const [open, setOpen] = useState(false);

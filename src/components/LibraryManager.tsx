@@ -1,5 +1,8 @@
 import { BookCoverImage } from './BookCoverImage';
 import { BookActions } from './BookActions';
+import { SortMenu } from './BookSortMenu';
+import { MoveLocationDialog } from './MoveLocationDialog';
+import type { BookSortDirection } from '../services/bookSort';
 import { BookGallery } from './BookGallery';
 import { BookViewToolbar } from './BookViewToolbar';
 import { useBookView } from './useBookView';
@@ -8,11 +11,21 @@ import { DEFAULT_LIBRARY_COLOR, LIBRARY_COLORS } from './libraryColors';
 import { BookQuantityControl } from './BookQuantityControl';
 import React, { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, type Library } from '../db/db';
-import { Plus, Trash2, Edit3, Check, X, Library as LibraryIcon, Folder, BookmarkCheck, ChevronRight, Eye, BookOpen, Image as ImageIcon, Smartphone } from 'lucide-react';
-import { type Book } from '../db/db';
+import { db, moveRoomToLibrary, moveShelfToRoom, type Book, type Library, type Room, type Shelf } from '../db/db';
+import { Plus, Trash2, Edit3, Check, X, FolderInput, Library as LibraryIcon, Folder, BookmarkCheck, ChevronRight, Eye, BookOpen, Image as ImageIcon, Smartphone } from 'lucide-react';
 import { ManualBookModal } from './ManualBookModal';
 import { useLanguage } from '../i18n';
+
+type LocationGroup = 'libraries' | 'rooms' | 'shelves';
+type LocationSort = { criterion: 'name' | 'quantity'; direction: BookSortDirection };
+type MoveLocation = { kind: 'room'; item: Room } | { kind: 'shelf'; item: Shelf };
+
+const locationCriteria = [
+  ['name', 'bookSortTitle'],
+  ['quantity', 'locationSortQuantity'],
+] as const;
+const defaultLocationSort: LocationSort = { criterion: 'name', direction: 'asc' };
+const moveButtonClass = 'text-slate-400 hover:text-indigo-600 p-1 rounded cursor-pointer';
 
 interface LibraryManagerProps {
   activeShelfId: number | null;
@@ -25,7 +38,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
   setActiveShelfId,
   onSelectShelfForScanning,
 }) => {
-  const { t, translateDynamic } = useLanguage();
+  const { language, t, translateDynamic } = useLanguage();
   const isMobileLandscapeTable = useMobileLandscapeTable();
   const libraries = useLiveQuery(() => db.libraries.toArray(), []) || [];
   const rooms = useLiveQuery(() => db.rooms.toArray(), []) || [];
@@ -57,6 +70,51 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
 
   // Book edit state
   const [editingBook, setEditingBook] = useState<Book | null>(null);
+  const [movingLocation, setMovingLocation] = useState<MoveLocation | null>(null);
+  const [locationSort, setLocationSort] = useState<Partial<Record<LocationGroup, LocationSort>>>({});
+  const locationCollator = useMemo(() => new Intl.Collator(language === 'emoji' ? 'cs' : language, { numeric: true }), [language]);
+  const copyCounts = useMemo(() => {
+    const counts = { libraries: new Map<number, number>(), rooms: new Map<number, number>(), shelves: new Map<number, number>() };
+    for (const book of books) {
+      const quantity = book.quantity || 1;
+      counts.libraries.set(book.libraryId, (counts.libraries.get(book.libraryId) ?? 0) + quantity);
+      counts.rooms.set(book.roomId, (counts.rooms.get(book.roomId) ?? 0) + quantity);
+      counts.shelves.set(book.shelfId, (counts.shelves.get(book.shelfId) ?? 0) + quantity);
+    }
+    return counts;
+  }, [books]);
+
+  const copyCount = (group: LocationGroup, id: number | undefined) => id === undefined ? 0 : copyCounts[group].get(id) ?? 0;
+
+  const sortLocations = <Item extends { id?: number; name: string }>(group: LocationGroup, items: Item[]) => {
+    const sort = locationSort[group] ?? defaultLocationSort;
+    const factor = sort.direction === 'asc' ? 1 : -1;
+    return [...items].sort((left, right) => {
+      const byName = locationCollator.compare(left.name, right.name);
+      if (sort.criterion === 'name') return factor * byName;
+      return factor * (copyCount(group, left.id) - copyCount(group, right.id)) || byName;
+    });
+  };
+
+  const renderLocationSort = (group: LocationGroup) => {
+    const sort = locationSort[group] ?? defaultLocationSort;
+    const updateSort = (change: Partial<LocationSort>) => setLocationSort((current) => ({
+      ...current,
+      [group]: { ...(current[group] ?? defaultLocationSort), ...change },
+    }));
+    return (
+      <div className="mb-3">
+        <SortMenu
+          criteria={locationCriteria}
+          criterion={sort.criterion}
+          direction={sort.direction}
+          onCriterionChange={(criterion) => updateSort({ criterion })}
+          onDirectionChange={(direction) => updateSort({ direction })}
+        />
+      </div>
+    );
+  };
+
 
   const selectedLibraryId = (libraries.find((library) => library.id === requestedLibraryId) ?? libraries[0])?.id ?? null;
   const selectedLibraryColor = libraries.find((library) => library.id === selectedLibraryId)?.color || DEFAULT_LIBRARY_COLOR;
@@ -154,15 +212,50 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
   const handleAddShelf = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newShelfName.trim() || !selectedRoomId || !selectedLibraryId) return;
-    const shelfId = await db.shelves.add({
-      libraryId: selectedLibraryId,
-      roomId: selectedRoomId,
-      name: newShelfName.trim(),
-      createdAt: new Date(),
+    const shelfId = await db.transaction('rw', [db.rooms, db.shelves], async () => {
+      const room = await db.rooms.get(selectedRoomId);
+      if (!room) return undefined;
+      return db.shelves.add({
+        libraryId: room.libraryId,
+        roomId: selectedRoomId,
+        name: newShelfName.trim(),
+        createdAt: new Date(),
+      });
     });
+    if (shelfId === undefined) return;
     setNewShelfName('');
     setShowAddShelf(false);
     setActiveShelfId(shelfId);
+  };
+
+  const getMoveDestinations = (location: MoveLocation) => {
+    if (location.kind === 'room') {
+      return libraries.flatMap((library) =>
+        library.id !== undefined && library.id !== location.item.libraryId ? [{ id: library.id, name: library.name }] : [],
+      ).sort((left, right) => locationCollator.compare(left.name, right.name));
+    }
+
+    return rooms.flatMap((room) => {
+      const library = libraries.find((item) => item.id === room.libraryId);
+      return library && room.id !== undefined && room.id !== location.item.roomId
+        ? [{ id: room.id, name: `${library.name} → ${room.name}` }]
+        : [];
+    }).sort((left, right) => locationCollator.compare(left.name, right.name));
+  };
+
+  const moveLocation = async (location: MoveLocation, destination: number) => {
+    const id = location.item.id;
+    if (id === undefined) return;
+    if (location.kind === 'room') {
+      await moveRoomToLibrary(id, destination);
+      setSelectedLibraryId(destination);
+      setSelectedRoomId(id);
+    } else {
+      const { libraryId, roomId } = await moveShelfToRoom(id, destination);
+      setSelectedLibraryId(libraryId);
+      setSelectedRoomId(roomId);
+      setActiveShelfId(id);
+    }
   };
 
   // Delete handlers
@@ -321,14 +414,16 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
             </form>
           )}
 
+          {renderLocationSort('libraries')}
+
           <div className="space-y-1.5 overflow-y-auto max-h-80 flex-1">
             {libraries.length === 0 ? (
               <p className="text-xs text-slate-400 py-4 text-center">
                 {t('noLibrariesYet')}
               </p>
             ) : (
-              libraries.map((lib) => {
-                const count = books.filter((b) => b.libraryId === lib.id).length;
+              sortLocations('libraries', libraries).map((lib) => {
+                const count = copyCount('libraries', lib.id);
                 const isSelected = selectedLibraryId === lib.id;
                 const isEditing = editingLibrary && editingLibrary.id === lib.id;
                 const libColor = lib.color || DEFAULT_LIBRARY_COLOR;
@@ -504,6 +599,8 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
             </form>
           )}
 
+          {selectedLibraryId && renderLocationSort('rooms')}
+
           <div className="space-y-1.5 overflow-y-auto max-h-80 flex-1">
             {!selectedLibraryId ? (
               <p className="text-xs text-slate-400 py-4 text-center">
@@ -514,8 +611,8 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                 {t('noRoomsYet')}
               </p>
             ) : (
-              filteredRooms.map((room) => {
-                const count = books.filter((b) => b.roomId === room.id).length;
+              sortLocations('rooms', filteredRooms).map((room) => {
+                const count = copyCount('rooms', room.id);
                 const isSelected = selectedRoomId === room.id;
                 const isEditing = editingRoomId === room.id;
 
@@ -565,6 +662,18 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                       <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
                         {count} {t('booksCountSuffix')}
                       </span>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setMovingLocation({ kind: 'room', item: room });
+                        }}
+                        className={moveButtonClass}
+                        title={t('moveRoomTooltip')}
+                        aria-label={t('moveRoomTooltip')}
+                      >
+                        <FolderInput className="size-3.5" aria-hidden="true" />
+                      </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -640,6 +749,8 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
             </form>
           )}
 
+          {selectedRoomId && renderLocationSort('shelves')}
+
           <div className="space-y-1.5 overflow-y-auto max-h-80 flex-1">
             {!selectedRoomId ? (
               <p className="text-xs text-slate-400 py-4 text-center">
@@ -650,8 +761,8 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                 {t('noShelvesYet')}
               </p>
             ) : (
-              filteredShelves.map((shelf) => {
-                const count = books.filter((b) => b.shelfId === shelf.id).length;
+              sortLocations('shelves', filteredShelves).map((shelf) => {
+                const count = copyCount('shelves', shelf.id);
                 const isActive = activeShelfId === shelf.id;
                 const isEditing = editingShelfId === shelf.id;
 
@@ -686,7 +797,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                 return (
                   <div
                     key={shelf.id}
-                    className={`flex items-center justify-between p-2.5 rounded-lg text-sm transition ${
+                    className={`flex flex-wrap items-center justify-between gap-1 p-2.5 rounded-lg text-sm transition ${
                       isActive
                         ? 'bg-emerald-50 border-2 border-emerald-500 text-emerald-900 font-semibold'
                         : 'bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100'
@@ -733,6 +844,18 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                         </button>
                       )}
 
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setMovingLocation({ kind: 'shelf', item: shelf });
+                        }}
+                        className={moveButtonClass}
+                        title={t('moveShelfTooltip')}
+                        aria-label={t('moveShelfTooltip')}
+                      >
+                        <FolderInput className="size-3.5" aria-hidden="true" />
+                      </button>
                       <button
                         onClick={() => {
                           setEditingShelfId(shelf.id!);
@@ -941,6 +1064,16 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
           </div>
         )}
       </div>
+
+      {movingLocation && (
+        <MoveLocationDialog
+          kind={movingLocation.kind}
+          name={movingLocation.item.name}
+          destinations={getMoveDestinations(movingLocation)}
+          onMove={(destination) => moveLocation(movingLocation, destination)}
+          onClose={() => setMovingLocation(null)}
+        />
+      )}
 
       {/* EDIT BOOK MODAL */}
       {editingBook && (

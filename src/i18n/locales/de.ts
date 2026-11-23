@@ -166,6 +166,16 @@ export const de: Record<TranslationKey, string> = {
   confirmDeleteBookCompletely: 'Möchten Sie dieses Buch vollständig aus der Liste entfernen?',
 
   // BookListTab
+  locationSortQuantity: 'Anzahl der Bücher',
+  moveRoomTooltip: 'Raum verschieben',
+  moveShelfTooltip: 'Regal verschieben',
+  moveTargetLibrary: 'Zielbibliothek',
+  moveTargetRoom: 'Zielraum',
+  moveChooseTarget: 'Ziel auswählen',
+  moveLocationBtn: 'Verschieben',
+  moveNoLibraries: 'Zum Verschieben wird eine weitere Bibliothek benötigt.',
+  moveNoRooms: 'Zum Verschieben wird ein weiterer Raum benötigt.',
+  moveLocationError: 'Das Verschieben ist fehlgeschlagen. Bitte erneut versuchen.',
   bookSortLabel: 'Sortierung',
   bookSortBy: 'Sortieren nach',
   bookSortTitle: 'Titel',

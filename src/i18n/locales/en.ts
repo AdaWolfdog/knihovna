@@ -166,6 +166,16 @@ export const en: Record<TranslationKey, string> = {
   confirmDeleteBookCompletely: 'Do you want to completely remove this book from the list?',
 
   // BookListTab
+  locationSortQuantity: 'Number of books',
+  moveRoomTooltip: 'Move room',
+  moveShelfTooltip: 'Move shelf',
+  moveTargetLibrary: 'Destination library',
+  moveTargetRoom: 'Destination room',
+  moveChooseTarget: 'Choose a destination',
+  moveLocationBtn: 'Move',
+  moveNoLibraries: 'Create another library to move this room.',
+  moveNoRooms: 'Create another room to move this shelf.',
+  moveLocationError: 'The move failed. Please try again.',
   bookSortLabel: 'Sort',
   bookSortBy: 'Sort by',
   bookSortTitle: 'Title',

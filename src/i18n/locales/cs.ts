@@ -164,6 +164,16 @@ export const cs = {
   confirmDeleteBookCompletely: 'Chcete tuto knihu zcela odstranit ze seznamu?',
 
   // BookListTab
+  locationSortQuantity: 'Množství knih',
+  moveRoomTooltip: 'Přesunout místnost',
+  moveShelfTooltip: 'Přesunout polici',
+  moveTargetLibrary: 'Cílová knihovna',
+  moveTargetRoom: 'Cílová místnost',
+  moveChooseTarget: 'Vyberte cíl',
+  moveLocationBtn: 'Přesunout',
+  moveNoLibraries: 'Pro přesun místnosti je potřeba další knihovna.',
+  moveNoRooms: 'Pro přesun police je potřeba další místnost.',
+  moveLocationError: 'Přesun se nepodařil. Zkuste to znovu.',
   bookSortLabel: 'Řazení',
   bookSortBy: 'Řadit podle',
   bookSortTitle: 'Název',
