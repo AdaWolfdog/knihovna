@@ -1,7 +1,8 @@
 import { BookCoverImage } from './BookCoverImage';
 import { BookActions } from './BookActions';
-import { BookSortMenu } from './BookSortMenu';
-import { sortBooks, type BookSortCriterion, type BookSortDirection } from '../services/bookSort';
+import { BookGallery } from './BookGallery';
+import { BookViewToolbar } from './BookViewToolbar';
+import { useBookView } from './useBookView';
 import { useMobileLandscapeTable } from './useMobileLandscapeTable';
 import { DEFAULT_LIBRARY_COLOR } from './libraryColors';
 import { BookQuantityControl } from './BookQuantityControl';
@@ -9,21 +10,18 @@ import React, { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Book } from '../db/db';
 import { exportToXLSX, exportToCSV, prepareExportData } from '../services/exportService';
-import { Search, BookOpen, FileSpreadsheet, FileText, Filter, Grid2X2, Image as ImageIcon, List, Smartphone } from 'lucide-react';
+import { Search, BookOpen, FileSpreadsheet, FileText, Filter, Image as ImageIcon, Smartphone } from 'lucide-react';
 import { ManualBookModal } from './ManualBookModal';
 import { useLanguage } from '../i18n';
 
 export const BookListTab: React.FC = () => {
-  const { language, t, translateDynamic } = useLanguage();
+  const { t, translateDynamic } = useLanguage();
   const isMobileLandscapeTable = useMobileLandscapeTable();
   const books = useLiveQuery(() => db.books.toArray(), []) || [];
   const libraries = useLiveQuery(() => db.libraries.toArray(), []) || [];
   const rooms = useLiveQuery(() => db.rooms.toArray(), []) || [];
   const shelves = useLiveQuery(() => db.shelves.toArray(), []) || [];
 
-  const [view, setView] = useState<'list' | 'gallery'>('list');
-  const [sortCriterion, setSortCriterion] = useState<BookSortCriterion>('title');
-  const [sortDirection, setSortDirection] = useState<BookSortDirection>('asc');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLibraryFilter, setSelectedLibraryFilter] = useState<number | 'all'>('all');
   const [selectedRoomFilter, setSelectedRoomFilter] = useState<number | 'all'>('all');
@@ -63,11 +61,8 @@ export const BookListTab: React.FC = () => {
     });
   }, [books, selectedLibraryFilter, selectedRoomFilter, selectedShelfFilter, searchQuery]);
 
-  const collator = useMemo(() => new Intl.Collator(language === 'emoji' ? 'cs' : language, { numeric: true }), [language]);
-  const sortedBooks = useMemo(
-    () => sortBooks(filteredBooks, sortCriterion, sortDirection, collator),
-    [filteredBooks, sortCriterion, sortDirection, collator],
-  );
+  const bookView = useBookView(filteredBooks);
+  const { view, sortedBooks } = bookView;
 
   // Export handlers
   const handleExportXLSX = () => {
@@ -287,33 +282,8 @@ export const BookListTab: React.FC = () => {
         </div>
       </div>
 
-      <div className="mb-3! flex items-center justify-between gap-2">
-        <BookSortMenu
-          criterion={sortCriterion}
-          direction={sortDirection}
-          onCriterionChange={setSortCriterion}
-          onDirectionChange={setSortDirection}
-        />
-        <div role="group" aria-label={t('bookViewLabel')} className="flex shrink-0 gap-1.5">
-          {([
-            ['list', List, t('bookViewList')],
-            ['gallery', Grid2X2, t('bookViewGallery')],
-          ] as const).map(([mode, Icon, label]) => (
-            <button
-              key={mode}
-              type="button"
-              aria-label={label}
-              title={label}
-              aria-pressed={view === mode}
-              onClick={() => setView(mode)}
-              className={`inline-flex size-11 items-center justify-center rounded-xl border transition cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-500 sm:size-10 ${view === mode
-                ? 'bg-indigo-600 border-indigo-600 text-on-accent'
-                : 'bg-white border-slate-200 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
-            >
-              <Icon className="size-5" aria-hidden="true" />
-            </button>
-          ))}
-        </div>
+      <div className="mb-3!">
+        <BookViewToolbar {...bookView} />
       </div>
 
       <div className={view === 'gallery' && filteredBooks.length > 0 ? '' : 'bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden'}>
@@ -322,43 +292,12 @@ export const BookListTab: React.FC = () => {
             {t('noBooksFound')}
           </div>
         ) : view === 'gallery' ? (
-          <ul className={`grid gap-3 sm:gap-4 ${isMobileLandscapeTable ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-3'}`}>
-            {sortedBooks.map((book) => {
-              const title = book.title || t('unknownTitle');
-              const color = librariesMap.get(book.libraryId)?.color || DEFAULT_LIBRARY_COLOR;
-
-              return (
-                <li key={book.id} className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                  <div className="flex items-center justify-center bg-indigo-50 px-2 py-3 sm:py-4">
-                    <BookCoverImage
-                      src={book.coverUrl}
-                      alt={title}
-                      loading="lazy"
-                      className="h-32 w-auto max-w-full rounded-sm object-contain shadow-sm sm:h-48"
-                      fallback={
-                        <div className="flex h-32 aspect-[2/3] max-w-full items-center justify-center rounded-md border border-slate-200 bg-slate-100 text-slate-400 sm:h-48">
-                          <ImageIcon className="size-7" aria-hidden="true" />
-                        </div>
-                      }
-                    />
-                  </div>
-                  <div className="flex grow flex-col gap-2 p-2.5 sm:p-3">
-                    <div>
-                      <h3 className="flex items-start gap-1.5 text-sm font-bold text-slate-900">
-                        <BookOpen className="mt-0.5 size-4 shrink-0" style={{ color }} aria-hidden="true" />
-                        <span className="min-w-0 [overflow-wrap:anywhere]">{title}</span>
-                      </h3>
-                      <p className="text-xs text-slate-500 [overflow-wrap:anywhere]">{book.author || t('unknownAuthor')}</p>
-                    </div>
-                    <div className="mt-auto flex flex-wrap items-start justify-between gap-x-1 gap-y-1.5 border-t border-slate-100 pt-2">
-                      <BookQuantityControl book={book} />
-                      {renderBookActions(book)}
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          <BookGallery
+            sortedBooks={sortedBooks}
+            isMobileLandscapeTable={isMobileLandscapeTable}
+            getLibraryColor={(book) => librariesMap.get(book.libraryId)?.color}
+            renderBookActions={renderBookActions}
+          />
         ) : (
           <div>
             {/* Decent mobile orientation banner */}

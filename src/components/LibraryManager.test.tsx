@@ -123,6 +123,45 @@ describe('LibraryManager shelf books section', () => {
     expect(shelfSection?.textContent).not.toContain('Kniha na jiné polici');
   });
 
+  it('sorts the active shelf and keeps the same order and actions in its cover gallery', async () => {
+    booksStore.push({ ...booksStore[0], id: 3, title: 'Abeceda', quantity: 5, coverUrl: 'https://covers.example/abeceda.jpg' });
+    const renderShelf = async (activeShelfId: number) => {
+      await act(async () => {
+        root.render(<LibraryManager activeShelfId={activeShelfId} setActiveShelfId={vi.fn()} onSelectShelfForScanning={vi.fn()} />);
+      });
+    };
+
+    await renderShelf(100);
+    const section = container.querySelector('[data-testid="shelf-books-section"]')!;
+    const firstRow = () => section.querySelector('tbody tr')?.textContent;
+    expect(firstRow()).toContain('Abeceda');
+
+    const sort = [...section.querySelectorAll('button')].find((button) => button.textContent === 'Řazení')!;
+    await act(async () => sort.click());
+    const choose = async (label: string) => {
+      const option = [...section.querySelectorAll('fieldset label')].find((element) => element.textContent === label)!;
+      await act(async () => option.querySelector('input')!.click());
+    };
+    await choose('Počet kusů');
+    expect(firstRow()).toContain('Životy slavných');
+    await choose('Sestupně');
+    expect(firstRow()).toContain('Abeceda');
+
+    const gallery = section.querySelector<HTMLButtonElement>('[aria-label="Dlaždice"]')!;
+    await act(async () => gallery.click());
+    expect(gallery.getAttribute('aria-pressed')).toBe('true');
+    expect(section.querySelector('table')).toBeNull();
+    expect([...section.querySelectorAll('li h3')].map((title) => title.textContent)).toEqual(['Abeceda', 'Životy slavných']);
+    const firstTile = section.querySelector('li')!;
+    expect(firstTile.querySelector('img')?.getAttribute('loading')).toBe('lazy');
+    expect([...firstTile.querySelectorAll('button')].map((button) => button.title)).toEqual([
+      'Odebrat 1 kus', 'Přidat 1 kus', 'Načíst údaje znovu podle ISBN', 'Upravit knihu', 'Smazat knihu',
+    ]);
+
+    await renderShelf(101);
+    expect([...section.querySelectorAll('li h3')].map((title) => title.textContent)).toEqual(['Kniha na jiné polici']);
+  });
+
   it('applies each rapid click using the latest quantity', async () => {
     await act(async () => {
       root.render(

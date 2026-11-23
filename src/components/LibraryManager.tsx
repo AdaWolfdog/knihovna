@@ -1,9 +1,12 @@
 import { BookCoverImage } from './BookCoverImage';
 import { BookActions } from './BookActions';
+import { BookGallery } from './BookGallery';
+import { BookViewToolbar } from './BookViewToolbar';
+import { useBookView } from './useBookView';
 import { useMobileLandscapeTable } from './useMobileLandscapeTable';
 import { DEFAULT_LIBRARY_COLOR, LIBRARY_COLORS } from './libraryColors';
 import { BookQuantityControl } from './BookQuantityControl';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Library } from '../db/db';
 import { Plus, Trash2, Edit3, Check, X, Library as LibraryIcon, Folder, BookmarkCheck, ChevronRight, Eye, BookOpen, Image as ImageIcon, Smartphone } from 'lucide-react';
@@ -222,11 +225,22 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
 
   // Books in active shelf
   const activeShelf = shelves.find((s) => s.id === activeShelfId);
-  const activeShelfBooks = activeShelfId
-    ? books.filter((b) => b.shelfId === activeShelfId)
-    : [];
+  const activeShelfBooks = useMemo(
+    () => activeShelf ? books.filter((book) => book.shelfId === activeShelf.id) : [],
+    [books, activeShelf],
+  );
+  const bookView = useBookView(activeShelfBooks);
+  const { view, sortedBooks } = bookView;
   const activeShelfRoom = activeShelf ? rooms.find((r) => r.id === activeShelf.roomId) : null;
   const activeShelfLibrary = activeShelf ? libraries.find((l) => l.id === activeShelf.libraryId) : null;
+
+  const renderBookActions = (book: Book) => (
+    <BookActions
+      book={book}
+      onEdit={() => setEditingBook(book)}
+      onDelete={() => handleDeleteBook(book.id!)}
+    />
+  );
 
   const actionsHeader = <th key="actions" className="p-3 text-right">{t('thActions')}</th>;
 
@@ -747,8 +761,8 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
       </div>
 
       {/* DEDICATED SECTION: Knihy v aktivní polici */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" data-testid="shelf-books-section">
-        <div className="p-4 sm:p-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200" data-testid="shelf-books-section">
+        <div className="rounded-t-2xl p-4 sm:p-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
               <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
@@ -791,6 +805,12 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
           )}
         </div>
 
+        {activeShelf && (
+          <div className="border-b border-slate-100 px-4 py-3 sm:px-5">
+            <BookViewToolbar {...bookView} />
+          </div>
+        )}
+
         {!activeShelf ? (
           <div className="p-10 text-center text-slate-400 text-sm">
             {t('noShelfSelectedTableNotice')}
@@ -798,6 +818,15 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
         ) : activeShelfBooks.length === 0 ? (
           <div className="p-10 text-center text-slate-400 text-sm">
             {t('noBooksInShelfTableNotice')}
+          </div>
+        ) : view === 'gallery' ? (
+          <div className="p-4 sm:p-5">
+            <BookGallery
+              sortedBooks={sortedBooks}
+              isMobileLandscapeTable={isMobileLandscapeTable}
+              getLibraryColor={() => activeShelfLibrary?.color}
+              renderBookActions={renderBookActions}
+            />
           </div>
         ) : (
           <div>
@@ -807,7 +836,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
               <span>{t('orientationHint')}</span>
             </div>
 
-            <div className="relative overflow-x-auto">
+            <div className="relative overflow-x-auto rounded-b-2xl">
               <table className="w-full text-left text-xs text-slate-700">
                 <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase font-semibold">
                   <tr>
@@ -831,17 +860,13 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {activeShelfBooks.map((book) => {
+                  {sortedBooks.map((book) => {
                     const actionsCell = (
                       <td key="actions" className="p-3 text-right">
                         <div className="flex flex-col items-end gap-1.5">
                           <BookQuantityControl book={book} compact="portrait" />
 
-                          <BookActions
-                            book={book}
-                            onEdit={() => setEditingBook(book)}
-                            onDelete={() => handleDeleteBook(book.id!)}
-                          />
+                          {renderBookActions(book)}
                           <BookQuantityControl book={book} compact="landscape" />
                         </div>
                       </td>
