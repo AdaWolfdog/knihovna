@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import { FolderInput } from 'lucide-react';
+import { FolderInput, Search } from 'lucide-react';
 import { useLanguage } from '../i18n';
 
 interface MoveLocationDialogProps {
@@ -10,14 +10,26 @@ interface MoveLocationDialogProps {
   onClose: () => void;
 }
 
+function normalizeSearch(value: string) {
+  return value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+}
+
 export function MoveLocationDialog({ kind, name, destinations, onMove, onClose }: MoveLocationDialogProps) {
   const { t } = useLanguage();
   const id = useId();
   const dialog = useRef<HTMLDialogElement>(null);
+  const [query, setQuery] = useState('');
   const [destination, setDestination] = useState('');
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
-  const validDestination = destinations.some((item) => String(item.id) === destination);
+  const searchTerms = normalizeSearch(query).trim().split(/\s+/).filter(Boolean);
+  const visibleDestinations = searchTerms.length
+    ? destinations.filter(({ name }) => {
+        const normalized = normalizeSearch(name);
+        return searchTerms.every((term) => normalized.includes(term));
+      })
+    : destinations;
+  const validDestination = visibleDestinations.some((item) => String(item.id) === destination);
 
   useEffect(() => {
     dialog.current?.showModal();
@@ -55,19 +67,40 @@ export function MoveLocationDialog({ kind, name, destinations, onMove, onClose }
           <span>{t(kind === 'room' ? 'moveRoomTooltip' : 'moveShelfTooltip')} · {name}</span>
         </h2>
         {destinations.length ? (
-          <label className="grid gap-1.5 text-sm font-medium">
-            {t(kind === 'room' ? 'moveTargetLibrary' : 'moveTargetRoom')}
-            <select
-              required
-              value={validDestination ? destination : ''}
-              onChange={(event) => setDestination(event.target.value)}
-              disabled={saving}
-              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
-            >
-              <option value="" disabled>{t('moveChooseTarget')}</option>
-              {destinations.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
-          </label>
+          <div className="space-y-3">
+            <label className="grid gap-1.5 text-sm font-medium">
+              {t('moveSearchTarget')}
+              <span className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" aria-hidden="true" />
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(event) => {
+                    setQuery(event.target.value);
+                    setDestination('');
+                  }}
+                  disabled={saving}
+                  className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3 text-base sm:text-sm"
+                />
+              </span>
+            </label>
+            <label className="grid gap-1.5 text-sm font-medium">
+              {t(kind === 'room' ? 'moveTargetLibrary' : 'moveTargetRoom')}
+              <select
+                required
+                value={validDestination ? destination : ''}
+                onChange={(event) => setDestination(event.target.value)}
+                disabled={saving || visibleDestinations.length === 0}
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm disabled:opacity-50"
+              >
+                <option value="" disabled>{t('moveChooseTarget')}</option>
+                {visibleDestinations.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+              </select>
+            </label>
+            <p role="status" className="empty:hidden text-sm text-slate-600">
+              {visibleDestinations.length === 0 ? t('moveNoMatchingTargets') : ''}
+            </p>
+          </div>
         ) : (
           <p className="text-sm text-slate-600">{t(kind === 'room' ? 'moveNoLibraries' : 'moveNoRooms')}</p>
         )}
