@@ -103,15 +103,14 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
       [group]: { ...(current[group] ?? defaultLocationSort), ...change },
     }));
     return (
-      <div className="mb-3">
-        <SortMenu
-          criteria={locationCriteria}
-          criterion={sort.criterion}
-          direction={sort.direction}
-          onCriterionChange={(criterion) => updateSort({ criterion })}
-          onDirectionChange={(direction) => updateSort({ direction })}
-        />
-      </div>
+      <SortMenu
+        compact
+        criteria={locationCriteria}
+        criterion={sort.criterion}
+        direction={sort.direction}
+        onCriterionChange={(criterion) => updateSort({ criterion })}
+        onDirectionChange={(direction) => updateSort({ direction })}
+      />
     );
   };
 
@@ -352,18 +351,21 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* COLUMN 1: Virtuální knihovny */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
-            <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-              <LibraryIcon className="w-5 h-5 text-indigo-600" />
-              {t('col1Title')}
+          <div className="relative mb-3 flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <h3 className="flex min-w-0 items-center gap-2 font-semibold text-slate-800">
+              <LibraryIcon className="size-5 shrink-0 text-indigo-600" />
+              <span className="min-w-0 [overflow-wrap:anywhere]">{t('col1Title')}</span>
             </h3>
-            <button
-              onClick={() => setShowAddLibrary(!showAddLibrary)}
-              className="p-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition cursor-pointer"
-              title={t('addLibraryTitle')}
-            >
-              <Plus className="w-4 h-4" />
-            </button>
+            <div className="flex shrink-0 items-center gap-1.5">
+              {renderLocationSort('libraries')}
+              <button
+                onClick={() => setShowAddLibrary(!showAddLibrary)}
+                className="p-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition cursor-pointer"
+                title={t('addLibraryTitle')}
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {showAddLibrary && (
@@ -413,8 +415,6 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
               </div>
             </form>
           )}
-
-          {renderLocationSort('libraries')}
 
           <div className="space-y-1.5 overflow-y-auto max-h-80 flex-1">
             {libraries.length === 0 ? (
@@ -555,20 +555,23 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
 
         {/* COLUMN 2: Místnosti */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
-            <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-              <Folder className="w-5 h-5 text-indigo-600" />
-              {t('col2Title')}
+          <div className="relative mb-3 flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <h3 className="flex min-w-0 items-center gap-2 font-semibold text-slate-800">
+              <Folder className="size-5 shrink-0 text-indigo-600" />
+              <span className="min-w-0 [overflow-wrap:anywhere]">{t('col2Title')}</span>
             </h3>
-            {selectedLibraryId && (
-              <button
-                onClick={() => setShowAddRoom(!showAddRoom)}
-                className="p-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition cursor-pointer"
-                title={t('addRoomTitle')}
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-            )}
+            <div className="flex shrink-0 items-center gap-1.5">
+              {selectedLibraryId && renderLocationSort('rooms')}
+              {selectedLibraryId && (
+                <button
+                  onClick={() => setShowAddRoom(!showAddRoom)}
+                  className="p-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition cursor-pointer"
+                  title={t('addRoomTitle')}
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
 
           {showAddRoom && selectedLibraryId && (
@@ -598,8 +601,6 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
               </div>
             </form>
           )}
-
-          {selectedLibraryId && renderLocationSort('rooms')}
 
           <div className="space-y-1.5 overflow-y-auto max-h-80 flex-1">
             {!selectedLibraryId ? (
@@ -705,20 +706,23 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
 
         {/* COLUMN 3: Police */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
-            <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-              <BookmarkCheck className="w-5 h-5 text-indigo-600" />
-              {t('col3Title')}
+          <div className="relative mb-3 flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <h3 className="flex min-w-0 items-center gap-2 font-semibold text-slate-800">
+              <BookmarkCheck className="size-5 shrink-0 text-indigo-600" />
+              <span className="min-w-0 [overflow-wrap:anywhere]">{t('col3Title')}</span>
             </h3>
-            {selectedRoomId && (
-              <button
-                onClick={() => setShowAddShelf(!showAddShelf)}
-                className="p-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition cursor-pointer"
-                title={t('addShelfTitle')}
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-            )}
+            <div className="flex shrink-0 items-center gap-1.5">
+              {selectedRoomId && renderLocationSort('shelves')}
+              {selectedRoomId && (
+                <button
+                  onClick={() => setShowAddShelf(!showAddShelf)}
+                  className="p-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition cursor-pointer"
+                  title={t('addShelfTitle')}
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
 
           {showAddShelf && selectedRoomId && (
@@ -748,8 +752,6 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
               </div>
             </form>
           )}
-
-          {selectedRoomId && renderLocationSort('shelves')}
 
           <div className="space-y-1.5 overflow-y-auto max-h-80 flex-1">
             {!selectedRoomId ? (
