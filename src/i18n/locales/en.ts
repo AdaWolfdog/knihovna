@@ -118,6 +118,8 @@ export const en: Record<TranslationKey, string> = {
   selectRoomFirst: 'Please select or create a room first.',
   roomNamePlaceholder: 'Room name (e.g. Study room)',
   shelfNamePlaceholder: 'Shelf name (e.g. A1 - History)',
+  booksCountOne: 'book',
+  booksCountFew: 'books',
   booksCountSuffix: 'books',
   activeBadge: 'Active',
   selectShelfForScanBtn: 'Select',

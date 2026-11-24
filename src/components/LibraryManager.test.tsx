@@ -123,6 +123,23 @@ describe('LibraryManager shelf books section', () => {
     expect(shelfSection?.textContent).not.toContain('Kniha na jiné polici');
   });
 
+  it('uses Czech plural forms for copy counts in all three location columns', async () => {
+    const book = booksStore[0];
+    const setActiveShelfId = vi.fn();
+    const onSelectShelfForScanning = vi.fn();
+    for (const [quantity, label] of [[0, '0 knih'], [1, '1 kniha'], [2, '2 knihy'], [3, '3 knihy'], [4, '4 knihy'], [5, '5 knih'], [21, '21 knih']]) {
+      booksStore = quantity ? [{ ...book, quantity }] : [];
+      await act(async () => {
+        root.render(<LibraryManager activeShelfId={100} setActiveShelfId={setActiveShelfId} onSelectShelfForScanning={onSelectShelfForScanning} />);
+      });
+      const counts = [...container.querySelectorAll('h3')]
+        .filter((heading) => /Virtuální knihovny|Místnosti|Cílová police/.test(heading.textContent ?? ''))
+        .map((heading) => heading.parentElement?.parentElement?.textContent);
+      expect(counts).toHaveLength(3);
+      for (const count of counts) expect(count).toContain(label);
+    }
+  });
+
   it('sorts the active shelf and keeps the same order and actions in its cover gallery', async () => {
     booksStore.push({ ...booksStore[0], id: 3, title: 'Abeceda', quantity: 5, coverUrl: 'https://covers.example/abeceda.jpg' });
     const renderShelf = async (activeShelfId: number) => {

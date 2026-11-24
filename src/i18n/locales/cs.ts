@@ -116,6 +116,8 @@ export const cs = {
   selectRoomFirst: 'Nejprve vyberte nebo vytvořte místnost.',
   roomNamePlaceholder: 'Název místnosti (např. Studovna)',
   shelfNamePlaceholder: 'Název police (např. A1 - Historie)',
+  booksCountOne: 'kniha',
+  booksCountFew: 'knihy',
   booksCountSuffix: 'knih',
   activeBadge: 'Aktivní',
   selectShelfForScanBtn: 'Vybrat',

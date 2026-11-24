@@ -75,6 +75,12 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
   const [movingLocation, setMovingLocation] = useState<MoveLocation | null>(null);
   const [locationSort, setLocationSort] = useState<Partial<Record<LocationGroup, LocationSort>>>({});
   const locationCollator = useMemo(() => new Intl.Collator(language === 'emoji' ? 'cs' : language, { numeric: true }), [language]);
+  const bookCountRules = useMemo(() => new Intl.PluralRules(language === 'emoji' ? 'cs' : language), [language]);
+  const formatBookCount = (count: number) => {
+    const plural = bookCountRules.select(count);
+    const suffix = plural === 'one' ? 'booksCountOne' : plural === 'few' ? 'booksCountFew' : 'booksCountSuffix';
+    return `${count} ${t(suffix)}`;
+  };
   const copyCounts = useMemo(() => {
     const counts = { libraries: new Map<number, number>(), rooms: new Map<number, number>(), shelves: new Map<number, number>() };
     for (const book of books) {
@@ -532,7 +538,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                        {count} {t('booksCountSuffix')}
+                        {formatBookCount(count)}
                       </span>
                       <button
                         onClick={(e) => {
@@ -670,7 +676,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                        {count} {t('booksCountSuffix')}
+                        {formatBookCount(count)}
                       </span>
                       <button
                         type="button"
@@ -838,7 +844,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                         title={t('clickToViewBooksTooltip')}
                       >
                         <Eye className="w-3 h-3" />
-                        <span>{count} {t('booksCountSuffix')}</span>
+                        <span>{formatBookCount(count)}</span>
                       </button>
 
                       {isActive ? (

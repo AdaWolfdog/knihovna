@@ -118,6 +118,8 @@ export const es: Record<TranslationKey, string> = {
   selectRoomFirst: 'Primero seleccione o cree una sala.',
   roomNamePlaceholder: 'Nombre de la sala (ej. Estudio)',
   shelfNamePlaceholder: 'Nombre del estante (ej. A1 - Historia)',
+  booksCountOne: 'libro',
+  booksCountFew: 'libros',
   booksCountSuffix: 'libros',
   activeBadge: 'Activo',
   selectShelfForScanBtn: 'Seleccionar',
