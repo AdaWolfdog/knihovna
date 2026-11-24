@@ -290,7 +290,7 @@ export const BookListTab: React.FC = () => {
         <BookViewToolbar {...bookView} />
       </div>
 
-      <div className={view === 'gallery' && filteredBooks.length > 0 ? '' : 'bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden'}>
+      <div className={view === 'gallery' && filteredBooks.length > 0 ? '' : 'bg-white rounded-2xl shadow-sm border border-slate-200 overflow-clip'}>
         {filteredBooks.length === 0 ? (
           <div className="p-12 text-center text-slate-400 text-sm">
             {t('noBooksFound')}
@@ -310,6 +310,7 @@ export const BookListTab: React.FC = () => {
               <span>{t('orientationHint')}</span>
             </div>
 
+            <div className="book-table-sticky" aria-hidden="true" inert />
             <div className="relative overflow-x-auto">
               <table ref={attachStickyBookTable} className="w-full text-left text-xs text-slate-700">
                 <thead className="relative z-10 bg-slate-50 text-slate-500 uppercase font-semibold shadow-[0_1px_0_var(--color-slate-200)]">

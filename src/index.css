@@ -440,6 +440,22 @@ body {
   color: var(--color-slate-900);
 }
 
+.book-table-sticky {
+  position: sticky;
+  top: var(--book-table-top, 0px);
+  z-index: 10;
+  height: var(--book-table-head-height, 0px);
+  margin-bottom: calc(-1 * var(--book-table-head-height, 0px));
+  overflow: hidden;
+  pointer-events: none;
+  background-color: var(--color-slate-50);
+  box-shadow: 0 1px 0 var(--color-slate-200);
+}
+
+[data-sticky-header-ready] > table > thead {
+  opacity: 0;
+}
+
 /* Helper classes for mobile portrait table columns */
 @media (max-width: 639px) and (orientation: portrait) {
   .mobile-portrait-hidden {

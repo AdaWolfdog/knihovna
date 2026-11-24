@@ -977,6 +977,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
               <span>{t('orientationHint')}</span>
             </div>
 
+            <div className="book-table-sticky" aria-hidden="true" inert />
             <div className="relative overflow-x-auto rounded-b-2xl">
               <table ref={attachStickyBookTable} className="w-full text-left text-xs text-slate-700">
                 <thead className="relative z-10 bg-slate-50 text-slate-500 uppercase font-semibold shadow-[0_1px_0_var(--color-slate-200)]">

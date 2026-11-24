@@ -1,37 +1,78 @@
 export function attachStickyBookTable(table: HTMLTableElement | null) {
   const head = table?.tHead;
+  const scrollport = table?.parentElement;
+  const sticky = scrollport?.previousElementSibling;
   const appHeader = document.getElementById('app-header');
-  if (!table || !head) return;
+  if (!table || !head || !scrollport || !(sticky instanceof HTMLElement) || !sticky.classList.contains('book-table-sticky')) return;
 
-  let frame = 0;
-  const positionHeader = () => {
-    frame = 0;
-    const { top, height } = table.getBoundingClientRect();
-    const headerBottom = Math.max(0, appHeader?.getBoundingClientRect().bottom ?? 0);
-    const limit = Math.max(0, height - head.offsetHeight);
-    const offset = Math.min(limit, Math.max(0, headerBottom - top));
+  // The table keeps its semantic header and its horizontal scrollbar. A visual
+  // copy outside that scroll container can stick to the page using CSS.
+  const mirror = document.createElement('table');
+  mirror.className = table.className;
+  mirror.style.tableLayout = 'fixed';
+  const colgroup = document.createElement('colgroup');
+  mirror.append(colgroup);
+  mirror.createTHead();
 
-    // Keep the header in the same horizontal scroll container as its columns.
-    head.style.transform = offset ? `translateY(${offset}px)` : '';
+  const syncHorizontal = () => {
+    sticky.scrollLeft = scrollport.scrollLeft;
   };
-  const schedulePosition = () => {
-    if (!frame) frame = window.requestAnimationFrame(positionHeader);
+  const syncHeader = () => {
+    const height = head.getBoundingClientRect().height;
+    if (!height) return;
+
+    const widths = Array.from(head.rows[0]?.cells ?? [], (cell) => cell.getBoundingClientRect().width);
+    colgroup.replaceChildren(...widths.filter((width) => width > 0).map((width) => {
+      const column = document.createElement('col');
+      column.style.width = `${width}px`;
+      return column;
+    }));
+    mirror.tHead?.replaceWith(head.cloneNode(true));
+    mirror.style.width = `${table.getBoundingClientRect().width}px`;
+    sticky.style.setProperty('--book-table-head-height', `${height}px`);
+    sticky.style.setProperty('--book-table-top', `${appHeader?.getBoundingClientRect().height ?? 0}px`);
+    if (!sticky.contains(mirror)) sticky.replaceChildren(mirror);
+    scrollport.setAttribute('data-sticky-header-ready', '');
+    syncHorizontal();
   };
 
-  positionHeader();
-  window.addEventListener('scroll', schedulePosition, { passive: true });
-  window.addEventListener('resize', schedulePosition);
-  const resize = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(schedulePosition) : undefined;
+  const resize = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(syncHeader) : undefined;
+  const observedCells = new Set<HTMLTableCellElement>();
+  const observeCells = () => {
+    const cells = new Set(Array.from(head.rows[0]?.cells ?? []));
+    for (const cell of observedCells) {
+      if (cells.has(cell)) continue;
+      resize?.unobserve(cell);
+      observedCells.delete(cell);
+    }
+    for (const cell of cells) {
+      if (observedCells.has(cell)) continue;
+      resize?.observe(cell);
+      observedCells.add(cell);
+    }
+  };
+  const changes = new MutationObserver(() => {
+    observeCells();
+    syncHeader();
+  });
+
+  syncHeader();
   resize?.observe(table);
+  resize?.observe(head);
   if (appHeader) resize?.observe(appHeader);
-  const main = table.closest('main');
-  if (main) resize?.observe(main);
+  observeCells();
+  changes.observe(head, { childList: true, characterData: true, subtree: true });
+  scrollport.addEventListener('scroll', syncHorizontal, { passive: true });
+  window.addEventListener('resize', syncHeader);
 
   return () => {
-    window.removeEventListener('scroll', schedulePosition);
-    window.removeEventListener('resize', schedulePosition);
+    changes.disconnect();
     resize?.disconnect();
-    if (frame) window.cancelAnimationFrame(frame);
-    head.style.transform = '';
+    scrollport.removeEventListener('scroll', syncHorizontal);
+    window.removeEventListener('resize', syncHeader);
+    scrollport.removeAttribute('data-sticky-header-ready');
+    mirror.remove();
+    sticky.style.removeProperty('--book-table-head-height');
+    sticky.style.removeProperty('--book-table-top');
   };
 }
