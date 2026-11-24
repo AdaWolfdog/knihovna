@@ -136,7 +136,7 @@ export const BookListTab: React.FC = () => {
   const actionsHeader = <th key="actions" className="p-3 text-right">{t('thActions')}</th>;
 
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
+    <div className="max-w-6xl mx-auto px-4 pt-4 pb-6 sm:px-6 sm:pt-6 space-y-6">
       {/* Top Header & Export Buttons */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

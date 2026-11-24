@@ -354,7 +354,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
   const actionsHeader = <th key="actions" className="p-3 text-right">{t('thActions')}</th>;
 
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
+    <div className="max-w-6xl mx-auto px-4 pt-4 pb-6 sm:px-6 sm:pt-6 space-y-6">
       {/* Step Info Banner */}
       <div className="bg-indigo-50 border-l-4 border-indigo-600 p-4 rounded-r-lg">
         <h2 className="text-lg font-bold text-indigo-900 mb-1">
