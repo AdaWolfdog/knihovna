@@ -460,6 +460,25 @@ body {
   .book-table-return-space {
     margin-right: 0;
   }
+
+  .book-list-return-space.book-table-return-space {
+    margin-inline: calc(50% - 50vw);
+    border-inline-width: 0;
+    border-radius: 0;
+    background-color: var(--color-white);
+  }
+
+  .book-table-return-space > .overflow-x-auto {
+    border-radius: 0;
+  }
+}
+
+/* At this width the page has 16px padding on each side. Use its layout
+   width rather than viewport units so a desktop scrollbar stays outside. */
+@media (max-width: 639px) {
+  .book-list-return-space.book-table-return-space {
+    margin-inline: calc(-1rem - var(--book-table-parent-border, 0px));
+  }
 }
 
 /* Keep the arrow away from the action column on narrow screens in portrait. */

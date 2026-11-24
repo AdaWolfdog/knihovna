@@ -972,7 +972,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
             />
           </div>
         ) : (
-          <div className="book-list-return-space book-table-return-space">
+          <div className="book-list-return-space book-table-return-space [--book-table-parent-border:1px]">
             <BackToTop />
             {/* Decent mobile orientation banner */}
             <div className="mobile-portrait-info-banner hidden items-center gap-2 bg-slate-50 border-b border-slate-200 px-4 py-2 text-xs text-slate-600">
