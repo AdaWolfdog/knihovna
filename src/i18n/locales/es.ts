@@ -196,6 +196,7 @@ export const es: Record<TranslationKey, string> = {
   bookViewLabel: 'Vista de libros',
   bookViewList: 'Lista',
   bookViewGallery: 'Cuadrícula',
+  backToTop: 'Volver arriba',
   bookListTitle: 'Lista de libros escaneados',
   bookListSubtitle: 'Explore, busque y exporte la colección completa a hojas de cálculo de Excel o CSV.',
   exportXlsxBtn: 'Exportar a Excel (.xlsx)',

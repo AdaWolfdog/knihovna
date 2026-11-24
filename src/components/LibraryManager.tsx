@@ -1,3 +1,4 @@
+import { BackToTop } from './BackToTop';
 import { BookCoverImage } from './BookCoverImage';
 import { attachStickyBookTable } from './stickyBookTable';
 import { BookActions } from './BookActions';
@@ -961,7 +962,8 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
             {t('noBooksInShelfTableNotice')}
           </div>
         ) : view === 'gallery' ? (
-          <div className="p-4 sm:p-5">
+          <div className="book-list-return-space p-4 sm:p-5">
+            <BackToTop />
             <BookGallery
               sortedBooks={sortedBooks}
               isMobileLandscapeTable={isMobileLandscapeTable}
@@ -970,7 +972,8 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
             />
           </div>
         ) : (
-          <div>
+          <div className="book-list-return-space">
+            <BackToTop />
             {/* Decent mobile orientation banner */}
             <div className="mobile-portrait-info-banner hidden items-center gap-2 bg-slate-50 border-b border-slate-200 px-4 py-2 text-xs text-slate-600">
               <Smartphone className="w-4 h-4 text-indigo-500 rotate-90 shrink-0" />

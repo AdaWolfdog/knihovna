@@ -196,6 +196,7 @@ export const de: Record<TranslationKey, string> = {
   bookViewLabel: 'Buchansicht',
   bookViewList: 'Liste',
   bookViewGallery: 'Kacheln',
+  backToTop: 'Nach oben',
   bookListTitle: 'Liste der gescannten Bücher',
   bookListSubtitle: 'Durchsuchen und exportieren Sie den gesamten Bestand in Excel- oder CSV-Tabellen.',
   exportXlsxBtn: 'Nach Excel exportieren (.xlsx)',

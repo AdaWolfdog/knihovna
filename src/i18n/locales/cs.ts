@@ -194,6 +194,7 @@ export const cs = {
   bookViewLabel: 'Zobrazení knih',
   bookViewList: 'Seznam',
   bookViewGallery: 'Dlaždice',
+  backToTop: 'Zpět nahoru',
   bookListTitle: 'Seznam naskenovaných knih',
   bookListSubtitle: 'Prohlížejte, vyhledávejte a exportujte kompletní fond do tabulek Excel nebo CSV.',
   exportXlsxBtn: 'Exportovat do Excel (.xlsx)',

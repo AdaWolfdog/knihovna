@@ -196,6 +196,7 @@ export const en: Record<TranslationKey, string> = {
   bookViewLabel: 'Book view',
   bookViewList: 'List',
   bookViewGallery: 'Grid',
+  backToTop: 'Back to top',
   bookListTitle: 'List of scanned books',
   bookListSubtitle: 'Browse, search, and export the entire collection to Excel or CSV spreadsheets.',
   exportXlsxBtn: 'Export to Excel (.xlsx)',

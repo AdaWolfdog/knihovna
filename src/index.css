@@ -440,6 +440,22 @@ body {
   color: var(--color-slate-900);
 }
 
+.book-list-return-space {
+  position: relative;
+  margin-right: calc(max(8px, env(safe-area-inset-right)) + 32px);
+}
+
+.book-back-to-top {
+  right: max(8px, env(safe-area-inset-right));
+  bottom: calc(12px + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 80rem) and (pointer: fine) {
+  .book-list-return-space {
+    margin-right: 0;
+  }
+}
+
 .book-table-sticky {
   position: sticky;
   top: var(--book-table-top, 0px);
