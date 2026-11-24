@@ -1,4 +1,5 @@
 import { BookCoverImage } from './BookCoverImage';
+import { attachStickyBookTable } from './stickyBookTable';
 import { BookActions } from './BookActions';
 import { MoveBookDialog } from './MoveBookDialog';
 import { SortMenu } from './BookSortMenu';
@@ -977,8 +978,8 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
             </div>
 
             <div className="relative overflow-x-auto rounded-b-2xl">
-              <table className="w-full text-left text-xs text-slate-700">
-                <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase font-semibold">
+              <table ref={attachStickyBookTable} className="w-full text-left text-xs text-slate-700">
+                <thead className="relative z-10 bg-slate-50 text-slate-500 uppercase font-semibold shadow-[0_1px_0_var(--color-slate-200)]">
                   <tr>
                     <th className="p-3 w-14 text-center mobile-portrait-hidden">{t('thCover')}</th>
                     <th className="p-3">{t('thTitleAuthor')}</th>

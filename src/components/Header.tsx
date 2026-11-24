@@ -17,7 +17,7 @@ export const Header: React.FC<HeaderProps> = ({
   const selectedLanguage = LANGUAGES.find((option) => option.code === language) ?? LANGUAGES[0];
 
   return (
-    <header className="bg-chrome text-chrome-text shadow-md sticky top-0 z-30 transition-all">
+    <header id="app-header" className="bg-chrome text-chrome-text shadow-md sticky top-0 z-30 transition-all">
       <div className="max-w-6xl mx-auto px-4 py-3 relative">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
           {/* Top row: Brand + Language selector + mobile toggle in bottom-right */}
