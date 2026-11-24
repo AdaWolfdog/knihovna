@@ -123,6 +123,7 @@ export async function moveBookToShelf(
   bookId: number,
   sourceShelfId: number,
   destination: Pick<Book, 'libraryId' | 'roomId' | 'shelfId'>,
+  quantity: number,
 ) {
   const { libraryId, roomId, shelfId } = destination;
   await db.transaction('rw', [db.libraries, db.rooms, db.shelves, db.books], async () => {
@@ -135,6 +136,16 @@ export async function moveBookToShelf(
       throw new Error('The book location or destination shelf changed');
     }
 
-    await db.books.update(bookId, { libraryId, roomId, shelfId });
+    const availableCopies = book.quantity || 1;
+    if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > availableCopies) {
+      throw new Error('The selected number of copies is not available');
+    }
+
+    if (quantity === availableCopies) {
+      await db.books.update(bookId, { libraryId, roomId, shelfId });
+    } else {
+      await db.books.update(bookId, { quantity: availableCopies - quantity });
+      await db.books.add({ ...book, id: undefined, libraryId, roomId, shelfId, quantity });
+    }
   });
 }

@@ -167,6 +167,8 @@ export const cs = {
 
   // BookListTab
   locationSortQuantity: 'Množství knih',
+  moveBookQuantity: 'Počet kusů k přesunu',
+  moveBookAvailableQuantity: 'z {count} ks',
   moveBookTooltip: 'Přesunout knihu',
   moveTargetShelf: 'Cílová police',
   moveNoShelves: 'Pro přesun této knihy je potřeba jiná police.',

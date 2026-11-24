@@ -45,11 +45,12 @@ export function MoveBookDialog({ book, libraries, rooms, shelves, onClose }: Mov
       kind="book"
       name={book.title || t('unknownTitle')}
       destinations={destinations}
-      onMove={async (libraryId, roomId, shelfId) => {
+      availableCopies={book.quantity || 1}
+      onMove={async (libraryId, roomId, shelfId, quantity) => {
         if (book.id === undefined || roomId === undefined || shelfId === undefined) {
           throw new Error('A destination shelf is required');
         }
-        await moveBookToShelf(book.id, book.shelfId, { libraryId, roomId, shelfId });
+        await moveBookToShelf(book.id, book.shelfId, { libraryId, roomId, shelfId }, quantity);
       }}
       onClose={onClose}
     />

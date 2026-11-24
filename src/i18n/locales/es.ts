@@ -169,6 +169,8 @@ export const es: Record<TranslationKey, string> = {
 
   // BookListTab
   locationSortQuantity: 'Cantidad de libros',
+  moveBookQuantity: 'Ejemplares que se van a mover',
+  moveBookAvailableQuantity: 'de {count} ejemplares',
   moveBookTooltip: 'Mover libro',
   moveTargetShelf: 'Estante de destino',
   moveNoShelves: 'Se necesita otro estante para mover este libro.',

@@ -12,23 +12,27 @@ interface MoveLocationDialogProps {
   kind: 'room' | 'shelf' | 'book';
   name: string;
   destinations: readonly MoveDestinationLibrary[];
-  onMove: (libraryId: number, roomId?: number, shelfId?: number) => Promise<void>;
+  availableCopies?: number;
+  onMove: (libraryId: number, roomId: number | undefined, shelfId: number | undefined, quantity: number) => Promise<void>;
   onClose: () => void;
 }
 
-export function MoveLocationDialog({ kind, name, destinations, onMove, onClose }: MoveLocationDialogProps) {
+export function MoveLocationDialog({ kind, name, destinations, availableCopies = 1, onMove, onClose }: MoveLocationDialogProps) {
   const { t } = useLanguage();
   const id = useId();
   const dialog = useRef<HTMLDialogElement>(null);
   const [libraryId, setLibraryId] = useState('');
   const [roomId, setRoomId] = useState('');
   const [shelfId, setShelfId] = useState('');
+  const [quantityInput, setQuantityInput] = useState(String(availableCopies));
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
   const selectedLibrary = destinations.find((library) => String(library.id) === libraryId);
   const selectedRoom = selectedLibrary?.rooms.find((room) => String(room.id) === roomId);
   const selectedShelf = selectedRoom?.shelves?.find((shelf) => String(shelf.id) === shelfId);
-  const canMove = selectedLibrary !== undefined && (kind === 'room' || (kind === 'shelf' ? selectedRoom !== undefined : selectedShelf !== undefined));
+  const quantity = Number(quantityInput);
+  const validQuantity = Number.isSafeInteger(quantity) && quantity >= 1 && quantity <= availableCopies;
+  const canMove = validQuantity && selectedLibrary !== undefined && (kind === 'room' || (kind === 'shelf' ? selectedRoom !== undefined : selectedShelf !== undefined));
   const titleKey = { room: 'moveRoomTooltip', shelf: 'moveShelfTooltip', book: 'moveBookTooltip' } as const;
   const noDestinationsKey = { room: 'moveNoLibraries', shelf: 'moveNoRooms', book: 'moveNoShelves' } as const;
   const selectClass = 'w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base sm:text-sm';
@@ -44,7 +48,7 @@ export function MoveLocationDialog({ kind, name, destinations, onMove, onClose }
     setSaving(true);
     setFailed(false);
     try {
-      await onMove(selectedLibrary.id, selectedRoom?.id, selectedShelf?.id);
+      await onMove(selectedLibrary.id, selectedRoom?.id, selectedShelf?.id, quantity);
       onClose();
     } catch (error) {
       console.error('Failed to move library location:', error);
@@ -70,6 +74,26 @@ export function MoveLocationDialog({ kind, name, destinations, onMove, onClose }
         </h2>
         {destinations.length ? (
           <div className="space-y-3">
+            {kind === 'book' && availableCopies > 1 && (
+              <label className="grid gap-1.5 text-sm font-medium">
+                {t('moveBookQuantity')}
+                <span className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={availableCopies}
+                    step={1}
+                    required
+                    value={quantityInput}
+                    onChange={(event) => setQuantityInput(event.target.value)}
+                    disabled={saving}
+                    className={`${selectClass} max-w-28`}
+                  />
+                  <span className="text-xs text-slate-500">{t('moveBookAvailableQuantity', { count: availableCopies })}</span>
+                </span>
+              </label>
+            )}
             <label className="grid gap-1.5 text-sm font-medium">
               {t('moveTargetLibrary')}
               <select
