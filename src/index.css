@@ -481,14 +481,6 @@ body {
   }
 }
 
-/* Keep the arrow away from the action column on narrow screens in portrait. */
-@media (max-width: 639px) and (orientation: portrait), (pointer: coarse) and (orientation: portrait) {
-  .book-table-return-space .book-back-to-top {
-    right: auto;
-    left: max(8px, env(safe-area-inset-left));
-  }
-}
-
 .book-table-sticky {
   position: sticky;
   top: var(--book-table-top, 0px);
