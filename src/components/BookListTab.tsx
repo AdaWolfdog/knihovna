@@ -293,7 +293,7 @@ export const BookListTab: React.FC = () => {
 
       <div className={`${filteredBooks.length ? 'book-list-return-space' : ''} ${view === 'gallery' && filteredBooks.length > 0
         ? ''
-        : 'bg-white rounded-2xl shadow-sm border border-slate-200 overflow-clip'}`}>
+        : 'book-table-return-space bg-white rounded-2xl shadow-sm border border-slate-200 overflow-clip'}`}>
         {filteredBooks.length > 0 && <BackToTop />}
         {filteredBooks.length === 0 ? (
           <div className="p-12 text-center text-slate-400 text-sm">
